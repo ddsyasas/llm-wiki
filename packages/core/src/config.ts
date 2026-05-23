@@ -116,10 +116,13 @@ export const DEFAULT_WIKI_SETTINGS: WikiSettings = {
   version: 1,
   topic: "",
   defaultModels: {
-    ingest: "anthropic/claude-3-5-haiku",
-    query: "anthropic/claude-3-5-sonnet",
-    lint: "anthropic/claude-3-5-sonnet",
-    vision: "anthropic/claude-3-5-sonnet",
+    // Slugs follow OpenRouter conventions and the Claude 4.x family (current
+    // as of 2026-05). If you bump these, also update
+    // packages/llm/src/models.ts DEFAULT_MODELS to match.
+    ingest: "anthropic/claude-haiku-4.5",
+    query: "anthropic/claude-sonnet-4.6",
+    lint: "anthropic/claude-sonnet-4.6",
+    vision: "anthropic/claude-sonnet-4.6",
   },
   autoLintAfterIngest: false,
   showCostEstimates: true,

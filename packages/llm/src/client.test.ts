@@ -25,7 +25,7 @@ function mockClient(impl: (...args: Parameters<CreateFn>) => unknown): LlmClient
 function jsonResponse(body: unknown, opts: { model?: string; usage?: { prompt_tokens?: number; completion_tokens?: number } } = {}) {
   return {
     id: "chatcmpl-test",
-    model: opts.model ?? "anthropic/claude-3-5-haiku",
+    model: opts.model ?? "anthropic/claude-haiku-4.5",
     choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify(body) }, finish_reason: "stop" }],
     usage: { prompt_tokens: opts.usage?.prompt_tokens ?? 10, completion_tokens: opts.usage?.completion_tokens ?? 5 },
   };
@@ -52,14 +52,14 @@ describe("callLLM happy path", () => {
     const client = mockClient(() => jsonResponse({ message: "hello" }));
     const result = await callLLM({
       client,
-      model: "anthropic/claude-3-5-haiku",
+      model: "anthropic/claude-haiku-4.5",
       system: "json only",
       user: "say hi",
       schema,
     });
     expect(result.data).toEqual({ message: "hello" });
     expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 5 });
-    expect(result.model).toBe("anthropic/claude-3-5-haiku");
+    expect(result.model).toBe("anthropic/claude-haiku-4.5");
     expect(client.chat.completions.create).toHaveBeenCalledTimes(1);
   });
 
@@ -230,13 +230,14 @@ describe("models helpers", () => {
   });
 
   it("getPricing returns null for unknown models", () => {
-    expect(getPricing("anthropic/claude-3-5-haiku")).not.toBeNull();
+    expect(getPricing("anthropic/claude-haiku-4.5")).not.toBeNull();
     expect(getPricing("made-up/model")).toBeNull();
   });
 
   it("estimateCostCents computes cost when pricing is known and null otherwise", () => {
-    const cost = estimateCostCents("anthropic/claude-3-5-haiku", 1_000_000, 1_000_000);
-    expect(cost).toBeCloseTo((0.8 + 4.0) * 100); // $4.80 = 480 cents
+    const cost = estimateCostCents("anthropic/claude-haiku-4.5", 1_000_000, 1_000_000);
+    // Haiku 4.5: $1.00 input + $5.00 output per million = $6.00 = 600 cents
+    expect(cost).toBeCloseTo((1.0 + 5.0) * 100);
     expect(estimateCostCents("made-up/model", 100, 100)).toBeNull();
   });
 });
