@@ -9,10 +9,16 @@ import {
   initWikiFolder,
   loadWikiSettings,
   openDb,
+  purgeOldTrash,
   syncWikiToDb,
   type Db,
   type WikiSettings,
 } from "@llm-wiki/core";
+
+// Throttle the trash purge so we don't crawl the trash dir on every API call.
+// One purge per process per hour is plenty for V1.
+let lastPurgeMs = 0;
+const PURGE_INTERVAL_MS = 60 * 60 * 1000;
 
 export function resolveWikiPath(): string {
   // The CLI (Step 13) will pass the user-chosen folder via env. Until then,
@@ -44,5 +50,12 @@ export async function openWikiContext(): Promise<WikiContext> {
     throw err;
   }
   const settings = await loadWikiSettings(wikiPath);
+
+  // Best-effort 30-day trash cleanup. Throttled, errors ignored.
+  if (Date.now() - lastPurgeMs > PURGE_INTERVAL_MS) {
+    lastPurgeMs = Date.now();
+    purgeOldTrash(wikiPath).catch(() => {});
+  }
+
   return { wikiPath, db, settings };
 }

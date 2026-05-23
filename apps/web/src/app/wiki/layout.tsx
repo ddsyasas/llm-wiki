@@ -4,7 +4,7 @@ import { WikiSidebar } from "@/components/wiki/sidebar";
 
 export default function WikiLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="flex min-h-[calc(100vh-3rem)] flex-1 flex-col bg-background text-foreground">
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
         <Link href="/" className="font-semibold tracking-tight">
           LLM Wiki

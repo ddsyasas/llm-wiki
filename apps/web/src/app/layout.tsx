@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { CommandPalette } from "@/components/command-palette";
+import { Footer } from "@/components/footer";
 import { THEME_INIT_SCRIPT, ThemeProvider } from "@/components/theme-provider";
 
 import "./globals.css";
@@ -16,8 +18,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Runs before hydration to avoid a light->dark flash on first paint. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body>
-        <ThemeProvider>{children}</ThemeProvider>
+      <body className="flex min-h-screen flex-col">
+        <ThemeProvider>
+          <div className="flex flex-1 flex-col">{children}</div>
+          <Footer />
+          <CommandPalette />
+        </ThemeProvider>
       </body>
     </html>
   );

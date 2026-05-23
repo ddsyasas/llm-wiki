@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CostPreview } from "@/components/cost-preview";
 import { Textarea } from "@/components/ui/textarea";
 import { MarkdownView } from "@/components/wiki/markdown-view";
+import { useWikiSettings } from "@/lib/use-wiki-settings";
 import { cn } from "@/lib/utils";
 
 type QueryResponse = {
@@ -38,6 +40,7 @@ const CONFIDENCE_STYLES: Record<QueryResponse["confidence"], string> = {
 export default function QueryPage() {
   const [question, setQuestion] = useState("");
   const [knownSlugs, setKnownSlugs] = useState<string[]>([]);
+  const settings = useWikiSettings();
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<QuerySuccess | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +163,14 @@ export default function QueryPage() {
             Cmd/Ctrl + Enter to submit · uses settings → models → query
           </p>
         </div>
+        {settings?.settings.showCostEstimates && question.trim() ? (
+          <CostPreview
+            text={question}
+            model={settings.settings.defaultModels.query}
+            contextOverhead={6000}
+            expectedOutputTokens={600}
+          />
+        ) : null}
       </form>
 
       {error ? (

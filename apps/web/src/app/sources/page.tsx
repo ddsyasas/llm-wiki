@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CostPreview } from "@/components/cost-preview";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useWikiSettings } from "@/lib/use-wiki-settings";
 import { cn } from "@/lib/utils";
 
 type Mode = "paste" | "file" | "url";
@@ -266,6 +268,8 @@ export default function SourcesPage() {
             </div>
           ) : null}
 
+          <CostPreviewForSources mode={mode} text={text} file={file} url={url} />
+
           <div className="flex flex-wrap items-center gap-2">
             <Button type="submit" disabled={!canSubmit}>
               {busy ? "Ingesting…" : "Ingest"}
@@ -356,4 +360,43 @@ export default function SourcesPage() {
       </p>
     </main>
   );
+}
+
+function CostPreviewForSources({
+  mode,
+  text,
+  file,
+  url,
+}: {
+  mode: Mode;
+  text: string;
+  file: File | null;
+  url: string;
+}) {
+  const settings = useWikiSettings();
+  if (!settings) return null;
+  if (!settings.settings.showCostEstimates) return null;
+
+  const isVision =
+    mode === "file" && file !== null && /\.(pdf|png|jpg|jpeg|webp)$/i.test(file.name);
+  const model = isVision
+    ? settings.settings.defaultModels.vision
+    : settings.settings.defaultModels.ingest;
+
+  // For files, we estimate by file size; PDFs/images ride as base64 in the
+  // multimodal call, so the input token cost is roughly bytes/3 (base64 overhead).
+  let estimateInput = "";
+  if (mode === "paste") estimateInput = text;
+  else if (mode === "url") estimateInput = url ? `Article from ${url}, est. 3000 words` : "";
+  else if (mode === "file" && file) {
+    if (isVision) {
+      // Vision: 1 image-ish payload ≈ 1500 tokens for a typical page.
+      estimateInput = "x".repeat(Math.min(file.size, 50_000));
+    } else {
+      // Text file: estimate from size, capped to avoid huge previews.
+      estimateInput = "x".repeat(Math.min(file.size, 200_000));
+    }
+  }
+
+  return <CostPreview text={estimateInput} model={model} contextOverhead={5000} />;
 }

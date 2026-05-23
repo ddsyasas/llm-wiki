@@ -452,6 +452,43 @@ export function listChats(db: Db, folder?: string): ChatRow[] {
   return listChatRows(db, folder);
 }
 
+// ---- trash maintenance ---------------------------------------------------
+
+const DEFAULT_TRASH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+/**
+ * Removes files in .llm-wiki/trash/chats/ older than maxAgeMs. Tolerant of a
+ * missing trash directory (returns 0). Returns the number of files deleted.
+ */
+export async function purgeOldTrash(
+  wikiPath: string,
+  maxAgeMs: number = DEFAULT_TRASH_TTL_MS,
+): Promise<number> {
+  const trashDir = join(wikiPath, WIKI_PATHS.tooling, TRASH_DIR);
+  const { readdir, stat: statFs, unlink } = await import("node:fs/promises");
+  let entries: string[];
+  try {
+    entries = await readdir(trashDir);
+  } catch {
+    return 0;
+  }
+  const cutoff = Date.now() - maxAgeMs;
+  let removed = 0;
+  for (const name of entries) {
+    const p = join(trashDir, name);
+    try {
+      const s = await statFs(p);
+      if (s.isFile() && s.mtimeMs < cutoff) {
+        await unlink(p);
+        removed++;
+      }
+    } catch {
+      // entry vanished between readdir and stat; skip
+    }
+  }
+  return removed;
+}
+
 // ---- helpers -------------------------------------------------------------
 
 class ChatNotFoundError extends Error {

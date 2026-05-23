@@ -13,6 +13,7 @@ import {
   listChats,
   moveChat,
   pinChat,
+  purgeOldTrash,
   readChat,
   renameChat,
   sendChatMessage,
@@ -141,6 +142,30 @@ describe("listChatFolders", () => {
     await moveChat(wikiPath, db, row.id, "custom-bucket");
     const folders = await listChatFolders(wikiPath);
     expect(folders).toContain("custom-bucket");
+  });
+});
+
+describe("purgeOldTrash", () => {
+  it("returns 0 when the trash dir does not exist", async () => {
+    expect(await purgeOldTrash(wikiPath)).toBe(0);
+  });
+
+  it("deletes trashed files older than the TTL and leaves recent ones alone", async () => {
+    const a = await createChat(wikiPath, db, { model: "m", title: "Old" });
+    const b = await createChat(wikiPath, db, { model: "m", title: "Fresh" });
+    const trashedA = (await deleteChat(wikiPath, db, a.id)).trashedPath;
+    await deleteChat(wikiPath, db, b.id);
+
+    const { utimes, readdir, access } = await import("node:fs/promises");
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+    await utimes(trashedA, sixtyDaysAgo, sixtyDaysAgo);
+
+    const removed = await purgeOldTrash(wikiPath);
+    expect(removed).toBe(1);
+
+    const remaining = await readdir(join(wikiPath, ".llm-wiki", "trash", "chats"));
+    expect(remaining).toHaveLength(1);
+    await expect(access(trashedA)).rejects.toThrow();
   });
 });
 
