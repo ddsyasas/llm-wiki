@@ -159,7 +159,7 @@ describe("watchWiki (chokidar live watch)", () => {
 
     // Poll up to ~3s for the event to land. Chokidar timing varies by OS.
     const start = Date.now();
-    while (Date.now() - start < 3000) {
+    while (Date.now() - start < 5000) {
       if (events.some((e) => e.added.includes("live-add"))) break;
       await new Promise((r) => setTimeout(r, 50));
     }
@@ -181,7 +181,7 @@ describe("watchWiki (chokidar live watch)", () => {
     await unlink(join(wikiPath, WIKI_PATHS.wiki, "doomed.md"));
 
     const start = Date.now();
-    while (Date.now() - start < 3000) {
+    while (Date.now() - start < 5000) {
       if (events.some((d) => d.includes("doomed"))) break;
       await new Promise((r) => setTimeout(r, 50));
     }

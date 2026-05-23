@@ -1,10 +1,10 @@
-import { copyFile, mkdir, stat } from "node:fs/promises";
+import { access, copyFile, mkdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { Db } from "./db";
 import { indexPageForSearch, upsertPage } from "./db-pages";
 import { upsertSyncState } from "./db-sync";
-import type { Page } from "./types";
+import type { Page, PageType } from "./types";
 import { appendLog, readPage, WIKI_PATHS, writePage } from "./wiki";
 
 const PAGE_HISTORY_DIR = "page-history";
@@ -93,6 +93,102 @@ export async function applyManualEdit(
   await appendLog(wikiPath, `## [${stamp}] edit | ${nextFrontmatter.title} (${slug})`);
 
   return { slug, page: nextPage, backupPath };
+}
+
+// ---- create a new page ----------------------------------------------------
+
+export type CreatePageInput = {
+  slug: string;
+  title: string;
+  type: PageType;
+  content: string;
+  tags?: string[];
+  /** Optional source attribution (e.g., a query promotion). */
+  sources?: string[];
+};
+
+export class PageAlreadyExistsError extends Error {
+  readonly slug: string;
+  constructor(slug: string) {
+    super(`page already exists: ${slug}`);
+    this.name = "PageAlreadyExistsError";
+    this.slug = slug;
+  }
+}
+
+/**
+ * Creates a brand-new page. Used by the query "Save as wiki page" action and
+ * by any future "new blank page" UI. Refuses to overwrite an existing slug —
+ * callers should use applyManualEdit for that.
+ */
+export async function createPage(
+  wikiPath: string,
+  db: Db,
+  input: CreatePageInput,
+): Promise<Page> {
+  const filePath = join(wikiPath, WIKI_PATHS.wiki, `${input.slug}.md`);
+  if (await fileExists(filePath)) {
+    throw new PageAlreadyExistsError(input.slug);
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const tags = input.tags ?? [];
+  const page: Page = {
+    slug: input.slug,
+    frontmatter: {
+      title: input.title,
+      slug: input.slug,
+      type: input.type,
+      created: today,
+      updated: today,
+      ...(tags.length > 0 ? { tags } : {}),
+      ...(input.sources && input.sources.length > 0 ? { sources: input.sources } : {}),
+    },
+    content: ensureTrailingNewline(input.content),
+  };
+  await writePage(wikiPath, page);
+
+  upsertPage(db, {
+    slug: input.slug,
+    title: input.title,
+    type: input.type,
+    created_at: today,
+    updated_at: today,
+    word_count: wordCount(page.content),
+    tags,
+  });
+  indexPageForSearch(db, {
+    slug: input.slug,
+    title: input.title,
+    content: page.content,
+    tags,
+  });
+
+  try {
+    const s = await stat(filePath);
+    upsertSyncState(db, {
+      rel_path: `${WIKI_PATHS.wiki}/${input.slug}.md`,
+      mtime_ms: s.mtimeMs,
+      size_bytes: s.size,
+      synced_at: new Date().toISOString(),
+    });
+  } catch {
+    // best effort
+  }
+
+  const stamp = new Date().toISOString().replace("T", " ").slice(0, 16);
+  await appendLog(wikiPath, `## [${stamp}] create | ${input.title} (${input.slug})`);
+
+  return page;
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function backupPage(wikiPath: string, slug: string): Promise<string | null> {

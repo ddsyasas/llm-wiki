@@ -16,6 +16,9 @@ export default function WikiLayout({ children }: { children: React.ReactNode }) 
           <Link href="/sources" className="hover:text-foreground text-muted-foreground">
             Sources
           </Link>
+          <Link href="/query" className="hover:text-foreground text-muted-foreground">
+            Query
+          </Link>
           <Link href="/settings" className="hover:text-foreground text-muted-foreground">
             Settings
           </Link>

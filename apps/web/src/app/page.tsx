@@ -21,6 +21,9 @@ export default function HomePage() {
           <Link href="/wiki">Browse wiki</Link>
         </Button>
         <Button variant="outline" asChild>
+          <Link href="/query">Ask a question</Link>
+        </Button>
+        <Button variant="outline" asChild>
           <Link href="/sources">Add a source</Link>
         </Button>
         <Button variant="ghost" asChild>
