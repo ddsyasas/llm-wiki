@@ -72,7 +72,39 @@ function missingPageSlug(description: string): string | null {
   return m?.[1] ?? null;
 }
 
-type FixedState = "removed" | "stub-created" | "index-rebuilt" | "fix-applied";
+// Contradictions and similar cross-page issues have `affectedPages` with 2+
+// entries (e.g. ["grovers-algorithm", "lov-grover"]). The suggested fix
+// usually names the specific page to edit ("update lov-grover to 1996").
+// Naively picking affectedPages[0] is wrong half the time — pick the page
+// the fix instruction actually targets.
+function targetPageForFix(
+  affectedPages: ReadonlyArray<string>,
+  suggestedFix: string | null,
+): string | null {
+  if (affectedPages.length === 0) return null;
+  if (affectedPages.length === 1) return affectedPages[0] ?? null;
+  if (!suggestedFix) return affectedPages[0] ?? null;
+  // Collect every kebab-case token in the fix instruction, then keep only
+  // those that are actually in affectedPages.
+  const mentioned = new Set(
+    (suggestedFix.match(/[a-z][a-z0-9-]{2,}/g) ?? []).filter((t) => t.includes("-")),
+  );
+  const matches = affectedPages.filter((p) => mentioned.has(p));
+  if (matches.length === 1) return matches[0] ?? null;
+  // 2+ matches: prefer the LAST one — the LLM usually phrases the fix as
+  // "X says Y but Z says W; update Z" so the target appears later.
+  if (matches.length > 1) return matches[matches.length - 1] ?? null;
+  return affectedPages[0] ?? null;
+}
+
+type FixedKind = "removed" | "stub-created" | "index-rebuilt" | "fix-applied" | "fix-noop";
+type FixedState = {
+  kind: FixedKind;
+  /** The slug that was actually targeted, when relevant (e.g. for contradictions). */
+  slug?: string;
+  /** Free-form summary the LLM returned describing what it changed. */
+  summary?: string | null;
+};
 
 export default function LintPage() {
   const [busy, setBusy] = useState(false);
@@ -111,10 +143,14 @@ export default function LintPage() {
     }
   }
 
-  function markFixed(key: string, state: FixedState) {
+  function markFixed(
+    key: string,
+    kind: FixedKind,
+    extra?: { slug?: string; summary?: string | null },
+  ) {
     setFixedKeys((prev) => {
       const next = new Map(prev);
-      next.set(key, state);
+      next.set(key, { kind, ...extra });
       return next;
     });
   }
@@ -164,7 +200,7 @@ export default function LintPage() {
   }
 
   async function applySuggestedFix(issue: LintIssue, key: string) {
-    const pageSlug = issue.affectedPages[0];
+    const pageSlug = targetPageForFix(issue.affectedPages, issue.suggestedFix);
     if (!pageSlug || !issue.suggestedFix) return;
     setFixingKey(key);
     setError(null);
@@ -179,9 +215,20 @@ export default function LintPage() {
           fixInstruction: issue.suggestedFix,
         }),
       });
-      const json = (await res.json()) as { error?: string };
+      const json = (await res.json()) as {
+        ok?: boolean;
+        kind?: "fix-applied" | "fix-noop";
+        slug?: string;
+        changeSummary?: string;
+        error?: string;
+      };
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
-      markFixed(key, "fix-applied");
+      // Stash the targeted slug + summary so the per-issue flash can show
+      // which page actually got edited and what the LLM said it changed.
+      markFixed(key, json.kind === "fix-noop" ? "fix-noop" : "fix-applied", {
+        slug: json.slug ?? pageSlug,
+        summary: json.changeSummary ?? null,
+      });
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -452,17 +499,47 @@ export default function LintPage() {
                           ) : null}
 
                           {fixedState ? (
-                            <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
-                              {fixedState === "removed" ? "Removed from page." : null}
-                              {fixedState === "stub-created"
+                            <p
+                              className={cn(
+                                "mt-2 text-xs",
+                                fixedState.kind === "fix-noop"
+                                  ? "text-amber-700 dark:text-amber-300"
+                                  : "text-emerald-700 dark:text-emerald-300",
+                              )}
+                            >
+                              {fixedState.kind === "removed" ? "Removed from page." : null}
+                              {fixedState.kind === "stub-created"
                                 ? `Stub page created at /wiki/${targetSlug}.`
                                 : null}
-                              {fixedState === "index-rebuilt"
+                              {fixedState.kind === "index-rebuilt"
                                 ? "Page already existed — index rebuilt to include it."
                                 : null}
-                              {fixedState === "fix-applied"
-                                ? "Suggested fix applied to the page."
-                                : null}
+                              {fixedState.kind === "fix-applied" ? (
+                                <>
+                                  Applied to{" "}
+                                  <Link
+                                    href={`/wiki/${fixedState.slug ?? issue.affectedPages[0]}`}
+                                    className="underline underline-offset-2"
+                                  >
+                                    {fixedState.slug ?? issue.affectedPages[0]}
+                                  </Link>
+                                  {fixedState.summary ? ` — ${fixedState.summary}` : "."}
+                                </>
+                              ) : null}
+                              {fixedState.kind === "fix-noop" ? (
+                                <>
+                                  LLM made no change to{" "}
+                                  <Link
+                                    href={`/wiki/${fixedState.slug ?? issue.affectedPages[0]}`}
+                                    className="underline underline-offset-2"
+                                  >
+                                    {fixedState.slug ?? issue.affectedPages[0]}
+                                  </Link>
+                                  {fixedState.summary ? ` — ${fixedState.summary}` : "."} Try
+                                  editing the page manually, or re-run lint after fixing other
+                                  issues first.
+                                </>
+                              ) : null}
                             </p>
                           ) : (
                             <div className="mt-2 flex flex-wrap items-center gap-2">

@@ -163,9 +163,12 @@ export type ApplyLintFixOptions = {
 };
 
 export type ApplyLintFixResult = {
-  edit: ManualEditResult;
+  /** Null when the LLM produced no-op content; the page was not rewritten. */
+  edit: ManualEditResult | null;
   modelUsed: string;
   changeSummary: string;
+  /** True when the LLM returned the same body it was given. */
+  noop: boolean;
 };
 
 const APPLY_FIX_SYSTEM = `You apply a lint fix to a wiki page.
@@ -218,11 +221,28 @@ export async function applyLintSuggestedFix(
     created_at: new Date().toISOString(),
   });
 
+  // Skip the write if the LLM punted (returned the same body, often because
+  // the fix instruction names a different page than the one we sent). This
+  // saves a useless backup file and lets the API surface "nothing changed".
+  if (result.data.newContent.trim() === page.content.trim()) {
+    return {
+      edit: null,
+      modelUsed: result.model,
+      changeSummary: result.data.changeSummary,
+      noop: true,
+    };
+  }
+
   const edit = await applyManualEdit(opts.wikiPath, opts.db, opts.pageSlug, {
     content: result.data.newContent,
   });
 
-  return { edit, modelUsed: result.model, changeSummary: result.data.changeSummary };
+  return {
+    edit,
+    modelUsed: result.model,
+    changeSummary: result.data.changeSummary,
+    noop: false,
+  };
 }
 
 // ---- internals ------------------------------------------------------------

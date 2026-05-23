@@ -234,7 +234,7 @@ async function handleApplySuggestedFix(
     });
     return NextResponse.json({
       ok: true,
-      kind: "fix-applied",
+      kind: result.noop ? "fix-noop" : "fix-applied",
       slug: body.pageSlug,
       changeSummary: result.changeSummary,
       model: result.modelUsed,
