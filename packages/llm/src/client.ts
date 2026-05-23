@@ -122,6 +122,35 @@ export async function callLLM<T>(opts: CallLlmOptions<T>): Promise<CallLlmResult
   throw lastError ?? new LlmError("callLLM exhausted retries with no error captured");
 }
 
+// Anthropic models (and others routed through OpenRouter) don't always honor
+// response_format: json_object — they sometimes wrap output in a ```json …
+// ``` fence even though the system prompt says not to. Strip the fence and
+// any leading/trailing prose before handing off to JSON.parse so a benign
+// formatting tic doesn't cost the user a retry + a final error.
+function extractJsonBody(raw: string): string {
+  let s = raw.trim();
+
+  // 1) Strip a single surrounding code fence if present. Tolerate an
+  // optional language tag (```json, ```JSON, ```) and stray whitespace.
+  const fenceMatch = s.match(/^```(?:[a-zA-Z]+)?\s*([\s\S]*?)\s*```$/);
+  if (fenceMatch?.[1] !== undefined) {
+    s = fenceMatch[1].trim();
+  }
+
+  // 2) If there's still prose around a JSON object, slice from the first
+  // brace to the matching last brace. We trust the LLM to emit a single
+  // top-level object — that's what every schema in the project expects.
+  const firstBrace = s.indexOf("{");
+  const lastBrace = s.lastIndexOf("}");
+  if (firstBrace > 0 || (firstBrace === 0 && lastBrace < s.length - 1)) {
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      s = s.slice(firstBrace, lastBrace + 1);
+    }
+  }
+
+  return s;
+}
+
 function backoffMs(attempt: number): number {
   // 1s, 2s, 4s, capped at 30s. attempt is 1-based.
   return Math.min(30_000, 2 ** (attempt - 1) * 1000);
@@ -179,7 +208,7 @@ async function attemptOnce<T>(
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(extractJsonBody(raw));
   } catch (err) {
     throw new InvalidJsonError(raw, (err as Error).message);
   }

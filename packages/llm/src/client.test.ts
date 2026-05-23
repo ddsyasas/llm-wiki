@@ -81,6 +81,47 @@ describe("callLLM happy path", () => {
   });
 });
 
+describe("callLLM defensive JSON parsing", () => {
+  it("strips a ```json …``` markdown fence before parsing", async () => {
+    const fenced = "```json\n" + JSON.stringify({ message: "ok" }) + "\n```";
+    const client = mockClient(() => ({
+      id: "x",
+      model: "m",
+      choices: [{ index: 0, message: { role: "assistant", content: fenced }, finish_reason: "stop" }],
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    }));
+    const result = await callLLM({ client, model: "m", system: "s", user: "u", schema });
+    expect(result.data).toEqual({ message: "ok" });
+  });
+
+  it("strips a bare ``` fence (no language tag) before parsing", async () => {
+    const fenced = "```\n" + JSON.stringify({ message: "ok" }) + "\n```";
+    const client = mockClient(() => ({
+      id: "x",
+      model: "m",
+      choices: [{ index: 0, message: { role: "assistant", content: fenced }, finish_reason: "stop" }],
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    }));
+    const result = await callLLM({ client, model: "m", system: "s", user: "u", schema });
+    expect(result.data).toEqual({ message: "ok" });
+  });
+
+  it("slices to the {…} body when the model prepends prose", async () => {
+    const withPreamble =
+      "Here's the JSON you asked for:\n" + JSON.stringify({ message: "ok" });
+    const client = mockClient(() => ({
+      id: "x",
+      model: "m",
+      choices: [
+        { index: 0, message: { role: "assistant", content: withPreamble }, finish_reason: "stop" },
+      ],
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    }));
+    const result = await callLLM({ client, model: "m", system: "s", user: "u", schema });
+    expect(result.data).toEqual({ message: "ok" });
+  });
+});
+
 describe("callLLM error mapping", () => {
   it("throws SchemaValidationError when JSON parses but fails the zod schema", async () => {
     const client = mockClient(() => jsonResponse({ message: 42 }));
