@@ -268,11 +268,7 @@ export default function SourcesPage() {
           </div>
         </form>
 
-        {error ? (
-          <div className="mt-6 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </div>
-        ) : null}
+        {error ? <IngestErrorBanner message={error} /> : null}
 
         {result ? (
           <div className="mt-6 space-y-3 rounded-md bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
@@ -351,6 +347,45 @@ export default function SourcesPage() {
 // Cards make the page feel like one cohesive form. Drop the redundant <Card>
 // wrapper for now — it's good enough as the single bordered section.
 void Card;
+
+// Schema-validation errors come back as a single long string from the LLM
+// wrapper. Surface a friendly summary at the top with the raw detail
+// collapsed underneath so power users can still see what the model returned.
+function IngestErrorBanner({ message }: { message: string }) {
+  const isSchemaError =
+    message.includes("schema validation") || message.includes("not valid JSON");
+  return (
+    <div className="mt-6 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      <p className="font-medium">
+        {isSchemaError
+          ? "The LLM returned malformed data."
+          : "Ingest failed."}
+      </p>
+      {isSchemaError ? (
+        <p className="mt-1 text-destructive/85">
+          Try clicking <strong>Ingest</strong> again — small models occasionally drift on
+          JSON output. If it keeps happening, switch to a smarter model in{" "}
+          <a
+            href="/settings"
+            className="underline underline-offset-2 hover:text-destructive/70"
+          >
+            Settings → Models → ingest
+          </a>{" "}
+          (try <code className="font-mono text-xs">anthropic/claude-3-5-sonnet</code> or{" "}
+          <code className="font-mono text-xs">openai/gpt-4o</code>).
+        </p>
+      ) : null}
+      <details className="mt-2">
+        <summary className="cursor-pointer text-xs text-destructive/70 hover:text-destructive">
+          Show technical detail
+        </summary>
+        <pre className="mt-2 overflow-x-auto rounded bg-background/50 p-2 font-mono text-[11px] text-destructive/80">
+          {message}
+        </pre>
+      </details>
+    </div>
+  );
+}
 
 function CostPreviewForSources({
   mode,

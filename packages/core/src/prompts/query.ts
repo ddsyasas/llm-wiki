@@ -10,16 +10,39 @@ Process:
 2. Read those pages.
 3. Synthesize a concise answer with [[slug]] citations pointing at the pages you actually used.
 4. If you can't answer from the wiki, say so honestly — better to admit a gap than invent.
-5. If the answer reveals a clearly useful new wiki page (one that doesn't exist yet but should), put it in suggestedNewPage; otherwise leave it null.
+5. If the answer reveals a clearly useful new wiki page (one that doesn't exist yet but should), put it in suggestedNewPage; otherwise leave it null.`;
 
-Output rules:
-- pagesUsed: list every slug you actually cited in the answer. Must match existing pages from the index.
-- suggestedNewPage: null OR an object {slug (new, kebab-case), title, content (markdown body), reason (why it should exist)}.
-- confidence: "high" if the wiki directly answers, "medium" if you had to infer, "low" if you're guessing.
-- caveats: optional notes about limitations, contradictions, or things the wiki doesn't cover.
-- answer: markdown is fine. Use [[slug]] for any wiki cross-link.
+const JSON_SHAPE = `Output ONLY a valid JSON object matching this exact shape. No prose, no markdown fences:
 
-Output ONLY a valid JSON object matching the schema. No prose, no markdown fences.`;
+{
+  "answer": "Markdown body of the answer. Use [[slug]] for citations.",
+  "pagesUsed": ["page-slug-1", "page-slug-2"],
+  "suggestedNewPage": null,
+  "confidence": "high",
+  "caveats": ["Optional notes about limitations or things the wiki doesn't cover."]
+}
+
+OR if you'd suggest a new page:
+
+{
+  "answer": "...",
+  "pagesUsed": [...],
+  "suggestedNewPage": {
+    "slug": "new-page-slug",
+    "title": "Display Title",
+    "content": "Markdown body for the page.",
+    "reason": "Why this page should exist."
+  },
+  "confidence": "medium",
+  "caveats": []
+}
+
+Strict field rules:
+- "confidence" MUST be one of: "high", "medium", "low".
+- "pagesUsed" MUST be an array of slugs (kebab-case, [a-z0-9-]+). Every slug must exist in the index above. Use [] if none.
+- "caveats" MUST be an array of strings. Use [] if none.
+- "suggestedNewPage" MUST be null or an object — never an array, never omitted.
+- "answer" is a required string.`;
 
 export type BuildQueryPromptOpts = {
   schema: string;
@@ -50,6 +73,8 @@ export function buildQueryPrompt(opts: BuildQueryPromptOpts): { system: string; 
     "",
     `Possibly relevant pages (top ${opts.relevantPages.length}):`,
     fenceMarkdown(pagesBlock),
+    "",
+    JSON_SHAPE,
   ].join("\n");
 
   const user = `User question:\n\n${opts.question.trim()}`;

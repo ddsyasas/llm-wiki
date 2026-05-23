@@ -15,17 +15,42 @@ Also suggest follow-up questions the user could investigate to fill gaps.
 
 The user has already run a deterministic local scan; treat the "deterministic findings" below
 as ground truth and focus your output on semantic issues the local scan can't see
-(contradictions, stale claims, missing-page suggestions, gaps).
+(contradictions, stale claims, missing-page suggestions, gaps).`;
 
-Output rules:
-- severity: "high" for contradictions and broken cross-references; "medium" for gaps and missing-page; "low" for orphans and stale.
-- type: one of contradiction, orphan, missing-page, broken-link, gap, stale.
-- affectedPages: every page slug the issue touches. Must be slugs from the index.
-- suggestedFix: a one-line action the user could take, or null if there isn't a clean fix.
-- overallHealth: "excellent" (zero issues), "good" (only low-severity), "fair" (some medium), "needs-work" (any high).
-- suggestedQuestions: up to 5 specific follow-up questions the user could investigate.
+const JSON_SHAPE = `Output ONLY a valid JSON object matching this exact shape. No prose, no markdown fences:
 
-Output ONLY a valid JSON object matching the schema. No prose, no markdown fences.`;
+{
+  "issues": [
+    {
+      "severity": "high",
+      "type": "contradiction",
+      "description": "What disagrees, and where.",
+      "affectedPages": ["slug-a", "slug-b"],
+      "suggestedFix": "One-line action the user could take, or null."
+    }
+  ],
+  "suggestedQuestions": ["Up to 5 follow-up questions the user could investigate."],
+  "overallHealth": "good"
+}
+
+Strict field rules:
+- "severity" MUST be one of: "high", "medium", "low".
+- "type" MUST be one of: "contradiction", "orphan", "missing-page", "broken-link", "gap", "stale".
+- "overallHealth" MUST be one of: "excellent", "good", "fair", "needs-work".
+- "affectedPages" MUST be an array of kebab-case slugs (use [] if none). Every slug must exist in the index above.
+- "suggestedFix" MUST be a string or null.
+- "issues" and "suggestedQuestions" MUST be arrays. Use [] when empty.
+
+Severity guidance:
+- "high" for contradictions and broken cross-references.
+- "medium" for gaps and missing-page suggestions.
+- "low" for orphans and stale claims.
+
+Overall health rubric:
+- "excellent" — zero issues.
+- "good" — only low-severity issues.
+- "fair" — some medium-severity issues.
+- "needs-work" — any high-severity issues.`;
 
 export type DeterministicFinding = {
   type: "broken-link" | "orphan";
@@ -69,6 +94,8 @@ export function buildLintPrompt(opts: BuildLintPromptOpts): { system: string; us
     "",
     "Deterministic findings (already detected; you do not need to repeat these):",
     fenceMarkdown(findingsBlock),
+    "",
+    JSON_SHAPE,
   ].join("\n");
 
   const user = [
