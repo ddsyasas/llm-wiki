@@ -16,10 +16,15 @@ type TestResult =
   | { ok: true; label: string | null; usageUsd: number; limitUsd: number | null }
   | { ok: false; reason: string; message: string };
 
+// "view" = key is set, showing a masked read-only display
+// "edit" = entering a new key (either first-time paste or replace flow)
+type Mode = "view" | "edit";
+
 export function ApiTab() {
   const [status, setStatus] = useState<ApiKeyStatus | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [mode, setMode] = useState<Mode>("edit");
   const [busy, setBusy] = useState<"save" | "delete" | "test" | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -27,6 +32,13 @@ export function ApiTab() {
   useEffect(() => {
     void refresh();
   }, []);
+
+  // Whenever status changes, default to the right mode: view if key set, edit
+  // if not. The user explicitly clicking Replace flips us back to edit.
+  useEffect(() => {
+    if (status?.configured) setMode("view");
+    else setMode("edit");
+  }, [status?.configured]);
 
   async function refresh() {
     setLoadError(null);
@@ -56,8 +68,9 @@ export function ApiTab() {
       if (!res.ok) throw new Error("error" in json ? json.error : `HTTP ${res.status}`);
       setStatus(json as ApiKeyStatus);
       setDraft("");
+      setMode("view");
       setFlash(
-        `Saved. Stored in ${(json as ApiKeyStatus).source === "keychain" ? "OS keychain" : "config file (~/.llm-wiki/config.json)"}.`,
+        `Saved to ${(json as ApiKeyStatus).source === "keychain" ? "OS keychain" : "config file"}.`,
       );
     } catch (err) {
       setFlash(`Could not save: ${(err as Error).message}`);
@@ -67,6 +80,7 @@ export function ApiTab() {
   }
 
   async function onDelete() {
+    if (!confirm("Remove the saved OpenRouter API key?")) return;
     setBusy("delete");
     setFlash(null);
     setTestResult(null);
@@ -75,6 +89,7 @@ export function ApiTab() {
       const json = (await res.json()) as ApiKeyStatus | { error: string };
       if (!res.ok) throw new Error("error" in json ? json.error : `HTTP ${res.status}`);
       setStatus(json as ApiKeyStatus);
+      setMode("edit");
       setFlash("API key removed.");
     } catch (err) {
       setFlash(`Could not delete: ${(err as Error).message}`);
@@ -97,8 +112,17 @@ export function ApiTab() {
     }
   }
 
+  function maskedKey(hint: string | null): string {
+    // 8 leading chars + 16 dots + last 4. Looks like a real key, hides the
+    // actual middle. We don't store the raw key client-side so we reconstruct
+    // a representative shape using "sk-or-v1-" as the known prefix.
+    const prefix = "sk-or-v1-";
+    const dots = "•".repeat(16);
+    return hint ? `${prefix}${dots}${hint}` : `${prefix}${dots}••••`;
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
         <h2 className="text-lg font-medium">OpenRouter API key</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -123,72 +147,97 @@ export function ApiTab() {
         </p>
       ) : status === null ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : (
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2">
-            <span
-              className={
-                "inline-block h-2 w-2 rounded-full " +
-                (status.configured ? "bg-emerald-500" : "bg-muted-foreground")
-              }
-              aria-hidden
-            />
-            {status.configured ? (
-              <span>
-                Configured — stored in{" "}
-                <strong>{status.source === "keychain" ? "OS keychain" : "config file"}</strong>
-                {status.hint ? (
-                  <>
-                    , ending in <code>…{status.hint}</code>
-                  </>
-                ) : null}
-                .
-              </span>
-            ) : (
-              <span>No key configured yet.</span>
-            )}
-          </div>
-          {!status.keychainAvailable ? (
-            <p className="text-xs text-muted-foreground">
-              Note: OS keychain isn&apos;t available on this system. The key will be saved to a
-              permissions-restricted file in your home directory.
+      ) : mode === "view" && status.configured ? (
+        // ---- view mode: masked key, default actions ----------------------
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium">Current key</label>
+            <div className="flex items-stretch gap-2">
+              <div
+                className="flex h-10 flex-1 select-none items-center rounded-md border border-input bg-muted/40 px-3 font-mono text-sm text-foreground/80"
+                aria-label="Saved API key (masked)"
+              >
+                {maskedKey(status.hint)}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setDraft("");
+                  setMode("edit");
+                  setFlash(null);
+                  setTestResult(null);
+                }}
+              >
+                Replace
+              </Button>
+            </div>
+            <p className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+              Stored in {status.source === "keychain" ? "your OS keychain" : "config file"}
+              {status.hint ? (
+                <>
+                  , ending in <code>…{status.hint}</code>
+                </>
+              ) : null}
             </p>
-          ) : null}
-        </div>
-      )}
+          </div>
 
-      <form onSubmit={onSave} className="space-y-3">
-        <label className="block text-sm font-medium" htmlFor="api-key">
-          {status?.configured ? "Replace key" : "Paste key"}
-        </label>
-        <Input
-          id="api-key"
-          type="password"
-          autoComplete="off"
-          spellCheck={false}
-          placeholder="sk-or-v1-..."
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-        />
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" disabled={!draft.trim() || busy !== null}>
-            {busy === "save" ? "Saving…" : "Save key"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onTest}
-            disabled={busy !== null || !status?.configured}
-          >
-            {busy === "test" ? "Testing…" : "Test connection"}
-          </Button>
-          {status?.configured ? (
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={onTest} disabled={busy !== null}>
+              {busy === "test" ? "Testing…" : "Test connection"}
+            </Button>
             <Button type="button" variant="ghost" onClick={onDelete} disabled={busy !== null}>
               {busy === "delete" ? "Removing…" : "Remove"}
             </Button>
-          ) : null}
+          </div>
         </div>
-      </form>
+      ) : (
+        // ---- edit mode: input new key ------------------------------------
+        <form onSubmit={onSave} className="space-y-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium" htmlFor="api-key">
+              {status.configured ? "New key" : "Paste your key"}
+            </label>
+            <Input
+              id="api-key"
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="sk-or-v1-..."
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              autoFocus
+              className="font-mono"
+            />
+            {!status.keychainAvailable ? (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Note: OS keychain isn&apos;t available on this system. The key will be saved to a
+                permissions-restricted file in your home directory.
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" disabled={!draft.trim() || busy !== null}>
+              {busy === "save" ? "Saving…" : "Save key"}
+            </Button>
+            {status.configured ? (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setDraft("");
+                  setMode("view");
+                  setFlash(null);
+                }}
+                disabled={busy !== null}
+              >
+                Cancel
+              </Button>
+            ) : null}
+          </div>
+        </form>
+      )}
 
       {flash ? <p className="text-sm text-muted-foreground">{flash}</p> : null}
 
