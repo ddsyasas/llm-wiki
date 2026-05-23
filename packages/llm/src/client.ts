@@ -1,0 +1,244 @@
+import OpenAI from "openai";
+import type { z } from "zod";
+
+import {
+  ContextLengthError,
+  InvalidJsonError,
+  LlmError,
+  NetworkError,
+  RateLimitError,
+  SchemaValidationError,
+  UnknownModelError,
+} from "./errors";
+
+export type LlmClient = OpenAI;
+
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+
+export function createClient(apiKey: string): LlmClient {
+  if (!apiKey) throw new Error("createClient: apiKey is required");
+  return new OpenAI({
+    apiKey,
+    baseURL: OPENROUTER_BASE_URL,
+    defaultHeaders: {
+      // OpenRouter attribution headers — visible to OpenRouter analytics
+      // only; never include user content.
+      "HTTP-Referer": "https://github.com/ddsyasas/llm-wiki",
+      "X-Title": "LLM Wiki",
+    },
+  });
+}
+
+export type CallLlmOptions<T> = {
+  client: LlmClient;
+  model: string;
+  system: string;
+  user: string;
+  schema: z.ZodType<T>;
+  /** Total request attempts before giving up. Default 3. */
+  maxRetries?: number;
+  /** Hook called between retries with the upcoming attempt number and delay. */
+  onRetry?: (attempt: number, delayMs: number, reason: string) => void;
+  /** Aborts the entire call (including retries). */
+  signal?: AbortSignal;
+};
+
+export type LlmUsage = {
+  inputTokens: number;
+  outputTokens: number;
+};
+
+export type CallLlmResult<T> = {
+  data: T;
+  usage: LlmUsage;
+  rawResponse: string;
+  model: string;
+};
+
+const JSON_REPAIR_NUDGE =
+  "Your previous response was not valid JSON. Output ONLY a valid JSON object that matches the schema. No prose, no markdown fences.";
+
+export async function callLLM<T>(opts: CallLlmOptions<T>): Promise<CallLlmResult<T>> {
+  const maxRetries = opts.maxRetries ?? 3;
+  let lastError: unknown = null;
+  let jsonRepairUsed = false;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    opts.signal?.throwIfAborted();
+    try {
+      return await attemptOnce(opts, jsonRepairUsed);
+    } catch (err) {
+      lastError = err;
+
+      // Non-retriable failures bail immediately.
+      if (err instanceof ContextLengthError || err instanceof UnknownModelError) {
+        throw err;
+      }
+      if (err instanceof SchemaValidationError) {
+        throw err; // valid JSON, just doesn't match — don't waste tokens
+      }
+
+      // One repair attempt for invalid JSON, then surface.
+      if (err instanceof InvalidJsonError) {
+        if (jsonRepairUsed) throw err;
+        jsonRepairUsed = true;
+        opts.onRetry?.(attempt + 1, 0, "invalid-json repair");
+        continue;
+      }
+
+      if (attempt === maxRetries) break;
+
+      let delayMs: number;
+      let reason: string;
+      if (err instanceof RateLimitError) {
+        delayMs = err.retryAfterMs ?? backoffMs(attempt);
+        reason = "rate-limit";
+      } else if (err instanceof NetworkError) {
+        delayMs = backoffMs(attempt);
+        reason = "network";
+      } else {
+        // Unknown error class — retry conservatively but log via onRetry.
+        delayMs = backoffMs(attempt);
+        reason = "unknown";
+      }
+      opts.onRetry?.(attempt + 1, delayMs, reason);
+      await sleep(delayMs, opts.signal);
+    }
+  }
+
+  throw lastError ?? new LlmError("callLLM exhausted retries with no error captured");
+}
+
+function backoffMs(attempt: number): number {
+  // 1s, 2s, 4s, capped at 30s. attempt is 1-based.
+  return Math.min(30_000, 2 ** (attempt - 1) * 1000);
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (ms <= 0) return resolve();
+    const t = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(t);
+      reject(signal?.reason ?? new Error("aborted"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+async function attemptOnce<T>(
+  opts: CallLlmOptions<T>,
+  isRepairAttempt: boolean,
+): Promise<CallLlmResult<T>> {
+  const system = isRepairAttempt ? `${opts.system}\n\n${JSON_REPAIR_NUDGE}` : opts.system;
+
+  let response;
+  try {
+    response = await opts.client.chat.completions.create(
+      {
+        model: opts.model,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: opts.user },
+        ],
+      },
+      opts.signal ? { signal: opts.signal } : undefined,
+    );
+  } catch (err) {
+    throw mapSdkError(err, opts.model);
+  }
+
+  const choice = response.choices[0];
+  const raw = choice?.message?.content ?? "";
+  if (!raw.trim()) {
+    throw new InvalidJsonError(raw, "empty response");
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    throw new InvalidJsonError(raw, (err as Error).message);
+  }
+
+  const result = opts.schema.safeParse(parsed);
+  if (!result.success) {
+    throw new SchemaValidationError(raw, result.error.issues);
+  }
+
+  return {
+    data: result.data,
+    rawResponse: raw,
+    model: response.model ?? opts.model,
+    usage: {
+      inputTokens: response.usage?.prompt_tokens ?? 0,
+      outputTokens: response.usage?.completion_tokens ?? 0,
+    },
+  };
+}
+
+// Maps OpenAI SDK errors into our typed surface so callers never need to
+// reach into the SDK's error shape. Anything we don't recognize bubbles up
+// as a generic LlmError to keep error handling exhaustive.
+function mapSdkError(err: unknown, model: string): LlmError {
+  if (err instanceof LlmError) return err;
+
+  // The OpenAI SDK throws APIError subclasses with status, message, type,
+  // and code. We check duck-typed because instanceof against bundled-vs-
+  // workspace copies of openai can be brittle.
+  const e = err as {
+    status?: number;
+    message?: string;
+    type?: string;
+    code?: string;
+    headers?: Record<string, string>;
+  };
+
+  const msg = (e.message ?? String(err)).toLowerCase();
+
+  if (e.status === 429) {
+    const retryAfter = parseRetryAfter(e.headers?.["retry-after"]);
+    return new RateLimitError(retryAfter, err);
+  }
+
+  if (msg.includes("context length") || msg.includes("maximum context") || msg.includes("too long")) {
+    return new ContextLengthError(`source too large for model ${model}`, err);
+  }
+
+  if (
+    e.status === 404 ||
+    msg.includes("model not found") ||
+    msg.includes("not available") ||
+    msg.includes("unknown model")
+  ) {
+    return new UnknownModelError(model, err);
+  }
+
+  if (e.status && e.status >= 500) {
+    return new NetworkError(`server error from OpenRouter (${e.status})`, err);
+  }
+
+  if (
+    e.code === "ECONNRESET" ||
+    e.code === "ETIMEDOUT" ||
+    e.code === "ENOTFOUND" ||
+    msg.includes("network") ||
+    msg.includes("fetch failed")
+  ) {
+    return new NetworkError(`network error: ${e.message ?? String(err)}`, err);
+  }
+
+  return new LlmError(e.message ?? String(err), err);
+}
+
+function parseRetryAfter(header: string | undefined): number | null {
+  if (!header) return null;
+  const seconds = Number.parseInt(header, 10);
+  if (!Number.isNaN(seconds)) return seconds * 1000;
+  // HTTP date form is rare in practice; ignore for V1.
+  return null;
+}

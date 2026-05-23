@@ -115,7 +115,21 @@ importers:
 
   packages/ingestion: {}
 
-  packages/llm: {}
+  packages/llm:
+    dependencies:
+      openai:
+        specifier: ^6.39.0
+        version: 6.39.0(zod@3.25.76)
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.41
+        version: 20.19.41
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@20.19.41)
 
 packages:
 
@@ -1861,6 +1875,18 @@ packages:
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
 
+  openai@6.39.0:
+    resolution: {integrity: sha512-O61LIsimY3acVabwvomwFhwrnN36yvHY2quIfy9keEcFytGgWeV35yLHQ6NVMLSBxRpHmcg2yuhCnlu2HT4pLQ==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
+
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
@@ -2500,6 +2526,9 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
+
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
 snapshots:
 
@@ -4291,6 +4320,10 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
+  openai@6.39.0(zod@3.25.76):
+    optionalDependencies:
+      zod: 3.25.76
+
   optionator@0.9.4:
     dependencies:
       deep-is: 0.1.4
@@ -5077,3 +5110,5 @@ snapshots:
   wrappy@1.0.2: {}
 
   yocto-queue@0.1.0: {}
+
+  zod@3.25.76: {}

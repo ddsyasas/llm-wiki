@@ -12,7 +12,17 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "echo 'lint: no-op for now'",
     "build": "echo 'build: no-op for now'"
+  },
+  "dependencies": {
+    "openai": "^6.39.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "vitest": "^2.1.9"
   }
 }
