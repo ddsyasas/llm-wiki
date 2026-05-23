@@ -112,3 +112,31 @@ export type SyncStateRow = {
   size_bytes: number;
   synced_at: string;
 };
+
+// ---- Extracted source shapes ---------------------------------------------
+// Both kinds flow into the ingest pipeline. Text sources embed the body in
+// the prompt; vision sources pass through as multimodal content parts.
+
+export type ExtractedTextSource = {
+  kind: "text";
+  title: string;
+  content: string;
+  format: SourceFormat;
+  metadata: Record<string, unknown>;
+  imageUrls?: string[];
+};
+
+export type ExtractedVisionSource = {
+  kind: "vision";
+  title: string;
+  format: SourceFormat;
+  /** Base64-encoded file body. */
+  base64: string;
+  /** MIME type, e.g. "application/pdf" or "image/png". */
+  mediaType: string;
+  /** Original file size in bytes. */
+  sizeBytes: number;
+  metadata: Record<string, unknown>;
+};
+
+export type ExtractedSource = ExtractedTextSource | ExtractedVisionSource;

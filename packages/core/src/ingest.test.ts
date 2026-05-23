@@ -9,7 +9,13 @@ import { openInMemoryDb, type Db } from "./db";
 import { getPage, searchPages } from "./db-pages";
 import { listSourceRows } from "./db-sources";
 import { listUsageRows } from "./db-usage";
-import { ingestPastedText, ingestSource } from "./ingest";
+import {
+  ingestPastedText,
+  ingestSource,
+  ingestVisionSource,
+  markSourceIngested,
+  saveRawSource,
+} from "./ingest";
 import type { IngestResponse } from "./schema";
 import { initWikiFolder, readPage, WIKI_PATHS, writePage } from "./wiki";
 
@@ -283,5 +289,75 @@ describe("ingestPastedText", () => {
       model: "stub/model",
     });
     expect(r.rawFilename).toContain("my-untitled-note");
+  });
+});
+
+describe("ingestVisionSource (mocked LLM)", () => {
+  it("sends a multimodal user message and applies the response", async () => {
+    const create = vi.fn(async () => ({
+      id: "stub",
+      model: "stub/vision",
+      choices: [
+        { index: 0, message: { role: "assistant", content: JSON.stringify(sampleResponse) }, finish_reason: "stop" },
+      ],
+      usage: { prompt_tokens: 5000, completion_tokens: 400 },
+    }));
+    const client = {
+      chat: { completions: { create } },
+    } as unknown as LlmClient;
+
+    const result = await ingestVisionSource({
+      source: {
+        kind: "vision",
+        title: "Quantum PDF",
+        format: "pdf",
+        base64: "JVBERi0xLjQK", // %PDF-1.4\n
+        mediaType: "application/pdf",
+        sizeBytes: 12,
+        metadata: {},
+      },
+      wikiPath,
+      db,
+      client,
+      model: "stub/vision",
+    });
+
+    // LLM was called with multimodal user content
+    const payload = (create.mock.calls as unknown as Array<[{ messages: Array<{ role: string; content: unknown }> }]>)[0]?.[0];
+    expect(payload?.messages[1]?.role).toBe("user");
+    expect(Array.isArray(payload?.messages[1]?.content)).toBe(true);
+    const parts = payload?.messages[1]?.content as Array<{ type: string }>;
+    expect(parts.some((p) => p.type === "image_url")).toBe(true);
+    expect(parts.some((p) => p.type === "text")).toBe(true);
+
+    // The same apply path ran
+    expect(result.newPages.map((p) => p.slug)).toEqual(["shors-algorithm", "peter-shor"]);
+    expect(getPage(db, "shors-algorithm")?.title).toBe("Shor's Algorithm");
+  });
+});
+
+describe("saveRawSource + markSourceIngested", () => {
+  it("writes the binary to raw/ and tracks a sources row through the lifecycle", async () => {
+    const buf = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]); // %PDF-1.4
+    const saved = await saveRawSource({
+      wikiPath,
+      db,
+      buffer: buf,
+      ext: ".pdf",
+      format: "pdf",
+      title: "Quantum Paper",
+      originalName: "quantum.pdf",
+    });
+
+    expect(saved.rawFilename).toMatch(/^\d{4}-\d{2}-\d{2}-quantum-paper\.pdf$/);
+    const rows = listSourceRows(db);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.ingested_at).toBeNull();
+    expect(rows[0]?.format).toBe("pdf");
+    expect(rows[0]?.size_bytes).toBe(buf.length);
+    expect(rows[0]?.original_name).toBe("quantum.pdf");
+
+    markSourceIngested(db, saved.sourceId);
+    expect(listSourceRows(db)[0]?.ingested_at).not.toBeNull();
   });
 });

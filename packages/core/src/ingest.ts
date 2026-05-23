@@ -2,7 +2,7 @@ import { copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 
-import { callLLM, type LlmClient } from "@llm-wiki/llm";
+import { callLLM, type LlmClient, type UserContentPart } from "@llm-wiki/llm";
 
 import type { Db } from "./db";
 import {
@@ -17,7 +17,12 @@ import { upsertSyncState } from "./db-sync";
 import { insertUsage } from "./db-usage";
 import { buildIngestPrompt, type ExistingPageSnippet } from "./prompts/ingest";
 import { IngestResponseSchema, type IngestResponse } from "./schema";
-import type { PageRow, SourceFormat, SourceRow } from "./types";
+import type {
+  ExtractedVisionSource,
+  PageRow,
+  SourceFormat,
+  SourceRow,
+} from "./types";
 import {
   appendLog,
   readIndex,
@@ -122,6 +127,168 @@ export async function ingestSource(opts: IngestSourceOptions): Promise<IngestRes
 
   opts.onProgress?.({ phase: "done", result: result.data });
   return result.data;
+}
+
+// ---- Vision path ----------------------------------------------------------
+
+export type IngestVisionSourceOptions = {
+  source: ExtractedVisionSource;
+  wikiPath: string;
+  db: Db;
+  client: LlmClient;
+  /** Vision-capable model (settings.defaultModels.vision). */
+  model: string;
+  sourceId?: string;
+  onProgress?: (event: IngestProgressEvent) => void;
+};
+
+/**
+ * Vision twin of ingestSource. The PDF/image rides along as a multimodal
+ * `image_url` content part with a data URL — the LLM does the OCR + extraction
+ * itself. Same JSON contract, same apply step.
+ */
+export async function ingestVisionSource(
+  opts: IngestVisionSourceOptions,
+): Promise<IngestResponse> {
+  opts.onProgress?.({ phase: "context", message: "Loading wiki schema and index..." });
+  const [schema, index] = await Promise.all([
+    readSchemaOrDefault(opts.wikiPath),
+    readIndexOrDefault(opts.wikiPath),
+  ]);
+
+  // We don't run FTS5 retrieval for vision sources (we have no text yet).
+  // The LLM gets schema + index only; future iterations could pre-OCR for
+  // retrieval but V1 keeps it simple.
+  const prompt = buildIngestPrompt({
+    schema,
+    index,
+    relevantPages: [],
+    source: {
+      title: opts.source.title,
+      format: opts.source.format,
+      content: `(The actual content is attached as a ${opts.source.mediaType} file.)`,
+    },
+  });
+
+  opts.onProgress?.({
+    phase: "llm",
+    message: `Calling ${opts.model} with attached ${opts.source.format} (${Math.round(opts.source.sizeBytes / 1024)} KB)…`,
+  });
+
+  const userParts: UserContentPart[] = [
+    {
+      type: "text",
+      text: `New source: "${opts.source.title}" (format: ${opts.source.format}, ${Math.round(opts.source.sizeBytes / 1024)} KB).\n\nRead the attached file carefully and produce the JSON response per the schema.`,
+    },
+    {
+      type: "image_url",
+      image_url: {
+        url: `data:${opts.source.mediaType};base64,${opts.source.base64}`,
+      },
+    },
+  ];
+
+  const result = await callLLM({
+    client: opts.client,
+    model: opts.model,
+    system: prompt.system,
+    user: "(see attached file)",
+    userParts,
+    schema: IngestResponseSchema,
+  });
+
+  insertUsage(opts.db, {
+    operation: "ingest",
+    model: result.model,
+    input_tokens: result.usage.inputTokens,
+    output_tokens: result.usage.outputTokens,
+    cost_cents: null,
+    created_at: new Date().toISOString(),
+  });
+
+  opts.onProgress?.({
+    phase: "apply",
+    message: `Writing ${result.data.newPages.length} new pages, updating ${result.data.pageUpdates.length}…`,
+  });
+
+  await applyIngestResponse({
+    response: result.data,
+    wikiPath: opts.wikiPath,
+    db: opts.db,
+    sourceId: opts.sourceId ?? null,
+    sourceTitle: opts.source.title,
+    format: opts.source.format,
+  });
+
+  opts.onProgress?.({ phase: "done", result: result.data });
+  return result.data;
+}
+
+// ---- Raw-save helper ------------------------------------------------------
+
+export type SaveRawOptions = {
+  wikiPath: string;
+  db: Db;
+  buffer: Buffer;
+  /** Final extension to use (".md", ".pdf", etc.) Slug + date are auto-derived. */
+  ext: string;
+  format: SourceFormat;
+  title: string;
+  originalName?: string;
+  url?: string;
+};
+
+export type SaveRawResult = {
+  sourceId: string;
+  rawFilename: string;
+  rawPath: string;
+};
+
+/**
+ * Persists a binary or text source to raw/<date>-<slug>.<ext> and inserts a
+ * matching sources row (ingested_at = null). The caller flips ingested_at
+ * after the LLM call succeeds.
+ */
+export async function saveRawSource(opts: SaveRawOptions): Promise<SaveRawResult> {
+  const today = new Date().toISOString().slice(0, 10);
+  const slug = slugify(opts.title);
+  const ext = opts.ext.startsWith(".") ? opts.ext : `.${opts.ext}`;
+  const rawFilename = `${today}-${slug}${ext}`;
+  const rawDir = join(opts.wikiPath, WIKI_PATHS.raw);
+  await mkdir(rawDir, { recursive: true });
+  const rawPath = join(rawDir, rawFilename);
+  await writeFile(rawPath, opts.buffer);
+
+  const sourceId = randomUUID();
+  const sourceRow: SourceRow = {
+    id: sourceId,
+    filename: rawFilename,
+    original_name: opts.originalName ?? null,
+    format: opts.format,
+    size_bytes: opts.buffer.length,
+    added_at: new Date().toISOString(),
+    ingested_at: null,
+    url: opts.url ?? null,
+    title: opts.title,
+  };
+  insertSource(opts.db, sourceRow);
+
+  return { sourceId, rawFilename, rawPath };
+}
+
+export function markSourceIngested(db: Db, sourceId: string): void {
+  // Look up + flip ingested_at; tolerant if the row vanished between calls.
+  const existingRows = listSourceRowsById(db, sourceId);
+  if (!existingRows) return;
+  updateSource(db, { ...existingRows, ingested_at: new Date().toISOString() });
+}
+
+function listSourceRowsById(db: Db, id: string): SourceRow | null {
+  const row = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(id) as
+    | (Omit<SourceRow, "format"> & { format: string })
+    | undefined;
+  if (!row) return null;
+  return row as SourceRow;
 }
 
 export type IngestPastedTextOptions = {

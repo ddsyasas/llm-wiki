@@ -1,14 +1,21 @@
-import type { SourceFormat } from "@llm-wiki/core";
+// Re-export the canonical Extracted* shapes from core. They live there because
+// the ingest pipeline (in core) consumes them; ingestion is conceptually a
+// downstream producer.
+export type {
+  ExtractedSource,
+  ExtractedTextSource,
+  ExtractedVisionSource,
+  SourceFormat,
+} from "@llm-wiki/core";
 
-export type { SourceFormat };
+import type { ExtractedSource } from "@llm-wiki/core";
 
-// Shared shape returned by every extractor. Format-specific modules normalize
-// their input into this so the LLM ingest call doesn't care what kind of file
-// it originated from.
-export type ExtractedSource = {
-  title: string;
-  content: string;
-  format: SourceFormat;
-  metadata: Record<string, unknown>;
-  imageUrls?: string[];
-};
+export function isTextSource(s: ExtractedSource): s is import("@llm-wiki/core").ExtractedTextSource {
+  return s.kind === "text";
+}
+
+export function isVisionSource(
+  s: ExtractedSource,
+): s is import("@llm-wiki/core").ExtractedVisionSource {
+  return s.kind === "vision";
+}

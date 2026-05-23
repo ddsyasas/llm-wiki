@@ -29,11 +29,24 @@ export function createClient(apiKey: string): LlmClient {
   });
 }
 
+/**
+ * Multimodal user content part. Matches OpenAI/OpenRouter content-block shape
+ * so we can pass it through unchanged. `image_url` is also how PDFs ride
+ * along (data URL with `application/pdf`) per OpenRouter's Anthropic mapping.
+ */
+export type UserContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
 export type CallLlmOptions<T> = {
   client: LlmClient;
   model: string;
   system: string;
   user: string;
+  /** Optional multimodal content for the user message. When set, takes
+   * precedence over `user`. We still take `user` for back-compat and to
+   * give callers a plain-text fallback when `userParts` is empty. */
+  userParts?: UserContentPart[];
   schema: z.ZodType<T>;
   /** Total request attempts before giving up. Default 3. */
   maxRetries?: number;
@@ -135,15 +148,21 @@ async function attemptOnce<T>(
 ): Promise<CallLlmResult<T>> {
   const system = isRepairAttempt ? `${opts.system}\n\n${JSON_REPAIR_NUDGE}` : opts.system;
 
+  const userContent: string | UserContentPart[] =
+    opts.userParts && opts.userParts.length > 0 ? opts.userParts : opts.user;
+
   let response;
   try {
     response = await opts.client.chat.completions.create(
       {
         model: opts.model,
         response_format: { type: "json_object" },
+        // OpenAI's typed messages accept either string or content-block array
+        // for user/assistant roles, but TS unions get awkward; cast at the
+        // SDK boundary since we've validated the shape above.
         messages: [
           { role: "system", content: system },
-          { role: "user", content: opts.user },
+          { role: "user", content: userContent as never },
         ],
       },
       opts.signal ? { signal: opts.signal } : undefined,

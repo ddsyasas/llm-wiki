@@ -1,11 +1,12 @@
-import type { ExtractedSource } from "./types";
+import type { ExtractedTextSource } from "./types";
 
 // Treat plain text as a markdown body. We don't escape special chars — if the
 // user has * or # in their notes that's their intent.
-export function extractPlain(buffer: Buffer, filename?: string): ExtractedSource {
+export function extractPlain(buffer: Buffer, filename?: string): ExtractedTextSource {
   const content = buffer.toString("utf8");
   const title = filename ? stripExtension(filename) : firstLineAsTitle(content);
   return {
+    kind: "text",
     title,
     content,
     format: "txt",

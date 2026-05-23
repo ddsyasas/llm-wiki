@@ -1,10 +1,10 @@
 import matter from "gray-matter";
 
-import type { ExtractedSource } from "./types";
+import type { ExtractedTextSource } from "./types";
 
 // Markdown with optional YAML frontmatter. We split off the frontmatter so it
 // becomes structured metadata rather than noise inside the LLM-visible body.
-export function extractMarkdown(buffer: Buffer, filename?: string): ExtractedSource {
+export function extractMarkdown(buffer: Buffer, filename?: string): ExtractedTextSource {
   const raw = buffer.toString("utf8");
   const parsed = matter(raw);
   const data = parsed.data as Record<string, unknown>;
@@ -14,6 +14,7 @@ export function extractMarkdown(buffer: Buffer, filename?: string): ExtractedSou
     titleFromFrontmatter ?? deriveTitleFromBody(parsed.content) ?? deriveTitleFromFilename(filename);
 
   return {
+    kind: "text",
     title,
     content: parsed.content.replace(/^\n/, ""),
     format: "md",
