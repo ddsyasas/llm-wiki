@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-const SLOTS = ["ingest", "query", "lint", "vision"] as const;
+const SLOTS = ["ingest", "query", "chat", "lint", "vision"] as const;
 type Slot = (typeof SLOTS)[number];
 
 type ModelChoice = {
@@ -69,6 +69,7 @@ const CUSTOM_SENTINEL = "__custom__";
 const SLOT_HINT: Record<Slot, string> = {
   ingest: "Runs on every source addition. Bias toward cheap — calls add up.",
   query: "One-off Q&A. Bias toward smart — answers are user-facing.",
+  chat: "Multi-turn conversations. Default for new chats; per-chat override lives in the chat's frontmatter.",
   lint: "Semantic health check across the wiki. Smart model recommended.",
   vision: "PDFs and images. MUST be vision-capable.",
 };
@@ -82,6 +83,7 @@ export function ModelsTab() {
   const [customMode, setCustomMode] = useState<Record<Slot, boolean>>({
     ingest: false,
     query: false,
+    chat: false,
     lint: false,
     vision: false,
   });
@@ -101,6 +103,7 @@ export function ModelsTab() {
         setCustomMode({
           ingest: !known.has(data.settings.defaultModels.ingest),
           query: !known.has(data.settings.defaultModels.query),
+          chat: !known.has(data.settings.defaultModels.chat),
           lint: !known.has(data.settings.defaultModels.lint),
           vision: !known.has(data.settings.defaultModels.vision),
         });

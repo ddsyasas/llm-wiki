@@ -4,11 +4,12 @@
 // a retired slug, the LLM call throws UnknownModelError which the UI surfaces
 // with a "switch model" suggestion.
 
-export type ModelSlot = "ingest" | "query" | "lint" | "vision";
+export type ModelSlot = "ingest" | "query" | "chat" | "lint" | "vision";
 
 export const DEFAULT_MODELS: Record<ModelSlot, string> = {
   ingest: "anthropic/claude-haiku-4.5",
   query: "anthropic/claude-sonnet-4.6",
+  chat: "anthropic/claude-sonnet-4.6",
   lint: "anthropic/claude-sonnet-4.6",
   vision: "anthropic/claude-sonnet-4.6",
 };

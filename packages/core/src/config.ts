@@ -105,6 +105,7 @@ export type WikiSettings = {
   defaultModels: {
     ingest: string;
     query: string;
+    chat: string;
     lint: string;
     vision: string;
   };
@@ -121,6 +122,7 @@ export const DEFAULT_WIKI_SETTINGS: WikiSettings = {
     // packages/llm/src/models.ts DEFAULT_MODELS to match.
     ingest: "anthropic/claude-haiku-4.5",
     query: "anthropic/claude-sonnet-4.6",
+    chat: "anthropic/claude-sonnet-4.6",
     lint: "anthropic/claude-sonnet-4.6",
     vision: "anthropic/claude-sonnet-4.6",
   },
@@ -152,7 +154,7 @@ function parseWikiSettings(raw: unknown): WikiSettings {
   const models = data["defaultModels"];
   if (typeof models === "object" && models !== null) {
     const m = models as Record<string, unknown>;
-    for (const slot of ["ingest", "query", "lint", "vision"] as const) {
+    for (const slot of ["ingest", "query", "chat", "lint", "vision"] as const) {
       if (typeof m[slot] === "string" && m[slot].length > 0) {
         out.defaultModels[slot] = m[slot] as string;
       }

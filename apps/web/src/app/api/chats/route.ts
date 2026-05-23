@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     const row = await createChat(ctx.wikiPath, ctx.db, {
       ...(body.folder ? { folder: body.folder } : {}),
       ...(body.title ? { title: body.title } : {}),
-      model: body.model ?? ctx.settings.defaultModels.query,
+      model: body.model ?? ctx.settings.defaultModels.chat,
       ...(body.tags ? { tags: body.tags } : {}),
     });
     return NextResponse.json({ ok: true, chat: row });

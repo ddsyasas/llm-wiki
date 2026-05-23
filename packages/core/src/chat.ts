@@ -2,9 +2,15 @@ import { mkdir, readdir, readFile, rename, stat, writeFile } from "node:fs/promi
 import { join, basename } from "node:path";
 import { randomUUID } from "node:crypto";
 
-import { chatComplete, type ChatMessage as LlmChatMessage, type LlmClient } from "@llm-wiki/llm";
+import {
+  chatComplete,
+  DEFAULT_MODELS,
+  type ChatMessage as LlmChatMessage,
+  type LlmClient,
+} from "@llm-wiki/llm";
 import matter from "gray-matter";
 
+import { loadWikiSettings } from "./config";
 import type { Db } from "./db";
 import {
   deleteChat as deleteChatRow,
@@ -390,8 +396,9 @@ export async function sendChatMessage(
 }
 
 async function readChatModel(wikiPath: string, row: ChatRow): Promise<string> {
-  // Per docs/07 the chat file frontmatter carries the model. Fall back to a
-  // sensible default if the frontmatter is missing the field.
+  // Per docs/07 the chat file frontmatter carries the model. Fall back to the
+  // wiki's current query model — never a hardcoded slug, since providers
+  // retire models and a stale literal here would silently break every chat.
   try {
     const raw = await readFile(chatPath(wikiPath, row.folder, row.filename), "utf8");
     const data = matter(raw).data as { model?: string };
@@ -399,7 +406,12 @@ async function readChatModel(wikiPath: string, row: ChatRow): Promise<string> {
   } catch {
     // fall through
   }
-  return "anthropic/claude-3-5-sonnet";
+  try {
+    const settings = await loadWikiSettings(wikiPath);
+    return settings.defaultModels.chat;
+  } catch {
+    return DEFAULT_MODELS.chat;
+  }
 }
 
 async function readSchemaOrDefault(wikiPath: string): Promise<string> {

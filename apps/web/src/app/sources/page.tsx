@@ -371,7 +371,7 @@ function IngestErrorBanner({ message }: { message: string }) {
           >
             Settings → Models → ingest
           </a>{" "}
-          (try <code className="font-mono text-xs">anthropic/claude-3-5-sonnet</code> or{" "}
+          (try <code className="font-mono text-xs">anthropic/claude-sonnet-4.6</code> or{" "}
           <code className="font-mono text-xs">openai/gpt-4o</code>).
         </p>
       ) : null}

@@ -8,6 +8,7 @@ export type WikiSettingsPayload = {
     defaultModels: {
       ingest: string;
       query: string;
+      chat: string;
       lint: string;
       vision: string;
     };

@@ -39,6 +39,7 @@ export async function PUT(req: Request) {
     defaultModels: {
       ingest: body.defaultModels?.ingest ?? current.defaultModels.ingest,
       query: body.defaultModels?.query ?? current.defaultModels.query,
+      chat: body.defaultModels?.chat ?? current.defaultModels.chat,
       lint: body.defaultModels?.lint ?? current.defaultModels.lint,
       vision: body.defaultModels?.vision ?? current.defaultModels.vision,
     },
