@@ -26,6 +26,9 @@ export default function HomePage() {
         <Button variant="outline" asChild>
           <Link href="/sources">Add a source</Link>
         </Button>
+        <Button variant="outline" asChild>
+          <Link href="/chats">Chats</Link>
+        </Button>
         <Button variant="ghost" asChild>
           <Link href="/settings">Settings</Link>
         </Button>

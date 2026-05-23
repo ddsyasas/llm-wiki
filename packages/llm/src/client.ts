@@ -200,6 +200,78 @@ async function attemptOnce<T>(
   };
 }
 
+// ---- chatComplete: plain-text streaming-friendly call --------------------
+// Per docs/05: chat responses skip the JSON schema and return free-form
+// markdown. We still want retry + typed-error handling, so most of the
+// logic mirrors callLLM minus the JSON parsing + zod validation.
+
+export type ChatRole = "system" | "user" | "assistant";
+
+export type ChatMessage = {
+  role: ChatRole;
+  content: string;
+};
+
+export type ChatCompleteOptions = {
+  client: LlmClient;
+  model: string;
+  messages: ChatMessage[];
+  maxRetries?: number;
+  onRetry?: (attempt: number, delayMs: number, reason: string) => void;
+  signal?: AbortSignal;
+};
+
+export type ChatCompleteResult = {
+  text: string;
+  usage: LlmUsage;
+  model: string;
+};
+
+export async function chatComplete(opts: ChatCompleteOptions): Promise<ChatCompleteResult> {
+  const maxRetries = opts.maxRetries ?? 3;
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    opts.signal?.throwIfAborted();
+    try {
+      const response = await opts.client.chat.completions.create(
+        {
+          model: opts.model,
+          messages: opts.messages.map((m) => ({ role: m.role, content: m.content })),
+        },
+        opts.signal ? { signal: opts.signal } : undefined,
+      );
+      const text = response.choices[0]?.message?.content ?? "";
+      return {
+        text,
+        model: response.model ?? opts.model,
+        usage: {
+          inputTokens: response.usage?.prompt_tokens ?? 0,
+          outputTokens: response.usage?.completion_tokens ?? 0,
+        },
+      };
+    } catch (err) {
+      const mapped = mapSdkError(err, opts.model);
+      lastError = mapped;
+
+      if (mapped instanceof ContextLengthError || mapped instanceof UnknownModelError) {
+        throw mapped;
+      }
+      if (attempt === maxRetries) break;
+
+      const delayMs =
+        mapped instanceof RateLimitError
+          ? (mapped.retryAfterMs ?? backoffMs(attempt))
+          : backoffMs(attempt);
+      const reason = mapped instanceof RateLimitError ? "rate-limit" : "network";
+      opts.onRetry?.(attempt + 1, delayMs, reason);
+      await sleep(delayMs, opts.signal);
+    }
+  }
+
+  throw lastError ?? new LlmError("chatComplete exhausted retries with no error captured");
+}
+
 // Maps OpenAI SDK errors into our typed surface so callers never need to
 // reach into the SDK's error shape. Anything we don't recognize bubbles up
 // as a generic LlmError to keep error handling exhaustive.
