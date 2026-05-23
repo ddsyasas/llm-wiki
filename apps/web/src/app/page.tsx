@@ -30,6 +30,9 @@ export default function HomePage() {
           <Link href="/chats">Chats</Link>
         </Button>
         <Button variant="ghost" asChild>
+          <Link href="/lint">Lint</Link>
+        </Button>
+        <Button variant="ghost" asChild>
           <Link href="/settings">Settings</Link>
         </Button>
       </div>

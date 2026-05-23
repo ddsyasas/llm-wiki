@@ -95,6 +95,32 @@ export async function applyManualEdit(
   return { slug, page: nextPage, backupPath };
 }
 
+// ---- quick fixes ---------------------------------------------------------
+
+/**
+ * Removes every reference to a given target slug from the page body. Both
+ * `[[bad]]` and `[[bad|Display]]` forms collapse to plain text. Runs the
+ * change through applyManualEdit so a backup + sync_state + log entry are
+ * produced.
+ */
+export async function removeBrokenLink(
+  wikiPath: string,
+  db: Db,
+  pageSlug: string,
+  brokenSlug: string,
+): Promise<ManualEditResult> {
+  const page = await readPage(wikiPath, pageSlug);
+  const escaped = brokenSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`\\[\\[${escaped}(?:\\|([^\\]]+))?\\]\\]`, "g");
+  const newContent = page.content.replace(re, (_full, display: string | undefined) => {
+    return display && display.length > 0 ? display : brokenSlug;
+  });
+  if (newContent === page.content) {
+    throw new Error(`page ${pageSlug} doesn't contain a [[${brokenSlug}]] reference`);
+  }
+  return applyManualEdit(wikiPath, db, pageSlug, { content: newContent });
+}
+
 // ---- create a new page ----------------------------------------------------
 
 export type CreatePageInput = {

@@ -22,6 +22,9 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
           <Link href="/chats" className="text-muted-foreground hover:text-foreground">
             Chats
           </Link>
+          <Link href="/lint" className="text-muted-foreground hover:text-foreground">
+            Lint
+          </Link>
           <Link href="/settings" className="text-muted-foreground hover:text-foreground">
             Settings
           </Link>
