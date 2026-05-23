@@ -121,6 +121,73 @@ export async function removeBrokenLink(
   return applyManualEdit(wikiPath, db, pageSlug, { content: newContent });
 }
 
+// ---- schema (CLAUDE.md) editing -----------------------------------------
+
+const SCHEMA_HISTORY_DIR = "schema-history";
+const SCHEMA_HISTORY_LIMIT = 10;
+
+export type SaveSchemaResult = {
+  backupPath: string | null;
+  prunedCount: number;
+};
+
+/**
+ * Replaces CLAUDE.md with new content, backing up the prior version into
+ * .llm-wiki/schema-history/ (capped at the last SCHEMA_HISTORY_LIMIT
+ * snapshots) and appending a log entry. Per docs/04 P0 feature 7.
+ */
+export async function saveSchema(
+  wikiPath: string,
+  content: string,
+): Promise<SaveSchemaResult> {
+  const schemaPath = join(wikiPath, WIKI_PATHS.schema);
+  const dir = join(wikiPath, WIKI_PATHS.tooling, SCHEMA_HISTORY_DIR);
+  await mkdir(dir, { recursive: true });
+
+  let backupPath: string | null = null;
+  try {
+    await stat(schemaPath);
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    backupPath = join(dir, `CLAUDE-${stamp}.md`);
+    await copyFile(schemaPath, backupPath);
+  } catch {
+    // No existing schema yet — first save.
+  }
+
+  await writePage_writeRaw(schemaPath, ensureTrailingNewline(content));
+
+  const prunedCount = await pruneSchemaHistory(dir, SCHEMA_HISTORY_LIMIT);
+
+  const stamp = new Date().toISOString().replace("T", " ").slice(0, 16);
+  await appendLog(wikiPath, `## [${stamp}] schema | edited CLAUDE.md`);
+
+  return { backupPath, prunedCount };
+}
+
+// CLAUDE.md isn't a wiki page (no frontmatter) so writePage isn't applicable.
+// Use a direct write — node:fs/promises writeFile via a lazily-imported helper.
+async function writePage_writeRaw(path: string, content: string): Promise<void> {
+  const { writeFile } = await import("node:fs/promises");
+  await writeFile(path, content, "utf8");
+}
+
+async function pruneSchemaHistory(dir: string, limit: number): Promise<number> {
+  const { readdir, unlink } = await import("node:fs/promises");
+  let entries: string[];
+  try {
+    entries = await readdir(dir);
+  } catch {
+    return 0;
+  }
+  const backups = entries.filter((f) => f.startsWith("CLAUDE-")).sort(); // ISO timestamps sort lexicographically
+  const excess = backups.length - limit;
+  if (excess <= 0) return 0;
+  for (const f of backups.slice(0, excess)) {
+    await unlink(join(dir, f));
+  }
+  return excess;
+}
+
 // ---- create a new page ----------------------------------------------------
 
 export type CreatePageInput = {

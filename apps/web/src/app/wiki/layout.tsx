@@ -25,6 +25,9 @@ export default function WikiLayout({ children }: { children: React.ReactNode }) 
           <Link href="/lint" className="hover:text-foreground text-muted-foreground">
             Lint
           </Link>
+          <Link href="/schema" className="hover:text-foreground text-muted-foreground">
+            Schema
+          </Link>
           <Link href="/settings" className="hover:text-foreground text-muted-foreground">
             Settings
           </Link>

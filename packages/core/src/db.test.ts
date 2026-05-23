@@ -30,7 +30,12 @@ import {
   listSourceRows,
   updateSource,
 } from "./db-sources";
-import { getTotalCostCents, insertUsage, listUsageRows } from "./db-usage";
+import {
+  getTotalCostCents,
+  getUsageBreakdown,
+  insertUsage,
+  listUsageRows,
+} from "./db-usage";
 import { META_DB_FILENAME, openDb, openInMemoryDb, runMigrations, type Db } from "./db";
 import type { ChatRow, PageRow, SourceRow } from "./types";
 import { WIKI_PATHS } from "./wiki";
@@ -308,6 +313,43 @@ describe("usage", () => {
     const rows = listUsageRows(db);
     expect(rows).toHaveLength(2);
     expect(rows[0]?.operation).toBe("query");
+    db.close();
+  });
+
+  it("getUsageBreakdown groups by (model, operation) with token + cost totals", () => {
+    const db = openInMemoryDb();
+    insertUsage(db, {
+      operation: "ingest",
+      model: "anthropic/claude-3-5-haiku",
+      input_tokens: 1000,
+      output_tokens: 200,
+      cost_cents: 0.5,
+      created_at: "2026-05-23T14:30:00Z",
+    });
+    insertUsage(db, {
+      operation: "ingest",
+      model: "anthropic/claude-3-5-haiku",
+      input_tokens: 500,
+      output_tokens: 100,
+      cost_cents: 0.25,
+      created_at: "2026-05-23T14:35:00Z",
+    });
+    insertUsage(db, {
+      operation: "query",
+      model: "anthropic/claude-3-5-sonnet",
+      input_tokens: 9000,
+      output_tokens: 800,
+      cost_cents: 5.0,
+      created_at: "2026-05-23T14:40:00Z",
+    });
+    const rows = getUsageBreakdown(db);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.model).toBe("anthropic/claude-3-5-sonnet");
+    expect(rows[0]?.total_input_tokens).toBe(9000);
+    expect(rows[0]?.call_count).toBe(1);
+    expect(rows[1]?.call_count).toBe(2);
+    expect(rows[1]?.total_input_tokens).toBe(1500);
+    expect(rows[1]?.total_cost_cents).toBeCloseTo(0.75);
     db.close();
   });
 });

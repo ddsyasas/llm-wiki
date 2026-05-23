@@ -6,8 +6,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { openInMemoryDb, type Db } from "./db";
 import { getPage, searchPages, upsertPage, indexPageForSearch } from "./db-pages";
-import { applyManualEdit } from "./editor";
-import { initWikiFolder, readPage, WIKI_PATHS, writePage } from "./wiki";
+import { applyManualEdit, saveSchema } from "./editor";
+import { DEFAULT_SCHEMA_TEMPLATE } from "./templates";
+import { initWikiFolder, readPage, readSchema, WIKI_PATHS, writePage } from "./wiki";
 
 let wikiPath: string;
 let db: Db;
@@ -103,5 +104,37 @@ describe("applyManualEdit", () => {
     await expect(
       applyManualEdit(wikiPath, db, "ghost", { content: "x\n" }),
     ).rejects.toThrow();
+  });
+});
+
+describe("saveSchema", () => {
+  it("writes a new CLAUDE.md and backs up the prior version", async () => {
+    // initWikiFolder seeded the default schema template
+    const r = await saveSchema(wikiPath, "# Updated schema\n");
+    expect(r.backupPath).not.toBeNull();
+    expect(await readSchema(wikiPath)).toBe("# Updated schema\n");
+    const histDir = join(wikiPath, WIKI_PATHS.tooling, "schema-history");
+    const entries = await readdir(histDir);
+    expect(entries.some((f) => f.startsWith("CLAUDE-"))).toBe(true);
+    const backup = await readFile(join(histDir, entries[0]!), "utf8");
+    expect(backup).toBe(DEFAULT_SCHEMA_TEMPLATE);
+  });
+
+  it("appends a schema log entry to log.md", async () => {
+    await saveSchema(wikiPath, "# v2\n");
+    const log = await readFile(join(wikiPath, WIKI_PATHS.log), "utf8");
+    expect(log).toMatch(/## \[.*\] schema \| edited CLAUDE\.md/);
+  });
+
+  it("caps schema history at the last 10 backups", async () => {
+    // Save 12 times; only 10 backups should remain after.
+    for (let i = 0; i < 12; i++) {
+      // Force monotonic timestamps so files sort in save order.
+      await new Promise((r) => setTimeout(r, 5));
+      await saveSchema(wikiPath, `# v${i}\n`);
+    }
+    const histDir = join(wikiPath, WIKI_PATHS.tooling, "schema-history");
+    const entries = (await readdir(histDir)).filter((f) => f.startsWith("CLAUDE-"));
+    expect(entries.length).toBe(10);
   });
 });

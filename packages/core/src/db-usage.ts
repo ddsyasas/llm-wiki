@@ -41,3 +41,47 @@ export function getTotalCostCents(db: Db): number {
     .get() as { total: number };
   return row.total;
 }
+
+export type UsageBreakdownRow = {
+  model: string;
+  operation: Operation;
+  call_count: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost_cents: number;
+};
+
+/**
+ * Aggregates usage by (model, operation) for the Costs tab. Returns rows
+ * sorted by total token count descending so the heaviest hitters surface
+ * first. cost_cents is rolled up as a sum but is null when no row had
+ * pricing data.
+ */
+export function getUsageBreakdown(db: Db): UsageBreakdownRow[] {
+  const rows = db
+    .prepare(
+      `SELECT model,
+              operation,
+              COUNT(*) AS call_count,
+              COALESCE(SUM(input_tokens), 0) AS total_input_tokens,
+              COALESCE(SUM(output_tokens), 0) AS total_output_tokens,
+              COALESCE(SUM(cost_cents), 0) AS total_cost_cents
+         FROM usage
+        GROUP BY model, operation
+        ORDER BY (total_input_tokens + total_output_tokens) DESC`,
+    )
+    .all() as Array<{
+    model: string;
+    operation: string;
+    call_count: number;
+    total_input_tokens: number;
+    total_output_tokens: number;
+    total_cost_cents: number;
+  }>;
+  return rows.map((r) => {
+    if (!OPERATIONS.includes(r.operation as Operation)) {
+      throw new Error(`usage breakdown: unknown operation ${r.operation}`);
+    }
+    return { ...r, operation: r.operation as Operation };
+  });
+}
