@@ -49,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Runs before hydration to avoid a light->dark flash on first paint. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="flex min-h-screen flex-col">
+      <body className="flex h-screen flex-col overflow-hidden">
         <ThemeProvider>
           <AppShell>{children}</AppShell>
           <CommandPalette />

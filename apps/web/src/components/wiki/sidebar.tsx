@@ -69,7 +69,7 @@ export function WikiSidebar() {
   const isIndex = pathname === "/wiki";
 
   return (
-    <aside className="flex h-full w-[264px] shrink-0 flex-col border-r border-border/70 bg-secondary/50">
+    <aside className="flex w-[264px] shrink-0 flex-col self-stretch border-r border-border bg-secondary">
       <div className="px-4 pb-2 pt-4">
         <Input
           type="search"

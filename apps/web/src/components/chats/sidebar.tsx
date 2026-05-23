@@ -96,7 +96,7 @@ export function ChatsSidebar() {
   const totalChats = chats?.length ?? 0;
 
   return (
-    <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-border/70 bg-secondary/50">
+    <aside className="flex w-[280px] shrink-0 flex-col self-stretch border-r border-border bg-secondary">
       <div className="space-y-2 px-4 pb-2 pt-4">
         <Button onClick={onNewChat} disabled={creating} className="h-8 w-full text-ui">
           {creating ? "Creating…" : "+ New chat"}
