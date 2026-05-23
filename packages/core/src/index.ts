@@ -9,6 +9,8 @@ export * from "./db-chats";
 export * from "./db-usage";
 export * from "./db-sync";
 export * from "./sync";
+export * from "./config";
+export * from "./secrets";
 export * from "./ingest";
 export * from "./query";
 export * from "./lint";

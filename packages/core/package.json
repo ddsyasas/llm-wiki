@@ -20,7 +20,8 @@
   "dependencies": {
     "better-sqlite3": "^12.10.0",
     "chokidar": "^5.0.0",
-    "gray-matter": "^4.0.3"
+    "gray-matter": "^4.0.3",
+    "keytar": "^7.9.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
