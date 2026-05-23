@@ -14,5 +14,7 @@ export * from "./secrets";
 export * from "./schema";
 export * from "./prompts/ingest";
 export * from "./ingest";
+export * from "./links";
+export * from "./editor";
 export * from "./query";
 export * from "./lint";

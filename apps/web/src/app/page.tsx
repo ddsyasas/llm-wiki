@@ -16,11 +16,14 @@ export default function HomePage() {
           core <code>v{CORE_VERSION}</code>
         </p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap justify-center gap-2">
         <Button asChild>
-          <Link href="/sources">Add a source</Link>
+          <Link href="/wiki">Browse wiki</Link>
         </Button>
         <Button variant="outline" asChild>
+          <Link href="/sources">Add a source</Link>
+        </Button>
+        <Button variant="ghost" asChild>
           <Link href="/settings">Settings</Link>
         </Button>
       </div>
