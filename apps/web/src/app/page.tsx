@@ -177,7 +177,9 @@ function MetaCard({ title, items }: { title: string; items: MetaItem[] }) {
             </li>
           ) : (
             <li key={i} className="flex items-center gap-2.5">
-              <kbd className="inline-flex min-w-[2.5rem] justify-center rounded border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-[10px] text-foreground/80">
+              {/* sans font (Inter) so ⌘/↵/esc glyphs render correctly at
+                  small sizes; mono fonts often miss or mis-baseline them. */}
+              <kbd className="inline-flex h-6 min-w-[2.25rem] items-center justify-center rounded-md border border-border bg-muted px-2 font-sans text-[12px] font-medium leading-none text-foreground/80">
                 {it.kbd}
               </kbd>
               <span>{it.text}</span>

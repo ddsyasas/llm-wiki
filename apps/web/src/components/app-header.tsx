@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
 // Primary destinations — what most actions converge on. Reads in the order a
@@ -60,10 +61,12 @@ export function AppHeader() {
         ))}
       </nav>
 
-      <div className="flex flex-1 items-center justify-end gap-4">
-        {/* Hint at Cmd+K — visible affordance for the command palette. */}
-        <kbd className="hidden items-center gap-1 rounded border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground md:inline-flex">
-          <span className="text-[10px]">⌘</span>K
+      <div className="flex flex-1 items-center justify-end gap-3">
+        {/* Hint at Cmd+K — visible affordance for the command palette.
+            Sans font (not mono) so the ⌘ glyph renders cleanly at small
+            sizes; mono fonts often mis-baseline it. */}
+        <kbd className="hidden h-6 items-center gap-0.5 rounded-md border border-border bg-muted/60 px-1.5 font-sans text-[11px] font-medium leading-none text-muted-foreground md:inline-flex">
+          <span>⌘</span>K
         </kbd>
 
         <nav className="hidden items-center gap-4 text-ui sm:flex">
@@ -77,6 +80,8 @@ export function AppHeader() {
             </Link>
           ))}
         </nav>
+
+        <ThemeToggle />
 
         {/* Compact mobile nav — only on small screens. */}
         <details className="relative sm:hidden">
