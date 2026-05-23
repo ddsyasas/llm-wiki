@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -134,44 +135,22 @@ export default function LintPage() {
     : null;
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <header className="mb-8 flex items-baseline justify-between">
-        <h1 className="text-3xl font-semibold tracking-tight">Lint</h1>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <Link href="/wiki" className="hover:text-foreground">
-            Wiki
-          </Link>
-          <Link href="/sources" className="hover:text-foreground">
-            Sources
-          </Link>
-          <Link href="/query" className="hover:text-foreground">
-            Query
-          </Link>
-          <Link href="/chats" className="hover:text-foreground">
-            Chats
-          </Link>
-          <Link href="/" className="hover:text-foreground">
-            ← Home
-          </Link>
-        </div>
-      </header>
-
-      <section className="rounded-lg border border-border bg-card p-6 text-card-foreground">
-        <h2 className="text-lg font-medium">Wiki health check</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Combines a fast local scan (broken links + orphans) with an LLM pass for
-          contradictions, gaps, stale claims, and missing pages. Uses the lint model
-          from Settings.
-        </p>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Button onClick={runLint} disabled={busy}>
-            {busy ? "Linting…" : result ? "Re-run lint" : "Run lint"}
-          </Button>
-          {model ? (
-            <span className="text-xs text-muted-foreground">via {model}</span>
-          ) : null}
-        </div>
-      </section>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Wiki health check"
+        title="Lint"
+        description="A fast local scan for broken links and orphans, plus an LLM pass for contradictions, gaps, stale claims, and missing pages."
+        actions={
+          <>
+            <Button onClick={runLint} disabled={busy}>
+              {busy ? "Linting…" : result ? "Re-run lint" : "Run lint"}
+            </Button>
+            {model ? (
+              <span className="text-caption text-muted-foreground">via {model}</span>
+            ) : null}
+          </>
+        }
+      />
 
       {error ? (
         <div className="mt-6 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -306,6 +285,6 @@ export default function LintPage() {
           ) : null}
         </section>
       ) : null}
-    </main>
+    </PageContainer>
   );
 }

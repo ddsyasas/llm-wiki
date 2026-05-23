@@ -93,11 +93,12 @@ export function ChatsSidebar() {
   }, [chats, folders, filter]);
 
   const activeId = pathname.startsWith("/chats/") ? pathname.slice("/chats/".length) : null;
+  const totalChats = chats?.length ?? 0;
 
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col border-r border-border bg-secondary/30">
-      <div className="space-y-2 border-b border-border p-3">
-        <Button onClick={onNewChat} disabled={creating} className="w-full">
+    <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-border/70 bg-secondary/50">
+      <div className="space-y-2 px-4 pb-2 pt-4">
+        <Button onClick={onNewChat} disabled={creating} className="h-8 w-full text-ui">
           {creating ? "Creating…" : "+ New chat"}
         </Button>
         <Input
@@ -105,36 +106,58 @@ export function ChatsSidebar() {
           placeholder="Filter chats…"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="h-9 text-sm"
+          className="h-8 border-border/70 bg-background/60 text-ui"
         />
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3 text-sm">
-        {error ? <p className="text-xs text-destructive">{error}</p> : null}
-        {!chats && !error ? <p className="text-xs text-muted-foreground">Loading…</p> : null}
+      <nav className="flex-1 overflow-y-auto px-2 pb-4 text-ui">
+        {error ? <p className="px-3 text-caption text-destructive">{error}</p> : null}
+        {!chats && !error ? (
+          <p className="px-3 text-caption text-muted-foreground">Loading…</p>
+        ) : null}
+
+        {chats && totalChats === 0 ? (
+          <div className="mx-2 mt-2 rounded-md border border-dashed border-border/70 bg-background/40 px-3 py-3 text-caption text-muted-foreground">
+            No chats yet. Click <span className="text-foreground">+ New chat</span> to start
+            one — each chat is saved as a real <code>.md</code> file you can edit in any
+            editor.
+          </div>
+        ) : null}
 
         {grouped
           ? Array.from(grouped.entries()).map(([folder, items]) => (
-              <section key={folder} className="mb-4">
-                <h3 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {folder} {items.length > 0 ? `(${items.length})` : null}
+              <section key={folder} className="mb-3">
+                <h3 className="mt-3 px-3 pb-1 text-caption font-semibold uppercase tracking-wider text-muted-foreground">
+                  {folder}
+                  {items.length > 0 ? (
+                    <span className="ml-1.5 font-normal normal-case text-muted-foreground/70">
+                      {items.length}
+                    </span>
+                  ) : null}
                 </h3>
                 {items.length === 0 ? (
-                  <p className="px-2 text-xs text-muted-foreground/70">—</p>
+                  <p className="px-3 text-caption text-muted-foreground/60">empty</p>
                 ) : (
-                  <ul className="space-y-0.5">
+                  <ul>
                     {items.map((c) => (
                       <li key={c.id}>
                         <Link
                           href={`/chats/${c.id}`}
                           className={cn(
-                            "flex items-center justify-between gap-2 truncate rounded px-2 py-1.5",
-                            activeId === c.id ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
+                            "mx-2 flex items-center justify-between gap-2 truncate rounded-md px-2 py-1.5",
+                            activeId === c.id
+                              ? "bg-primary/10 text-foreground"
+                              : "text-foreground/70 hover:bg-accent/60",
                           )}
                           title={c.title}
                         >
-                          <span className="truncate">{c.pinned ? "★ " : ""}{c.title}</span>
-                          <span className="shrink-0 text-[10px] text-muted-foreground">
+                          <span className="truncate">
+                            {c.pinned ? (
+                              <span className="mr-1 text-primary">★</span>
+                            ) : null}
+                            {c.title}
+                          </span>
+                          <span className="shrink-0 font-mono text-[10px] text-muted-foreground/80">
                             {c.message_count}
                           </span>
                         </Link>

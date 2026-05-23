@@ -2,49 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Palette per docs/08 — paper-inspired warm cream (light) and warm dark.
+  Hex → HSL conversions kept in comments so future tweaks stay grounded.
+
+  Light:
+    bg:        #faf7f2  cream paper
+    secondary: #f3ede2  slightly darker for sidebars
+    elevated:  #ffffff  cards, modals, popovers
+    text:      #1c1917  warm near-black
+    muted-fg:  #57534e  warm gray
+    border:    #d6d3d1
+    accent:    #991b1b  deep oxblood red, used sparingly
+
+  Dark:
+    bg:        #1c1917
+    secondary: #292524
+    elevated:  #44403c
+    text:      #f5f5f4
+    muted-fg:  #a8a29e
+    border:    #3a3530
+    accent:    #f87171  warm coral, against the dark warm-brown bg
+*/
+
 @layer base {
   :root {
-    --background: 40 33% 97%;
-    --foreground: 24 10% 10%;
+    --background: 40 33% 97%;           /* #faf7f2 */
+    --foreground: 24 10% 10%;           /* #1c1917 */
+
+    --elevated: 0 0% 100%;              /* #ffffff */
     --card: 0 0% 100%;
     --card-foreground: 24 10% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 24 10% 10%;
-    --primary: 0 70% 35%;
-    --primary-foreground: 40 33% 97%;
-    --secondary: 36 31% 92%;
+
+    --secondary: 36 30% 92%;            /* #f3ede2 */
     --secondary-foreground: 24 10% 10%;
-    --muted: 36 31% 92%;
-    --muted-foreground: 25 5% 45%;
-    --accent: 36 31% 92%;
+    --muted: 36 30% 92%;
+    --muted-foreground: 24 6% 35%;      /* #57534e */
+
+    --primary: 0 70% 35%;               /* #991b1b deep red */
+    --primary-foreground: 40 33% 97%;
+    --accent: 36 30% 89%;               /* subtle warm hover */
     --accent-foreground: 24 10% 10%;
+    --accent-soft: 0 84% 94%;           /* #fee2e2 — soft red wash for chips */
     --destructive: 0 70% 35%;
     --destructive-foreground: 40 33% 97%;
-    --border: 30 6% 84%;
-    --input: 30 6% 84%;
+
+    --border: 24 8% 84%;                /* #d6d3d1 */
+    --input: 24 8% 84%;
     --ring: 0 70% 35%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 24 10% 10%;
-    --foreground: 40 33% 97%;
-    --card: 24 10% 12%;
-    --card-foreground: 40 33% 97%;
-    --popover: 24 10% 12%;
-    --popover-foreground: 40 33% 97%;
-    --primary: 0 84% 70%;
+    --background: 24 10% 10%;           /* #1c1917 */
+    --foreground: 36 14% 96%;           /* #f5f5f4 */
+
+    --elevated: 24 8% 16%;              /* slightly raised surface */
+    --card: 24 8% 13%;
+    --card-foreground: 36 14% 96%;
+    --popover: 24 8% 13%;
+    --popover-foreground: 36 14% 96%;
+
+    --secondary: 24 8% 14%;             /* #292524 */
+    --secondary-foreground: 36 14% 96%;
+    --muted: 24 8% 14%;
+    --muted-foreground: 24 6% 62%;      /* #a8a29e */
+
+    --primary: 0 84% 70%;               /* #f87171 coral */
     --primary-foreground: 24 10% 10%;
-    --secondary: 24 6% 17%;
-    --secondary-foreground: 40 33% 97%;
-    --muted: 24 6% 17%;
-    --muted-foreground: 25 5% 65%;
-    --accent: 24 6% 17%;
-    --accent-foreground: 40 33% 97%;
+    --accent: 24 8% 18%;
+    --accent-foreground: 36 14% 96%;
+    --accent-soft: 0 56% 15%;           /* #450a0a — deep red wash */
     --destructive: 0 84% 70%;
     --destructive-foreground: 24 10% 10%;
-    --border: 24 6% 27%;
-    --input: 24 6% 27%;
+
+    --border: 24 6% 20%;                /* #3a3530 */
+    --input: 24 6% 20%;
     --ring: 0 84% 70%;
   }
 }
@@ -53,7 +88,51 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
+  html {
+    @apply antialiased;
   }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1, "cv11" 1;
+  }
+  /* Page titles always use the display serif, keep the scholarly voice. */
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+  }
+  /* Long-form markdown (wiki bodies, chat assistant replies) uses the
+     reading serif via the prose container, which we apply via MarkdownView. */
+  code, kbd, pre, samp {
+    @apply font-mono;
+  }
+}
+
+/* Subtle paper-grain accent on the light theme. Tiny, almost imperceptible —
+   gives the background warmth that solid color alone misses. Skipped in dark
+   mode to avoid muddy noise on the deep warm-brown bg. */
+:root body {
+  background-image: radial-gradient(hsl(var(--foreground) / 0.015) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.dark body {
+  background-image: none;
+}
+
+/* shadcn prose tweaks so wiki body uses the serif and proper rhythm. */
+.prose {
+  @apply font-serif;
+}
+.prose code {
+  @apply font-mono;
+}
+
+/* Active nav indicator — a thin paper-red underline below the active link. */
+.nav-link {
+  @apply relative px-1 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground;
+}
+.nav-link.is-active {
+  @apply text-foreground;
+}
+.nav-link.is-active::after {
+  content: "";
+  @apply absolute left-0 right-0 -bottom-[5px] h-px bg-primary;
 }

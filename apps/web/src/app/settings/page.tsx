@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
+import { PageContainer, PageHeader } from "@/components/page-shell";
 import { AboutTab } from "@/components/settings/about-tab";
 import { ApiTab } from "@/components/settings/api-tab";
 import { CostsTab } from "@/components/settings/costs-tab";
@@ -24,22 +24,16 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("general");
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <header className="mb-6 flex items-baseline justify-between">
-        <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <Link href="/schema" className="hover:text-foreground">
-            Schema editor
-          </Link>
-          <Link href="/" className="hover:text-foreground">
-            ← Home
-          </Link>
-        </div>
-      </header>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Configuration"
+        title="Settings"
+        description="Per-wiki preferences live in your wiki folder. The API key lives in your OS keychain (or ~/.llm-wiki/config.json as fallback)."
+      />
 
       <nav
         role="tablist"
-        className="mb-6 inline-flex rounded-md border border-border bg-secondary/40 p-1 text-sm"
+        className="mb-5 inline-flex rounded-md border border-border/70 bg-secondary/40 p-1 text-ui"
       >
         {TAB_ORDER.map((t) => (
           <button
@@ -50,7 +44,9 @@ export default function SettingsPage() {
             onClick={() => setTab(t)}
             className={cn(
               "rounded px-3 py-1",
-              tab === t ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+              tab === t
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {TAB_LABEL[t]}
@@ -58,18 +54,13 @@ export default function SettingsPage() {
         ))}
       </nav>
 
-      <section className="rounded-lg border border-border bg-card p-6 text-card-foreground">
+      <section className="rounded-lg border border-border/70 bg-card p-5 text-card-foreground">
         {tab === "general" ? <GeneralTab /> : null}
         {tab === "models" ? <ModelsTab /> : null}
         {tab === "api" ? <ApiTab /> : null}
         {tab === "costs" ? <CostsTab /> : null}
         {tab === "about" ? <AboutTab /> : null}
       </section>
-
-      <p className="mt-6 text-xs text-muted-foreground">
-        Per-wiki settings live in <code>&lt;wiki&gt;/.llm-wiki/settings.json</code>; the API key
-        lives in your OS keychain (or <code>~/.llm-wiki/config.json</code> as fallback).
-      </p>
-    </main>
+    </PageContainer>
   );
 }

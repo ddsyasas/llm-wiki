@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MarkdownView } from "@/components/wiki/markdown-view";
@@ -55,44 +55,49 @@ export default function SchemaEditorPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <header className="mb-6 flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Schema editor</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Edits <code>CLAUDE.md</code> in your wiki folder. The schema is the contract the
-            LLM uses on every ingest/query/lint call. Previous versions are kept in{" "}
-            <code>.llm-wiki/schema-history/</code> (last 10).
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <Link href="/settings" className="hover:text-foreground">
-            Settings
-          </Link>
-          <Link href="/" className="hover:text-foreground">
-            ← Home
-          </Link>
-        </div>
-      </header>
+    <PageContainer width="lg">
+      <PageHeader
+        eyebrow="The LLM's contract"
+        title="Schema editor"
+        description={
+          <>
+            Edits <code className="font-mono">CLAUDE.md</code> in your wiki folder. The schema
+            is the contract the LLM uses on every ingest/query/lint call. Previous versions
+            are kept in <code className="font-mono">.llm-wiki/schema-history/</code> (last 10).
+          </>
+        }
+        actions={
+          <>
+            <Button onClick={onSave} disabled={!dirty || busy}>
+              {busy ? "Saving…" : dirty ? "Save schema" : "Saved"}
+            </Button>
+            {dirty ? (
+              <Button variant="ghost" onClick={() => setContent(original)} disabled={busy}>
+                Revert
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
       {error ? (
-        <div className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-ui text-destructive">
           {error}
         </div>
       ) : null}
       {flash ? (
-        <div className="mb-4 rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+        <div className="mb-4 rounded-md bg-emerald-500/10 px-3 py-2 text-ui text-emerald-700 dark:text-emerald-300">
           {flash}
         </div>
       ) : null}
 
       {content === null ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-ui text-muted-foreground">Loading…</p>
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div>
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h3 className="mb-1 text-caption font-semibold uppercase tracking-wider text-muted-foreground">
                 Markdown
               </h3>
               <Textarea
@@ -102,34 +107,19 @@ export default function SchemaEditorPage() {
               />
             </div>
             <div>
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h3 className="mb-1 text-caption font-semibold uppercase tracking-wider text-muted-foreground">
                 Preview
               </h3>
-              <div className="min-h-[560px] rounded-md border border-border bg-card p-4">
+              <div className="min-h-[560px] rounded-md border border-border/70 bg-card p-4">
                 <MarkdownView content={content} knownSlugs={[]} />
               </div>
             </div>
           </div>
-
-          <div className="mt-4 flex items-center gap-3">
-            <Button onClick={onSave} disabled={!dirty || busy}>
-              {busy ? "Saving…" : dirty ? "Save schema" : "Saved"}
-            </Button>
-            {dirty ? (
-              <Button
-                variant="ghost"
-                onClick={() => setContent(original)}
-                disabled={busy}
-              >
-                Revert
-              </Button>
-            ) : null}
-            <span className="text-xs text-muted-foreground">
-              Path: <code className="break-all">{wikiPath}/CLAUDE.md</code>
-            </span>
-          </div>
+          <p className="mt-3 text-caption text-muted-foreground">
+            <span className="font-mono break-all">{wikiPath}/CLAUDE.md</span>
+          </p>
         </>
       )}
-    </main>
+    </PageContainer>
   );
 }

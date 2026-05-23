@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { CostPreview } from "@/components/cost-preview";
+import { Card, PageContainer, PageHeader } from "@/components/page-shell";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useWikiSettings } from "@/lib/use-wiki-settings";
@@ -99,26 +100,17 @@ export default function SourcesPage() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <header className="mb-8 flex items-baseline justify-between">
-        <h1 className="text-3xl font-semibold tracking-tight">Sources</h1>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <Link href="/wiki" className="hover:text-foreground">
-            Wiki
-          </Link>
-          <Link href="/settings" className="hover:text-foreground">
-            Settings
-          </Link>
-          <Link href="/" className="hover:text-foreground">
-            ← Home
-          </Link>
-        </div>
-      </header>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Add to wiki"
+        title="Sources"
+        description="Pasted text and Markdown go straight in. URLs fetch + extract via Readability. PDFs and images go through a vision model. DOCX/PPTX/XLSX get pre-parsed locally."
+      />
 
       <section
         className={cn(
-          "rounded-lg border bg-card p-6 text-card-foreground",
-          dragOver ? "border-primary ring-2 ring-primary/30" : "border-border",
+          "rounded-lg border bg-card p-5 text-card-foreground transition-colors",
+          dragOver ? "border-primary ring-2 ring-primary/30" : "border-border/70",
         )}
         onDragEnter={(e) => {
           e.preventDefault();
@@ -134,13 +126,7 @@ export default function SourcesPage() {
         }}
         onDrop={onDrop}
       >
-        <h2 className="text-lg font-medium">Add a source</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Pasted text and Markdown go straight in. URLs fetch + extract via Readability. PDFs and
-          images go through a vision model. DOCX/PPTX/XLSX get pre-parsed locally.
-        </p>
-
-        <div className="mt-5 inline-flex rounded-md border border-border bg-secondary/40 p-1 text-sm">
+        <div className="inline-flex rounded-md border border-border/70 bg-secondary/40 p-1 text-ui">
           {(["paste", "file", "url"] as const).map((m) => (
             <button
               key={m}
@@ -354,13 +340,17 @@ export default function SourcesPage() {
         ) : null}
       </section>
 
-      <p className="mt-6 text-xs text-muted-foreground">
-        Open <Link href="/wiki" className="underline">Wiki</Link> to browse the pages produced
-        from your sources.
+      <p className="mt-6 text-caption text-muted-foreground">
+        Open <Link href="/wiki" className="underline underline-offset-2">Wiki</Link> to browse
+        the pages produced from your sources.
       </p>
-    </main>
+    </PageContainer>
   );
 }
+
+// Cards make the page feel like one cohesive form. Drop the redundant <Card>
+// wrapper for now — it's good enough as the single bordered section.
+void Card;
 
 function CostPreviewForSources({
   mode,

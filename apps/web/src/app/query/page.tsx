@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { CostPreview } from "@/components/cost-preview";
+import { PageContainer, PageHeader } from "@/components/page-shell";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MarkdownView } from "@/components/wiki/markdown-view";
 import { useWikiSettings } from "@/lib/use-wiki-settings";
@@ -117,28 +118,16 @@ export default function QueryPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <header className="mb-8 flex items-baseline justify-between">
-        <h1 className="text-3xl font-semibold tracking-tight">Query</h1>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <Link href="/wiki" className="hover:text-foreground">
-            Wiki
-          </Link>
-          <Link href="/sources" className="hover:text-foreground">
-            Sources
-          </Link>
-          <Link href="/settings" className="hover:text-foreground">
-            Settings
-          </Link>
-          <Link href="/" className="hover:text-foreground">
-            ← Home
-          </Link>
-        </div>
-      </header>
+    <PageContainer>
+      <PageHeader
+        eyebrow="One-off question"
+        title="Query"
+        description="Ask the wiki and get a cited answer. Useful for one-shot lookups; for ongoing back-and-forth use Chats."
+      />
 
       <form onSubmit={onAsk} className="space-y-3">
-        <label className="block text-sm font-medium" htmlFor="question">
-          Ask a one-off question
+        <label className="block text-ui font-medium" htmlFor="question">
+          Your question
         </label>
         <Textarea
           id="question"
@@ -147,7 +136,7 @@ export default function QueryPage() {
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           disabled={busy}
-          className="text-base"
+          className="font-serif text-body"
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
@@ -266,6 +255,6 @@ export default function QueryPage() {
           ) : null}
         </section>
       ) : null}
-    </main>
+    </PageContainer>
   );
 }

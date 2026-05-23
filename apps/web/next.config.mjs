@@ -11,12 +11,13 @@ const nextConfig = {
   // The CLI's `start` command prefers that bundle for production installs and
   // falls back to `next dev` from the workspace when it isn't present.
   output: "standalone",
-  // In a monorepo, file-tracing for standalone defaults to the package dir
-  // and misses workspace siblings. Point it at the repo root so @llm-wiki/*
-  // and the native deps get correctly bundled.
-  outputFileTracingRoot: resolve(__dirname, "../.."),
   transpilePackages: ["@llm-wiki/core", "@llm-wiki/ingestion", "@llm-wiki/llm"],
   experimental: {
+    // In a monorepo, file-tracing for standalone defaults to the package dir
+    // and misses workspace siblings. Point it at the repo root so @llm-wiki/*
+    // and the native deps get correctly bundled. (In Next 14.2 this still
+    // lives under `experimental`; it graduates in 15.)
+    outputFileTracingRoot: resolve(__dirname, "../.."),
     serverComponentsExternalPackages: [
       "keytar",
       "better-sqlite3",
