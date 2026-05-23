@@ -1,6 +1,20 @@
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // "standalone" produces a self-contained server bundle in .next/standalone/.
+  // The CLI's `start` command prefers that bundle for production installs and
+  // falls back to `next dev` from the workspace when it isn't present.
+  output: "standalone",
+  // In a monorepo, file-tracing for standalone defaults to the package dir
+  // and misses workspace siblings. Point it at the repo root so @llm-wiki/*
+  // and the native deps get correctly bundled.
+  outputFileTracingRoot: resolve(__dirname, "../.."),
   transpilePackages: ["@llm-wiki/core", "@llm-wiki/ingestion", "@llm-wiki/llm"],
   experimental: {
     serverComponentsExternalPackages: [

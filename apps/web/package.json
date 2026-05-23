@@ -4,12 +4,22 @@
   "private": true,
   "description": "LLM Wiki web app — Next.js UI + API routes. Published as @yasas/llm-wiki.",
   "license": "MIT",
+  "bin": {
+    "llm-wiki": "./bin/llm-wiki.mjs"
+  },
+  "files": [
+    "bin",
+    ".next/standalone",
+    ".next/static",
+    "public"
+  ],
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node ./scripts/copy-standalone-assets.mjs",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cli": "node ./bin/llm-wiki.mjs"
   },
   "dependencies": {
     "@llm-wiki/core": "workspace:*",
@@ -20,6 +30,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.439.0",
     "next": "^14.2.15",
+    "open": "^10.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^9.1.0",
