@@ -11,6 +11,8 @@ export * from "./db-sync";
 export * from "./sync";
 export * from "./config";
 export * from "./secrets";
+export * from "./schema";
+export * from "./prompts/ingest";
 export * from "./ingest";
 export * from "./query";
 export * from "./lint";

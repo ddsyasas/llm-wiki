@@ -18,6 +18,9 @@ export default function HomePage() {
       </div>
       <div className="flex gap-2">
         <Button asChild>
+          <Link href="/sources">Add a source</Link>
+        </Button>
+        <Button variant="outline" asChild>
           <Link href="/settings">Settings</Link>
         </Button>
       </div>

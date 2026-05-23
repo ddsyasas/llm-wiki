@@ -93,6 +93,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@llm-wiki/llm':
+        specifier: workspace:*
+        version: link:../llm
       better-sqlite3:
         specifier: ^12.10.0
         version: 12.10.0
@@ -105,6 +108,9 @@ importers:
       keytar:
         specifier: ^7.9.0
         version: 7.9.0
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -116,7 +122,21 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@20.19.41)
 
-  packages/ingestion: {}
+  packages/ingestion:
+    dependencies:
+      '@llm-wiki/core':
+        specifier: workspace:*
+        version: link:../core
+      gray-matter:
+        specifier: ^4.0.3
+        version: 4.0.3
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.41
+        version: 20.19.41
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@20.19.41)
 
   packages/llm:
     dependencies:

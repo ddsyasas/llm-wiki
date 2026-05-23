@@ -12,7 +12,17 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "echo 'lint: no-op for now'",
     "build": "echo 'build: no-op for now'"
+  },
+  "dependencies": {
+    "@llm-wiki/core": "workspace:*",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "vitest": "^2.1.9"
   }
 }
