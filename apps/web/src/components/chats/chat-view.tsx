@@ -48,6 +48,17 @@ export function ChatView({ chatId, initialChat, knownSlugs, folders }: Props) {
   const [moveOpen, setMoveOpen] = useState(false);
   const [promoteFor, setPromoteFor] = useState<ChatMessage | null>(null);
 
+  // "Ingest whole chat as a source" — implements docs/06 §"Special case:
+  // chats as sources". Runs the same ingest pipeline as a pasted text source
+  // so a long, useful thread can be promoted into the wiki layer all at once
+  // (vs. promoting one assistant message at a time).
+  const [ingestingChat, setIngestingChat] = useState(false);
+  const [ingestChatResult, setIngestChatResult] = useState<null | {
+    newPages: Array<{ slug: string; title: string }>;
+    updatedPages: Array<{ slug: string }>;
+  }>(null);
+  const [ingestChatError, setIngestChatError] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -156,6 +167,53 @@ export function ChatView({ chatId, initialChat, knownSlugs, folders }: Props) {
     }
   }
 
+  async function onIngestChat() {
+    if (chat.messages.length === 0) return;
+    if (
+      !confirm(
+        `Ingest this chat as a wiki source? The agent will read the whole conversation and may create or update wiki pages from it.`,
+      )
+    )
+      return;
+    setIngestingChat(true);
+    setIngestChatError(null);
+    setIngestChatResult(null);
+    try {
+      // Stringify messages the same way the chat file is stored so the LLM
+      // sees a natural conversation transcript, not a JSON blob.
+      const body = chat.messages
+        .map((m) => `## ${m.role} [${m.time}]\n${m.content}`)
+        .join("\n\n");
+      const res = await fetch("/api/ingest", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          text: body,
+          title: `Chat: ${chat.row.title}`,
+        }),
+      });
+      const json = (await res.json()) as {
+        ok?: true;
+        response?: {
+          newPages: Array<{ slug: string; title: string; type: string }>;
+          pageUpdates: Array<{ slug: string; updateReason: string }>;
+        };
+        error?: string;
+      };
+      if (!res.ok || !json.ok || !json.response) {
+        throw new Error(json.error ?? `HTTP ${res.status}`);
+      }
+      setIngestChatResult({
+        newPages: json.response.newPages.map((p) => ({ slug: p.slug, title: p.title })),
+        updatedPages: json.response.pageUpdates.map((p) => ({ slug: p.slug })),
+      });
+    } catch (err) {
+      setIngestChatError((err as Error).message);
+    } finally {
+      setIngestingChat(false);
+    }
+  }
+
   return (
     <div className="flex h-full flex-col">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-3">
@@ -217,11 +275,52 @@ export function ChatView({ chatId, initialChat, knownSlugs, folders }: Props) {
           <Button variant="outline" size="sm" onClick={onTogglePin}>
             {chat.row.pinned ? "Unpin" : "Pin"}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onIngestChat}
+            disabled={ingestingChat || chat.messages.length === 0}
+            title="Run the whole chat through the ingest pipeline as a source"
+          >
+            {ingestingChat ? "Ingesting…" : "Ingest → wiki"}
+          </Button>
           <Button variant="ghost" size="sm" onClick={onDelete}>
             Delete
           </Button>
         </div>
       </header>
+
+      {ingestChatResult ? (
+        <div className="border-b border-emerald-500/30 bg-emerald-500/10 px-6 py-3 text-sm text-emerald-800 dark:text-emerald-200">
+          <p>
+            <strong>Filed back into the wiki.</strong>{" "}
+            {ingestChatResult.newPages.length} new page
+            {ingestChatResult.newPages.length === 1 ? "" : "s"},{" "}
+            {ingestChatResult.updatedPages.length} updated.
+          </p>
+          {ingestChatResult.newPages.length > 0 ? (
+            <p className="mt-1 text-xs">
+              New:{" "}
+              {ingestChatResult.newPages.map((p, i) => (
+                <span key={p.slug}>
+                  <a
+                    href={`/wiki/${p.slug}`}
+                    className="underline underline-offset-2"
+                  >
+                    {p.title}
+                  </a>
+                  {i < ingestChatResult.newPages.length - 1 ? ", " : ""}
+                </span>
+              ))}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      {ingestChatError ? (
+        <div className="border-b border-destructive/30 bg-destructive/10 px-6 py-2 text-sm text-destructive">
+          Chat ingest failed: {ingestChatError}
+        </div>
+      ) : null}
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {chat.messages.length === 0 ? (

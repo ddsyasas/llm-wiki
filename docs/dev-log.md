@@ -2,7 +2,7 @@
 
 **Maintained for context-window resilience.** This file is the single source of truth for where the project is, what's been built, what's broken, and what's next. Read this first when picking up after a long break or in a fresh chat session.
 
-Last updated: 2026-05-24
+Last updated: 2026-05-24 (post-Karpathy-pattern audit)
 
 ---
 
@@ -21,9 +21,13 @@ Repo: **https://github.com/ddsyasas/llm-wiki** (public, MIT).
 
 ## Status snapshot — 2026-05-24
 
-**26 commits on `main`.** Build plan (docs/10) steps 0–14 complete. Two design passes + multiple UX fixes shipped.
+**28 commits on `main`.** Build plan (docs/10) steps 0–14 complete. Two design passes, multiple UX fixes, model-slug update, and a Karpathy-pattern audit shipped.
 
 ```
+HEAD    Karpathy-pattern audit: first-run gate, sources list, chat-as-source ingest
+61306b0 Add dedicated chat model slot; fix hardcoded retired-slug fallback
+5f43e51 Update model slugs to Claude 4.x; replace text-input with select dropdown
+914316f Add docs/dev-log.md — project state for context-window resilience
 b442594 Fix: prompts now embed explicit JSON shape; friendlier ingest error UI
 06d877c Fix: API key view-mode, theme hydration error, one-wiki-one-topic copy
 e6cc5b2 Fix sidebars actually filling viewport height
@@ -266,12 +270,46 @@ shadcn-ui CLI is now `npx shadcn@latest add <component>`. Or paste the component
 
 ---
 
+## Karpathy-pattern audit — 2026-05-24
+
+User asked to verify the app actually implements Karpathy's pattern as someone-without-heavy-tech-knowledge would experience it in the browser. Re-grounded against `docs/01-vision`, `docs/04-features-v1`, `docs/06-ingest-pipeline`, `docs/07-chat-threads`, `docs/08-ui-design`.
+
+**Verified working** ✅
+- **Three layers** are all reachable from the top nav: Sources (raw), Wiki (LLM-maintained pages with index + per-page view + backlinks + inline edit), Schema (split-pane `CLAUDE.md` editor with auto-backup to `.llm-wiki/schema-history/`, last 10 kept).
+- **Three operations** each have a dedicated route with cost preview where applicable: Ingest (`/sources`), Query (`/query`), Lint (`/lint` with severity grouping, broken-link auto-fix, clickable follow-up questions).
+- **Per-message "Save as wiki page"** on every chat assistant turn and on query results when a `suggestedNewPage` is returned.
+- **Five model slots** (ingest / query / chat / lint / vision), per-slot dropdowns + custom-slug escape hatch in Settings → Models.
+
+**Gaps found and closed**
+1. **No first-run gate** — user without API key or topic landed on a dashboard with stat tiles, hit "Add a source", failed at first ingest. Docs/04 P0 #1 explicitly required a setup wizard. → Built `components/onboarding.tsx`. `apps/web/src/app/page.tsx` server-side checks `getApiKey()` and `settings.topic`; if either is missing, renders the wizard instead of the dashboard. Single-card design (topic + key fields + Test button + OpenRouter signup link) — docs/08's three-step modal was overkill for two fields.
+2. **No sources list** on `/sources` — only the ingest form existed, so after ingesting you had no way to see your sources or trace which pages came from which. Docs/08 §"Sources view" required a list with format / size / dates / page count. → Added `GET /api/sources` (joins `page_sources` for a count) + `components/sources/sources-list.tsx`. The list sits above the ingest form and re-fetches automatically after a successful ingest via a nonce bump.
+3. **No "Ingest whole chat as a source"** — only per-message promote existed. Docs/06 §"Special case" and docs/07 §"Ingest the whole chat" explicitly call this out as the pattern for promoting a useful thread into the permanent wiki layer. → Added a header button on `chat-view.tsx` that stringifies the messages with role markers and POSTs to `/api/ingest` with `title: "Chat: …"`. Result banner shows links to created and updated pages.
+4. **Lint not surfaced on home** — three operations but only two were action cards (Add source, Ask question). → Home action grid is now four cards (Sources / Query / Wiki / Lint), wraps to 2×2 on tablet and 1×4 on desktop. Lint card is disabled-effectively (CTA "Add a source first") when `pageCount === 0`.
+
+**What I deliberately did NOT add**
+- Per-source "Re-ingest" / "Delete" buttons. Docs/08 mention them in the source detail view, but the data round-trip + edge cases (unlinking the page_sources rows when a source is deleted; running ingest a second time updates rather than replaces) is bigger than a single-session change. Tracking as a follow-up.
+- Per-source "What pages did this produce" drill-down. The list shows a `N pages` count today; the click-through view is a follow-up.
+- Sources detail view (extracted markdown shown alongside the source). Same reason — follow-up.
+- Server-side gating of `/wiki`, `/query`, `/lint` for missing key. Direct-bookmark hits to those routes still fail loud at the API layer (`OpenRouter API key not configured`). The home gate covers the common path; full middleware redirect is a follow-up if direct-bookmark UX matters.
+
+**Files touched this audit**
+- `apps/web/src/app/page.tsx` — added first-run check, expanded action grid to 4
+- `apps/web/src/components/onboarding.tsx` — new
+- `apps/web/src/app/api/sources/route.ts` — new
+- `apps/web/src/components/sources/sources-list.tsx` — new
+- `apps/web/src/app/sources/page.tsx` — added list section + refresh nonce
+- `apps/web/src/components/chats/chat-view.tsx` — added Ingest → wiki button + result banner
+
+---
+
 ## Open questions for future sessions
 
 1. Should we ship `next-themes` instead of the homegrown ThemeProvider? Tradeoff: ~5KB dep vs. zero deps + a few extra lines.
 2. Should models.ts pull pricing from OpenRouter's `/models` endpoint at runtime instead of hardcoding? More correct but adds latency + a cache layer.
 3. Should the CLI use `tsx` to import from `@llm-wiki/core` instead of inlining init logic? Eliminates duplication but adds a runtime dep.
 4. Is there value in a "watch mode" for sources? (User drops files into `raw/` from their file manager, app auto-ingests.) Mentioned in docs but deferred.
+5. Per-source detail view: re-ingest, delete (with `page_sources` unlink), and "what pages did this produce" drill-down. Audited-but-deferred from 2026-05-24.
+6. Should non-home routes also redirect to onboarding when the key/topic are missing? Today they fail loud at the API layer. Middleware-level redirect would be friendlier for direct bookmarks.
 
 ---
 

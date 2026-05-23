@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { CostPreview } from "@/components/cost-preview";
 import { Card, PageContainer, PageHeader } from "@/components/page-shell";
+import { SourcesList } from "@/components/sources/sources-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +42,7 @@ export default function SourcesPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<IngestSuccess | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canSubmit =
@@ -82,6 +84,8 @@ export default function SourcesPage() {
       // Don't clear file/url so the user can see what they ingested.
       setText("");
       setTitle("");
+      // Re-fetch the sources list above so the new ingest shows up immediately.
+      setRefreshNonce((n) => n + 1);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -106,6 +110,16 @@ export default function SourcesPage() {
         title="Sources"
         description="Pasted text and Markdown go straight in. URLs fetch + extract via Readability. PDFs and images go through a vision model. DOCX/PPTX/XLSX get pre-parsed locally."
       />
+
+      <section className="mb-8 rounded-lg border border-border/70 bg-card p-5">
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="font-display text-h3 font-semibold">Ingested sources</h2>
+          <p className="text-caption text-muted-foreground">
+            Originals live in <code className="font-mono">raw/</code>
+          </p>
+        </div>
+        <SourcesList refreshNonce={refreshNonce} />
+      </section>
 
       <section
         className={cn(

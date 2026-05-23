@@ -1,12 +1,14 @@
 import Link from "next/link";
 
 import {
+  getApiKey,
   getTotalCostCents,
   listChatRows,
   listPageRows,
   listSourceRows,
 } from "@llm-wiki/core";
 
+import { Onboarding } from "@/components/onboarding";
 import { openWikiContext, resolveWikiPath } from "@/lib/server-wiki";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +19,7 @@ export default async function HomePage() {
   let sourceCount = 0;
   let chatCount = 0;
   let costCents = 0;
+  const topic = ctx.settings.topic;
   try {
     pageCount = listPageRows(ctx.db).length;
     sourceCount = listSourceRows(ctx.db).length;
@@ -26,6 +29,25 @@ export default async function HomePage() {
     ctx.db.close();
   }
   const wikiPath = resolveWikiPath();
+
+  // First-run gate (docs/04 P0 #1). Block the dashboard until the user has
+  // (a) named the wiki's topic so the LLM has scope and (b) configured an
+  // OpenRouter key so any operation can actually run. Both are saved to the
+  // user's own machine, no remote round-trip.
+  const apiKeyStatus = await getApiKey();
+  const needsTopic = topic.trim().length === 0;
+  const needsKey = apiKeyStatus.key === null;
+  if (needsTopic || needsKey) {
+    return (
+      <Onboarding
+        needsTopic={needsTopic}
+        needsKey={needsKey}
+        initialTopic={topic}
+        wikiPath={wikiPath}
+      />
+    );
+  }
+
   const isFresh = pageCount === 0 && sourceCount === 0;
 
   return (
@@ -54,17 +76,17 @@ export default async function HomePage() {
         <StatTile label="LLM spend" value={formatCost(costCents)} href="/settings" />
       </section>
 
-      <section className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <section className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <ActionCard
           tone="primary"
-          title={isFresh ? "Add your first source" : "Add a source"}
+          title={isFresh ? "Add your first source" : "Ingest a source"}
           body="Paste an article, drop a PDF, or pull a URL. The agent reads it, writes pages, and cross-links."
           cta="Open Sources →"
           href="/sources"
         />
         <ActionCard
-          title="Ask a question"
-          body="One-off Q&A against the wiki with citations. Promote good answers into permanent pages."
+          title="Query the wiki"
+          body="One-off Q&A with citations. Promote good answers into permanent pages."
           cta="Open Query →"
           href="/query"
         />
@@ -77,6 +99,16 @@ export default async function HomePage() {
           }
           cta={pageCount === 0 ? "Add a source first →" : "Open Wiki →"}
           href={pageCount === 0 ? "/sources" : "/wiki"}
+        />
+        <ActionCard
+          title="Lint the wiki"
+          body={
+            pageCount === 0
+              ? "Nothing to check yet. Ingest sources first."
+              : "Scan for contradictions, broken links, orphans, and gaps. Quick-fixes inline."
+          }
+          cta={pageCount === 0 ? "Add a source first →" : "Open Lint →"}
+          href={pageCount === 0 ? "/sources" : "/lint"}
         />
       </section>
 
