@@ -74,6 +74,15 @@ CREATE TABLE IF NOT EXISTS response_cache (
   created_at TEXT NOT NULL,
   hits INTEGER NOT NULL DEFAULT 0
 );
+
+-- Tracks file mtime + size per path so syncWikiToDb can skip unchanged files
+-- on startup. Internal bookkeeping; not part of the user-facing docs/03 schema.
+CREATE TABLE IF NOT EXISTS sync_state (
+  rel_path TEXT PRIMARY KEY,
+  mtime_ms INTEGER NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  synced_at TEXT NOT NULL
+);
 `;
 
 export function runMigrations(db: Db): void {

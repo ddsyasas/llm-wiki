@@ -121,7 +121,21 @@ export function unindexPageFromSearch(db: Db, slug: string): void {
 
 export type SearchHit = { slug: string; title: string; snippet: string };
 
+// FTS5 treats hyphens, colons, parens, etc. as operators. For a personal
+// search box we want plain word/phrase matching, so split on whitespace and
+// quote each token. Boolean operators aren't exposed in V1.
+function sanitizeFtsQuery(q: string): string {
+  return q
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((tok) => `"${tok.replace(/"/g, '""')}"`)
+    .join(" ");
+}
+
 export function searchPages(db: Db, query: string, limit = 20): SearchHit[] {
+  const sanitized = sanitizeFtsQuery(query);
+  if (sanitized.length === 0) return [];
   const rows = db
     .prepare(
       `SELECT slug, title, snippet(pages_fts, 2, '[', ']', '...', 16) AS snippet
@@ -130,6 +144,6 @@ export function searchPages(db: Db, query: string, limit = 20): SearchHit[] {
         ORDER BY rank
         LIMIT ?`,
     )
-    .all(query, limit) as SearchHit[];
+    .all(sanitized, limit) as SearchHit[];
   return rows;
 }

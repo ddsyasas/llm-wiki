@@ -105,3 +105,10 @@ export type UsageInsert = {
 };
 
 export type UsageRow = UsageInsert & { id: number };
+
+export type SyncStateRow = {
+  rel_path: string;
+  mtime_ms: number;
+  size_bytes: number;
+  synced_at: string;
+};
