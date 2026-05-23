@@ -64,18 +64,33 @@ function brokenLinkSlug(description: string): string | null {
   return m?.[1] ?? null;
 }
 
+function missingPageSlug(description: string): string | null {
+  // LLM missing-page descriptions consistently start with the slug, e.g.
+  // "no-cloning-theorem is referenced by both quantum-error-correction…".
+  // Defensive: only treat it as a slug if it's kebab-case followed by whitespace.
+  const m = description.match(/^([a-z0-9-]+)\s/);
+  return m?.[1] ?? null;
+}
+
+type FixedState = "removed" | "stub-created" | "index-rebuilt" | "fix-applied";
+
 export default function LintPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<LintResult | null>(null);
   const [model, setModel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [fixedKeys, setFixedKeys] = useState<Set<string>>(new Set());
+  const [fixedKeys, setFixedKeys] = useState<Map<string, FixedState>>(new Map());
   const [fixingKey, setFixingKey] = useState<string | null>(null);
+
+  // Bulk actions (top bar)
+  const [bulkBusy, setBulkBusy] = useState<null | "rebuild-index" | "fix-all-broken">(null);
+  const [bulkFlash, setBulkFlash] = useState<string | null>(null);
 
   async function runLint() {
     setBusy(true);
     setError(null);
-    setFixedKeys(new Set());
+    setFixedKeys(new Map());
+    setBulkFlash(null);
     try {
       const res = await fetch("/api/lint", {
         method: "POST",
@@ -96,26 +111,166 @@ export default function LintPage() {
     }
   }
 
-  async function applyFix(issue: LintIssue, key: string) {
+  function markFixed(key: string, state: FixedState) {
+    setFixedKeys((prev) => {
+      const next = new Map(prev);
+      next.set(key, state);
+      return next;
+    });
+  }
+
+  async function applyRemoveBrokenLink(issue: LintIssue, key: string) {
     const brokenSlug = brokenLinkSlug(issue.description);
     const pageSlug = issue.affectedPages[0];
     if (!brokenSlug || !pageSlug) return;
     setFixingKey(key);
+    setError(null);
     try {
       const res = await fetch("/api/lint/fix", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ type: "remove-broken-link", pageSlug, brokenSlug }),
       });
-      if (!res.ok) {
-        const json = (await res.json()) as { error?: string };
-        throw new Error(json.error ?? `HTTP ${res.status}`);
-      }
-      setFixedKeys((prev) => new Set([...prev, key]));
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      markFixed(key, "removed");
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setFixingKey(null);
+    }
+  }
+
+  async function applyCreateStub(missingSlug: string, key: string) {
+    setFixingKey(key);
+    setError(null);
+    try {
+      const res = await fetch("/api/lint/fix", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type: "create-stub-page", missingSlug }),
+      });
+      const json = (await res.json()) as {
+        kind?: "stub-created" | "index-rebuilt";
+        error?: string;
+      };
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      markFixed(key, json.kind === "index-rebuilt" ? "index-rebuilt" : "stub-created");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setFixingKey(null);
+    }
+  }
+
+  async function applySuggestedFix(issue: LintIssue, key: string) {
+    const pageSlug = issue.affectedPages[0];
+    if (!pageSlug || !issue.suggestedFix) return;
+    setFixingKey(key);
+    setError(null);
+    try {
+      const res = await fetch("/api/lint/fix", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          type: "apply-suggested-fix",
+          pageSlug,
+          issueDescription: issue.description,
+          fixInstruction: issue.suggestedFix,
+        }),
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      markFixed(key, "fix-applied");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setFixingKey(null);
+    }
+  }
+
+  async function bulkRebuildIndex() {
+    setBulkBusy("rebuild-index");
+    setBulkFlash(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/lint/fix", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type: "rebuild-index" }),
+      });
+      const json = (await res.json()) as {
+        added?: string[];
+        removed?: string[];
+        totalPages?: number;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      const addedN = json.added?.length ?? 0;
+      const removedN = json.removed?.length ?? 0;
+      setBulkFlash(
+        `Index rebuilt — ${json.totalPages ?? 0} pages indexed, ${addedN} added, ${removedN} orphan ${removedN === 1 ? "entry" : "entries"} removed.`,
+      );
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBulkBusy(null);
+    }
+  }
+
+  async function bulkFixAllBrokenLinks(items: Array<{ pageSlug: string; brokenSlug: string }>) {
+    if (items.length === 0) return;
+    if (
+      !confirm(
+        `Remove ${items.length} broken link${items.length === 1 ? "" : "s"} across the wiki? This rewrites the affected pages. (Originals are backed up to .llm-wiki/page-history/.)`,
+      )
+    )
+      return;
+    setBulkBusy("fix-all-broken");
+    setBulkFlash(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/lint/fix", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type: "fix-all-broken-links", items }),
+      });
+      const json = (await res.json()) as {
+        fixed?: Array<unknown>;
+        failed?: Array<{ pageSlug: string; brokenSlug: string; error: string }>;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      const fixedN = json.fixed?.length ?? 0;
+      const failedN = json.failed?.length ?? 0;
+      setBulkFlash(
+        failedN === 0
+          ? `Removed ${fixedN} broken link${fixedN === 1 ? "" : "s"}.`
+          : `Removed ${fixedN}; ${failedN} failed (likely already gone).`,
+      );
+      // Mark each fix as done locally so the per-issue buttons collapse.
+      if (json.fixed && result) {
+        const fixedSet = new Set(
+          (json.fixed as Array<{ pageSlug: string; brokenSlug: string }>).map(
+            (i) => `${i.pageSlug}|${i.brokenSlug}`,
+          ),
+        );
+        for (let i = 0; i < result.issues.length; i++) {
+          const issue = result.issues[i]!;
+          if (issue.type !== "broken-link") continue;
+          const slug = brokenLinkSlug(issue.description);
+          const pageSlug = issue.affectedPages[0];
+          if (!slug || !pageSlug) continue;
+          if (fixedSet.has(`${pageSlug}|${slug}`)) {
+            const key = `broken-link-${i}-${issue.affectedPages.join(",")}`;
+            markFixed(key, "removed");
+          }
+        }
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBulkBusy(null);
     }
   }
 
@@ -181,6 +336,55 @@ export default function LintPage() {
             ) : null}
           </div>
 
+          {/* Bulk actions: cheap, broadly-applicable fixes. Rebuild index is
+              always safe (local, no LLM). Fix-all-broken-links shows a count
+              and confirms before mass-rewriting pages. */}
+          {(() => {
+            const localBrokenItems = result.issues
+              .filter((i) => i.type === "broken-link" && i.source === "local")
+              .map((i) => {
+                const slug = brokenLinkSlug(i.description);
+                const pageSlug = i.affectedPages[0];
+                return slug && pageSlug ? { pageSlug, brokenSlug: slug } : null;
+              })
+              .filter((x): x is { pageSlug: string; brokenSlug: string } => x !== null);
+            const showBulk = localBrokenItems.length > 0;
+            return (
+              <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/70 bg-muted/30 p-3">
+                <span className="text-caption font-semibold uppercase tracking-wider text-muted-foreground">
+                  Bulk fixes
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={bulkRebuildIndex}
+                  disabled={bulkBusy !== null}
+                  title="Rewrites index.md from the page files on disk. Free, no LLM call."
+                >
+                  {bulkBusy === "rebuild-index" ? "Rebuilding…" : "Rebuild index"}
+                </Button>
+                {showBulk ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => bulkFixAllBrokenLinks(localBrokenItems)}
+                    disabled={bulkBusy !== null}
+                    title="Removes every [[broken-slug]] reference from its host page."
+                  >
+                    {bulkBusy === "fix-all-broken"
+                      ? "Fixing…"
+                      : `Remove all broken links (${localBrokenItems.length})`}
+                  </Button>
+                ) : null}
+                {bulkFlash ? (
+                  <span className="text-xs text-emerald-700 dark:text-emerald-300">
+                    {bulkFlash}
+                  </span>
+                ) : null}
+              </div>
+            );
+          })()}
+
           {grouped && grouped.length > 0 ? (
             <div className="space-y-6">
               {grouped.map(({ type, items }) => (
@@ -191,8 +395,21 @@ export default function LintPage() {
                   <ul className="space-y-2">
                     {items.map((issue, i) => {
                       const key = `${type}-${i}-${issue.affectedPages.join(",")}`;
-                      const isLocalBroken = issue.type === "broken-link" && issue.source === "local";
-                      const fixed = fixedKeys.has(key);
+                      const fixedState = fixedKeys.get(key);
+                      const isBrokenLink = issue.type === "broken-link";
+                      const brokenSlug = isBrokenLink ? brokenLinkSlug(issue.description) : null;
+                      const hasRemoveTarget = isBrokenLink && brokenSlug && issue.affectedPages[0];
+                      const isMissingPage = issue.type === "missing-page";
+                      const targetSlug = isMissingPage
+                        ? missingPageSlug(issue.description)
+                        : brokenSlug;
+                      const canCreateStub = (isBrokenLink || isMissingPage) && targetSlug !== null;
+                      const canApplySuggested =
+                        !isBrokenLink &&
+                        !isMissingPage &&
+                        issue.suggestedFix !== null &&
+                        issue.suggestedFix !== undefined &&
+                        issue.affectedPages.length > 0;
                       return (
                         <li
                           key={key}
@@ -233,24 +450,60 @@ export default function LintPage() {
                               Suggested fix: {issue.suggestedFix}
                             </p>
                           ) : null}
-                          {isLocalBroken ? (
-                            <div className="mt-2">
-                              {fixed ? (
-                                <span className="text-xs text-emerald-700 dark:text-emerald-300">
-                                  Removed from page.
-                                </span>
-                              ) : (
+
+                          {fixedState ? (
+                            <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
+                              {fixedState === "removed" ? "Removed from page." : null}
+                              {fixedState === "stub-created"
+                                ? `Stub page created at /wiki/${targetSlug}.`
+                                : null}
+                              {fixedState === "index-rebuilt"
+                                ? "Page already existed — index rebuilt to include it."
+                                : null}
+                              {fixedState === "fix-applied"
+                                ? "Suggested fix applied to the page."
+                                : null}
+                            </p>
+                          ) : (
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {hasRemoveTarget ? (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => applyFix(issue, key)}
-                                  disabled={fixingKey !== null}
+                                  onClick={() => applyRemoveBrokenLink(issue, key)}
+                                  disabled={fixingKey !== null || bulkBusy !== null}
                                 >
                                   {fixingKey === key ? "Removing…" : "Remove broken link"}
                                 </Button>
-                              )}
+                              ) : null}
+                              {canCreateStub && targetSlug ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => applyCreateStub(targetSlug, key)}
+                                  disabled={fixingKey !== null || bulkBusy !== null}
+                                  title="Drafts a small starter page using the ingest model and context from referencing pages."
+                                >
+                                  {fixingKey === key
+                                    ? "Drafting…"
+                                    : isBrokenLink
+                                      ? "Create page"
+                                      : "Create stub"}
+                                </Button>
+                              ) : null}
+                              {canApplySuggested ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => applySuggestedFix(issue, key)}
+                                  disabled={fixingKey !== null || bulkBusy !== null}
+                                  title="Sends the page + the fix instruction to the lint model and writes the result back."
+                                >
+                                  {fixingKey === key ? "Applying…" : "Apply suggested fix"}
+                                </Button>
+                              ) : null}
                             </div>
-                          ) : null}
+                          )}
                         </li>
                       );
                     })}

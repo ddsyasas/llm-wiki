@@ -15,6 +15,7 @@ import {
 import { insertSource, updateSource } from "./db-sources";
 import { upsertSyncState } from "./db-sync";
 import { insertUsage } from "./db-usage";
+import { parseIndexEntries, renderIndex } from "./index-builder";
 import { buildIngestPrompt, type ExistingPageSnippet } from "./prompts/ingest";
 import { IngestResponseSchema, type IngestResponse } from "./schema";
 import type {
@@ -590,61 +591,6 @@ async function rebuildIndex(
   }
 
   await writeIndex(wikiPath, renderIndex(entries));
-}
-
-type IndexEntry = { category: string; summary: string };
-
-const CATEGORY_HEADINGS: Array<{ heading: string; key: string }> = [
-  { heading: "Overviews", key: "overviews" },
-  { heading: "Concepts", key: "concepts" },
-  { heading: "Entities", key: "entities" },
-  { heading: "Comparisons", key: "comparisons" },
-  { heading: "Sources", key: "sources" },
-];
-
-function parseIndexEntries(text: string): Map<string, IndexEntry> {
-  const map = new Map<string, IndexEntry>();
-  let currentKey: string | null = null;
-  for (const line of text.split(/\r?\n/)) {
-    const headingMatch = line.match(/^##\s+(.+?)\s*$/);
-    if (headingMatch) {
-      const heading = headingMatch[1]?.trim().toLowerCase() ?? "";
-      const found = CATEGORY_HEADINGS.find((c) => c.heading.toLowerCase() === heading);
-      currentKey = found?.key ?? null;
-      continue;
-    }
-    const itemMatch = line.match(/^-\s+\[\[([a-z0-9-]+)(?:\|[^\]]*)?\]\]:\s*(.*)$/);
-    if (itemMatch && currentKey) {
-      const slug = itemMatch[1];
-      const summary = itemMatch[2] ?? "";
-      if (slug) map.set(slug, { category: currentKey, summary: summary.trim() });
-    }
-  }
-  return map;
-}
-
-function renderIndex(entries: Map<string, IndexEntry>): string {
-  if (entries.size === 0) return "# Wiki Index\n\n_No pages yet. Add a source to get started._\n";
-  const buckets = new Map<string, Array<{ slug: string; summary: string }>>();
-  for (const [slug, e] of entries) {
-    const list = buckets.get(e.category) ?? [];
-    list.push({ slug, summary: e.summary });
-    buckets.set(e.category, list);
-  }
-  for (const list of buckets.values()) list.sort((a, b) => a.slug.localeCompare(b.slug));
-
-  const lines: string[] = ["# Wiki Index", ""];
-  for (const { heading, key } of CATEGORY_HEADINGS) {
-    const items = buckets.get(key);
-    if (!items || items.length === 0) continue;
-    lines.push(`## ${heading}`);
-    for (const it of items) {
-      const summary = it.summary.length > 0 ? `: ${it.summary}` : "";
-      lines.push(`- [[${it.slug}]]${summary}`);
-    }
-    lines.push("");
-  }
-  return `${lines.join("\n").trimEnd()}\n`;
 }
 
 function formatLogEntry(
