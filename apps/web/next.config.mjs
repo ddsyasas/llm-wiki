@@ -25,6 +25,10 @@ const nextConfig = {
       "jsdom",
       "mammoth",
       "officeparser",
+      // archiver@8 has an exports map that Next 14's webpack rejects with
+      // "Default condition should be last one". Marking it external means
+      // Node loads it at runtime instead of webpack trying to bundle it.
+      "archiver",
     ],
   },
   // transpilePackages walks our workspace libs and tries to bundle every
@@ -45,6 +49,7 @@ const nextConfig = {
           mammoth: "commonjs mammoth",
           officeparser: "commonjs officeparser",
           "@mozilla/readability": "commonjs @mozilla/readability",
+          archiver: "commonjs archiver",
         },
       ];
     }
