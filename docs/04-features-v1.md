@@ -99,6 +99,10 @@ Sometimes a P1 / P2 item became cheap to do alongside something else, or a need 
 - **Loading skeletons + click-state feedback** on cards — dev-log section D
 - **Defensive JSON parse** in the LLM client (strips ```json fences) — dev-log section A
 - **GitHub repo SEO topics** — applied 2026-05-24, 18 topics
+- **Per-source Retry + Delete actions** with bulk "clean up pending" — dev-log section N
+- **Graceful ingest schema** — `indexEntries[].summary` now truncates instead of failing validation when the LLM drifts past the char cap (dev-log section N)
+- **Wiki page delete** with soft-trash + backlinks-aware confirm dialog + one-click Undo banner — dev-log section O
+- **Generalized trash purge** — `.llm-wiki/trash/` now contains `chats/`, `wiki/`, `raw/` subdirs, all auto-pruned after 30 days (dev-log section O)
 
 ## Acceptance criteria
 

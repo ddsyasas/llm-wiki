@@ -2,7 +2,7 @@
 
 **Maintained for context-window resilience.** This file is the single source of truth for where the project is, what's been built, what's broken, and what's next. Read this first when picking up after a long break or in a fresh chat session.
 
-Last updated: 2026-05-24 (post-v1.0 sprint: multi-wiki, first-run wizard, chat layout, doc sync). Forward-looking work-needed view: [`docs/14-roadmap.md`](14-roadmap.md).
+Last updated: 2026-05-24 (post-v1.0 sprint, latest: page-delete with Undo). Forward-looking work-needed view: [`docs/14-roadmap.md`](14-roadmap.md).
 
 ---
 
@@ -21,7 +21,7 @@ Repo: **https://github.com/ddsyasas/llm-wiki** (public, MIT).
 
 ## Status snapshot — 2026-05-24 (post-v1.0 sprint)
 
-**~55 commits on `main`, tagged `v1.0.0`.** Build plan (docs/10) steps 0–14 complete plus full P0 + P1 #10 (graph view) + P2 multi-wiki UI. Post-V1 sprint added: multi-wiki switcher + Settings tab + header chip + Cmd+K integration, first-run welcome wizard, asymmetric chat layout, source-lineage UI, lint quick-fixes wave, /log + /graph routes, /about + /help + /developers doc pages, defensive JSON parse, GitHub SEO topics applied (18), consolidated roadmap doc.
+**~62 commits on `main`, tagged `v1.0.0`.** Build plan (docs/10) steps 0–14 complete plus full P0 + P1 #10 (graph view) + P2 multi-wiki UI. Post-V1 sprint added: multi-wiki switcher + Settings tab + header chip + Cmd+K integration, first-run welcome wizard, asymmetric chat layout, source-lineage UI, lint quick-fixes wave, /log + /graph routes, /about + /help + /developers doc pages, defensive JSON parse, GitHub SEO topics applied (18), consolidated roadmap doc, sources retry/delete actions, **wiki page delete with soft-trash + Undo banner**.
 
 For the **what's-next view** see [`docs/14-roadmap.md`](14-roadmap.md). This file is the execution history (what was done + why), not the forward plan.
 

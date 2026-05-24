@@ -31,7 +31,6 @@ Things that complete the V1 promise. Roughly ordered by impact-per-effort.
 - **"Replay welcome tour" button** in Settings → About. The 4-step wizard only fires once; some users want to re-watch it. Single button that POSTs a flag-clear and navigates to `/`.
 - **Footer "active wiki" hint.** Tiny text "Currently editing: <topic>" in the footer alongside the version. Belt-and-suspenders to the header chip.
 - **Cmd+K** — add "Toggle theme", "Open active wiki folder in editor" actions.
-- **Per-source actions on `/sources`**: re-ingest (re-run the existing source through the LLM, e.g. when you've switched to a smarter model), delete (with `page_sources` cascade + page-history backup of any affected pages).
 
 ### Medium (1–3 hours each)
 

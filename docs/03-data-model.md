@@ -33,9 +33,14 @@ When the user runs `llm-wiki start ~/research/quantum-computing`, the folder end
 │   ├── archive/
 │   └── ...
 ├── .llm-wiki/                     # tooling state (gitignore this)
-│   ├── meta.sqlite
-│   ├── embeddings.cache.json
-│   └── settings.json
+│   ├── meta.sqlite                # SQLite metadata (regenerable)
+│   ├── settings.json              # per-wiki settings (topic, model slots)
+│   ├── page-history/              # backup before every page edit
+│   ├── schema-history/            # backup before every CLAUDE.md save (last 10)
+│   └── trash/                     # soft-deletes, auto-pruned after 30 days
+│       ├── chats/                 # deleted chat threads
+│       ├── wiki/                  # deleted wiki pages (Undo from /wiki banner)
+│       └── raw/                   # deleted raw source files
 └── .gitignore                     # auto-generated, ignores .llm-wiki/
 ```
 
