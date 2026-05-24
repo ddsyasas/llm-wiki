@@ -3,10 +3,69 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { SCHEMA_TEMPLATES, type SchemaTemplateId } from "@llm-wiki/core";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+// Client-safe mirror of the SCHEMA_TEMPLATES metadata in
+// packages/core/src/templates.ts. Importing the value from @llm-wiki/core
+// here pulls the whole barrel — including secrets.ts → keytar (a Node-only
+// native module) → webpack bundle error. The server-side route at
+// /api/wikis (handleCreate) still imports the real SCHEMA_TEMPLATES from
+// core to look up the body by id; we just need the id/label/description
+// triple on the client for the dropdown. Keep this list in sync if you
+// add/rename templates over there.
+type SchemaTemplateId =
+  | "blank"
+  | "research"
+  | "legal"
+  | "clinical"
+  | "project"
+  | "personal";
+
+type SchemaTemplateMeta = {
+  id: SchemaTemplateId;
+  label: string;
+  description: string;
+};
+
+const SCHEMA_TEMPLATES: ReadonlyArray<SchemaTemplateMeta> = [
+  {
+    id: "blank",
+    label: "Blank",
+    description:
+      "Default schema with generic style guidelines. Edit later in Settings → Schema.",
+  },
+  {
+    id: "research",
+    label: "Research",
+    description:
+      "Academic / scholarly tone. Source-grounded claims, technical register, surfaces open questions.",
+  },
+  {
+    id: "legal",
+    label: "Legal",
+    description:
+      "Precise quoting, distinguishes holdings from dicta, flags overruled precedents.",
+  },
+  {
+    id: "clinical",
+    label: "Clinical",
+    description:
+      "Evidence-graded, flags superseded guidelines, preserves doses/units exactly.",
+  },
+  {
+    id: "project",
+    label: "Project",
+    description:
+      "Opinionated, decision-oriented, dates opinions, captures failure modes explicitly.",
+  },
+  {
+    id: "personal",
+    label: "Personal KB",
+    description:
+      "Friendly + exploratory. Open questions welcome, capture sources for re-finding.",
+  },
+];
 
 type WikiDetail = {
   path: string;
