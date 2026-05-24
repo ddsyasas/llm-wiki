@@ -92,12 +92,19 @@ export function AppHeader() {
 
         <ThemeToggle />
 
-        {/* Compact mobile nav — only on small screens. */}
+        {/* Compact mobile nav — only on small screens. Wiki-switcher link
+            at the top so mobile users have a quick-switch affordance too. */}
         <details className="relative sm:hidden">
           <summary className="cursor-pointer list-none rounded p-1 text-muted-foreground hover:text-foreground">
             <span className="font-mono text-sm">≡</span>
           </summary>
-          <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-md border border-border bg-popover py-1 text-ui shadow-lg">
+          <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-md border border-border bg-popover py-1 text-ui shadow-lg">
+            <Link
+              href="/settings?tab=wikis"
+              className="block border-b border-border/60 px-3 py-1.5 text-caption uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              Manage wikis →
+            </Link>
             {[...PRIMARY_NAV, ...UTIL_NAV].map((item) => (
               <Link
                 key={item.href}

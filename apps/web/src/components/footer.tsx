@@ -3,9 +3,28 @@
 
 import Link from "next/link";
 
+import { loadWikiSettings } from "@llm-wiki/core";
+
+import { resolveWikiPath } from "@/lib/server-wiki";
+
 export const APP_VERSION = "1.0.0";
 
-export function Footer({ className = "" }: { className?: string }) {
+// Active-wiki hint reads the active wiki's topic server-side so it's
+// rendered before paint — no flash, no client-side fetch. Best-effort:
+// any error reading the topic just omits the hint instead of throwing.
+async function readActiveTopic(): Promise<string | null> {
+  try {
+    const settings = await loadWikiSettings(resolveWikiPath());
+    const topic = settings.topic.trim();
+    return topic.length > 0 ? topic : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function Footer({ className = "" }: { className?: string }) {
+  const activeTopic = await readActiveTopic();
+
   return (
     <footer
       className={
@@ -27,6 +46,19 @@ export function Footer({ className = "" }: { className?: string }) {
         </span>
         <span aria-hidden>·</span>
         <span>v{APP_VERSION}</span>
+        {activeTopic ? (
+          <>
+            <span aria-hidden>·</span>
+            <Link
+              href="/settings?tab=wikis"
+              className="max-w-[16rem] truncate hover:text-foreground"
+              title={`Active wiki — click to switch (${activeTopic})`}
+            >
+              <span aria-hidden className="text-muted-foreground/70">⌂</span>{" "}
+              {activeTopic}
+            </Link>
+          </>
+        ) : null}
         <span aria-hidden>·</span>
         <Link href="/about" className="hover:text-foreground">
           About

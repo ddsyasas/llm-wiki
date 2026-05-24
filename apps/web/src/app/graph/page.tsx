@@ -4,7 +4,7 @@ import { buildGraph } from "@llm-wiki/core";
 
 import { PageContainer, PageHeader } from "@/components/page-shell";
 import { VaultGraph } from "@/components/graph/vault-graph";
-import { openWikiContext } from "@/lib/server-wiki";
+import { openWikiContext, requireSetup } from "@/lib/server-wiki";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,7 @@ export default async function GraphPage({
 }: {
   searchParams?: SearchParams;
 }) {
+  await requireSetup();
   const ctx = await openWikiContext();
   let data;
   try {

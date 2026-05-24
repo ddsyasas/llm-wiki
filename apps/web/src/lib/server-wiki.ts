@@ -6,7 +6,10 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { redirect } from "next/navigation";
+
 import {
+  getApiKey,
   globalConfigPath,
   initWikiFolder,
   loadWikiSettings,
@@ -83,4 +86,34 @@ export async function openWikiContext(): Promise<WikiContext> {
   }
 
   return { wikiPath, db, settings };
+}
+
+/**
+ * Page-level redirect gate for protected routes — the equivalent of the
+ * `next/navigation` middleware pattern, but since Next 14 middleware runs
+ * on the Edge runtime (no `node:fs` access to `~/.llm-wiki/config.json`)
+ * we do the check in each protected page's server component instead.
+ *
+ * Drops the user back at `/` if either:
+ * - no OpenRouter API key is configured (any operation would fail loud)
+ * - the active wiki has no topic set (the LLM has no scope to work in)
+ *
+ * `/` itself runs the onboarding wizard for these cases, so this is a
+ * one-line redirect at the top of each protected page.
+ *
+ * Pages that opt in: `/wiki`, `/wiki/[slug]`, `/sources`, `/sources/[id]`,
+ * `/query`, `/chats`, `/chats/[id]`, `/lint`, `/log`, `/graph`, `/schema`.
+ * Pages that don't: `/`, `/about`, `/help`, `/developers`, `/settings`
+ * (the user needs to be able to reach Settings to configure things).
+ */
+export async function requireSetup(): Promise<void> {
+  const [apiKeyStatus, settings] = await Promise.all([
+    getApiKey(),
+    loadWikiSettings(resolveWikiPath()),
+  ]);
+  const needsKey = apiKeyStatus.key === null;
+  const needsTopic = settings.topic.trim().length === 0;
+  if (needsKey || needsTopic) {
+    redirect("/");
+  }
 }

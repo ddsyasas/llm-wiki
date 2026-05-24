@@ -5,7 +5,7 @@ import { listPageRows, WIKI_PATHS } from "@llm-wiki/core";
 
 import { PageContainer, PageHeader } from "@/components/page-shell";
 import { MarkdownView } from "@/components/wiki/markdown-view";
-import { openWikiContext } from "@/lib/server-wiki";
+import { openWikiContext, requireSetup } from "@/lib/server-wiki";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +33,7 @@ function parseLogEntries(text: string): { intro: string; entries: string[] } {
 }
 
 export default async function LogPage() {
+  await requireSetup();
   const ctx = await openWikiContext();
   let raw = "";
   let knownSlugs: string[] = [];
