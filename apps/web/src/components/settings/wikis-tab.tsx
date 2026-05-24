@@ -6,15 +6,15 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type RecentDetail = {
+type WikiDetail = {
   path: string;
   topic: string | null;
   exists: boolean;
 };
 
 type ListResponse = {
-  active: string;
-  recents: RecentDetail[];
+  active: WikiDetail;
+  recents: WikiDetail[];
 };
 
 // Suggests a default folder path from a topic. Matches the convention
@@ -135,9 +135,49 @@ export function WikisTab() {
     );
   }
 
+  const active = data?.active;
   const rows = data?.recents ?? [];
-  const activePath = data?.active ?? "";
-  const activeIsInRecents = rows.some((r) => r.path === activePath);
+  const activeIsInRecents = active ? rows.some((r) => r.path === active.path) : false;
+
+  // Stale entries left over from prior testing or removed-from-disk wikis.
+  // Surface a single bulk-cleanup affordance so users don't have to click
+  // Remove on each one.
+  const missing = rows.filter((r) => !r.exists);
+
+  async function onCleanMissing() {
+    if (missing.length === 0) return;
+    if (
+      !confirm(
+        `Remove ${missing.length} missing folder${missing.length === 1 ? "" : "s"} from the picker? (These rows point to paths that no longer exist on disk.)`,
+      )
+    )
+      return;
+    setBusyAction("clean-missing");
+    setError(null);
+    setFlash(null);
+    try {
+      // Sequential — small N + we want each remove to see the prior's
+      // updated config, since removing the currently-active wiki resets it.
+      for (const m of missing) {
+        const res = await fetch("/api/wikis", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ type: "remove", path: m.path }),
+        });
+        if (!res.ok) {
+          const json = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(json.error ?? `HTTP ${res.status}`);
+        }
+      }
+      setFlash(`Cleaned up ${missing.length} missing entr${missing.length === 1 ? "y" : "ies"}.`);
+      await refresh();
+      router.refresh();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusyAction(null);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -160,17 +200,40 @@ export function WikisTab() {
         </p>
       ) : null}
 
+      {missing.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm">
+          <span className="text-amber-800 dark:text-amber-200">
+            {missing.length} entr{missing.length === 1 ? "y points" : "ies point"} to folder
+            {missing.length === 1 ? "" : "s"} that no longer exist on disk (likely leftover
+            from earlier sessions).
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void onCleanMissing()}
+            disabled={busyAction !== null}
+          >
+            {busyAction === "clean-missing"
+              ? "Cleaning…"
+              : `Clean up ${missing.length} missing`}
+          </Button>
+        </div>
+      ) : null}
+
       {/* If the active wiki isn't in the recents list (typical on first run —
-          the default ~/llm-wiki-default), render it as its own row. */}
-      {!activeIsInRecents ? (
+          the default ~/llm-wiki-default), render it as its own row. We now
+          use the server-enriched detail so topic + exists are correct. */}
+      {active && !activeIsInRecents ? (
         <WikiRow
-          path={activePath}
-          topic={null}
-          exists={true}
+          path={active.path}
+          topic={active.topic}
+          exists={active.exists}
           isActive={true}
           busyAction={busyAction}
           onSwitch={() => Promise.resolve()}
-          onRemove={() => Promise.resolve()}
+          onRemove={() =>
+            onRemove(active.path, true)
+          }
         />
       ) : null}
 
@@ -181,10 +244,10 @@ export function WikisTab() {
             path={row.path}
             topic={row.topic}
             exists={row.exists}
-            isActive={row.path === activePath}
+            isActive={active?.path === row.path}
             busyAction={busyAction}
             onSwitch={() => onSwitch(row.path)}
-            onRemove={() => onRemove(row.path, row.path === activePath)}
+            onRemove={() => onRemove(row.path, active?.path === row.path)}
           />
         ))}
       </ul>

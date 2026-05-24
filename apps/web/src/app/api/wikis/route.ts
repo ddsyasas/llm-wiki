@@ -16,41 +16,44 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type RecentDetail = {
+type WikiDetail = {
   path: string;
   topic: string | null;
   exists: boolean;
 };
 
-// GET /api/wikis — list of recent wikis with topic + existence enriched,
-// plus the currently-active path. Powers Settings → Wikis picker.
+async function enrichWiki(p: string): Promise<WikiDetail> {
+  let exists = false;
+  try {
+    const s = await stat(p);
+    exists = s.isDirectory();
+  } catch {
+    exists = false;
+  }
+  let topic: string | null = null;
+  if (exists) {
+    try {
+      const settings = await loadWikiSettings(p);
+      topic = settings.topic.trim() || null;
+    } catch {
+      topic = null;
+    }
+  }
+  return { path: p, topic, exists };
+}
+
+// GET /api/wikis — currently-active wiki (enriched with topic + exists) plus
+// the list of recents (also enriched). Active is returned as its own object
+// because it isn't always present in `recents` — the first-run default wiki
+// has never been "switched to," so it wouldn't be in the list otherwise.
 export async function GET() {
   const cfg = await loadGlobalConfig();
-  const out: RecentDetail[] = await Promise.all(
-    cfg.recentWikis.map(async (p) => {
-      let exists = false;
-      try {
-        const s = await stat(p);
-        exists = s.isDirectory();
-      } catch {
-        exists = false;
-      }
-      let topic: string | null = null;
-      if (exists) {
-        try {
-          const settings = await loadWikiSettings(p);
-          topic = settings.topic.trim() || null;
-        } catch {
-          topic = null;
-        }
-      }
-      return { path: p, topic, exists };
-    }),
-  );
-  return NextResponse.json({
-    active: cfg.activeWiki ?? defaultWikiPath(),
-    recents: out,
-  });
+  const activePath = cfg.activeWiki ?? defaultWikiPath();
+  const [active, recents] = await Promise.all([
+    enrichWiki(activePath),
+    Promise.all(cfg.recentWikis.map(enrichWiki)),
+  ]);
+  return NextResponse.json({ active, recents });
 }
 
 type SwitchBody = { type: "switch"; path: string };
