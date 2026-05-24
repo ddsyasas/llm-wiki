@@ -54,6 +54,30 @@ export default function AboutPage() {
         </p>
       </Section>
 
+      <Section
+        eyebrow="What you get"
+        title="The wiki + a 3D view of its shape"
+      >
+        <p>
+          Your knowledge ends up in two complementary views:
+        </p>
+        <ul className="space-y-1">
+          <li>
+            <strong>The wiki itself</strong> — markdown pages grouped by type
+            (overviews, concepts, entities, comparisons, sources), with full
+            backlinks and source-lineage trails. Read it like a textbook,
+            search it, edit it.
+          </li>
+          <li>
+            <strong>A 3D graph</strong> of every page and every cross-link —
+            same engine and look as Obsidian's graph view, but colored by{" "}
+            <em>page type</em> rather than free-form tag. Watch your knowledge
+            literally grow over time as you ingest more sources; orphans and
+            hubs become spatially obvious.
+          </li>
+        </ul>
+      </Section>
+
       <Section eyebrow="Why it exists" title="The gap nobody was filling">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <SubCard title="RAG chat (NotebookLM, ChatGPT files)">

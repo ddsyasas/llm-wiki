@@ -65,7 +65,7 @@ The scope of V1 is defined here. Anything not listed is out of scope for V1, eve
 
 ### P1, ship if time allows
 
-10. **Wiki graph view** (force-directed visualization of page links)
+10. **Wiki graph view** (force-directed visualization of page links) — ✅ **shipped 2026-05-24**, see `docs/12-graph-view.md`. 3D scene at `/graph`, color by page type, click-to-focus + side panel + URL state.
 11. **Diff view** when LLM updates a page (highlight changes)
 12. **Approval gate** for ingestion (review changes before applying)
 13. **Export wiki to a zip** including all assets

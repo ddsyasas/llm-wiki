@@ -92,6 +92,7 @@ export default function DevelopersPage() {
 │   ├── src/editor.ts          # manual page edits + lint quick-fixes
 │   ├── src/index-builder.ts   # index.md render + rebuild
 │   ├── src/lint-fixes.ts      # LLM-powered lint fixes
+│   ├── src/graph.ts           # /graph builder — nodes/links from pages
 │   ├── src/secrets.ts         # OpenRouter key (keychain w/ file fallback)
 │   ├── src/schema.ts          # zod schemas for LLM JSON contracts
 │   └── src/prompts/           # system prompts per operation
@@ -378,6 +379,59 @@ export default function DevelopersPage() {
       </Section>
 
       <Section
+        id="graph"
+        eyebrow="Visualization"
+        title="3D graph view (/graph)"
+      >
+        <p>
+          Renders the wiki as a 3D force-directed graph. Each page is a node;
+          each <code>[[wikilink]]</code> is an edge. Built on{" "}
+          <code>react-force-graph-3d</code> (Three.js + d3-force-3d under the
+          hood — same engine as Obsidian's 3D Graph plugin).
+        </p>
+        <ul className="space-y-1">
+          <li>
+            <strong>Builder</strong> —{" "}
+            <code>packages/core/src/graph.ts</code> <code>buildGraph(wikiPath, db)</code>.
+            Reuses the existing <code>uniqueLinkedSlugs()</code> parser; drops
+            broken links (lint's job to surface) and self-links.
+          </li>
+          <li>
+            <strong>Page</strong> —{" "}
+            <code>apps/web/src/app/graph/page.tsx</code> server component.
+            Reads <code>?node=&lt;slug&gt;</code> from <code>searchParams</code>
+            so deep links work without a client-side flicker.
+          </li>
+          <li>
+            <strong>Client component</strong> —{" "}
+            <code>apps/web/src/components/graph/vault-graph.tsx</code>. Dynamic
+            import with <code>ssr: false</code> so the ~600KB three.js bundle
+            doesn't land in any other route's payload. Theme reactivity via{" "}
+            <code>MutationObserver</code> on <code>&lt;html&gt;</code> watching
+            the theme class flip.
+          </li>
+          <li>
+            <strong>URL state</strong> via{" "}
+            <code>window.history.replaceState</code> (not{" "}
+            <code>useRouter().replace()</code>) so selection clicks don't
+            trigger Next router re-renders.
+          </li>
+        </ul>
+        <p>
+          Design + decisions in{" "}
+          <a
+            href="https://github.com/ddsyasas/llm-wiki/blob/main/docs/12-graph-view.md"
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary underline underline-offset-2"
+          >
+            docs/12-graph-view.md
+          </a>
+          .
+        </p>
+      </Section>
+
+      <Section
         id="testing"
         eyebrow="Testing"
         title="Where the test suite lives"
@@ -529,6 +583,7 @@ const TOC: Array<{ id: string; label: string }> = [
   { id: "swap-llm", label: "Swapping LLM providers" },
   { id: "contracts-prompts", label: "Where the prompts live" },
   { id: "quickfixes", label: "Lint quick-fix dispatch" },
+  { id: "graph", label: "3D graph view" },
   { id: "testing", label: "Test suite" },
   { id: "contributing", label: "Contributing" },
 ];

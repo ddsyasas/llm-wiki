@@ -275,6 +275,67 @@ export default function HelpPage() {
       </Section>
 
       <Section
+        id="graph"
+        eyebrow="Seeing the shape"
+        title="Graph — your knowledge as a 3D network"
+      >
+        <p>
+          <Link href="/graph" className="text-primary underline underline-offset-2">
+            /graph
+          </Link>{" "}
+          renders your wiki as a 3D force-directed graph. Each page is a node;
+          each <code>[[wikilink]]</code> between two pages is an edge. The same
+          look-and-feel as Obsidian's graph view, but with one important
+          difference:
+        </p>
+        <p>
+          <strong>Nodes are colored by page type</strong>, not by tag or folder.
+          The LLM assigns a type to every page during ingest, so the graph gives
+          you an at-a-glance read of what kind of knowledge your wiki holds:
+        </p>
+        <ul className="space-y-1">
+          <li>
+            <span className="font-medium" style={{ color: "#dc2626" }}>Red</span>
+            {" "}— Overviews (high-level synthesis pages)
+          </li>
+          <li>
+            <span className="font-medium" style={{ color: "#0891b2" }}>Cyan</span>
+            {" "}— Concepts (ideas, techniques, frameworks)
+          </li>
+          <li>
+            <span className="font-medium" style={{ color: "#d97706" }}>Amber</span>
+            {" "}— Entities (people, organizations, places)
+          </li>
+          <li>
+            <span className="font-medium" style={{ color: "#7c3aed" }}>Violet</span>
+            {" "}— Comparisons (two-or-more-things contrasted)
+          </li>
+          <li>
+            <span className="font-medium" style={{ color: "#64748b" }}>Slate</span>
+            {" "}— Source-type pages
+          </li>
+        </ul>
+        <p>
+          <strong>Node size</strong> scales with link count (degree). Heavily-
+          connected pages grow larger — they're your wiki's central concepts.
+          <strong> Particles flowing along edges</strong> show direction.
+        </p>
+        <p>
+          <strong>Click a node</strong> to focus it: the camera flies to it,
+          neighbors stay full-color, non-neighbors fade out. The side panel
+          shows the page's preview, tags, and a clickable list of every
+          connected page — letting you walk the graph by associations instead
+          of by name. URL updates to <code>/graph?node=&lt;slug&gt;</code> so
+          you can bookmark or share a focused view.
+        </p>
+        <p>
+          As you ingest more sources you'll watch the graph grow: new nodes
+          spring into place, and edges form from any existing pages that
+          mention the new one.
+        </p>
+      </Section>
+
+      <Section
         id="schema"
         eyebrow="Telling the LLM what you want"
         title="Schema — editing CLAUDE.md"
@@ -494,6 +555,7 @@ const TOC: Array<{ id: string; label: string }> = [
   { id: "wiki", label: "The wiki — browsing your pages" },
   { id: "query", label: "Query vs Chats" },
   { id: "lint", label: "Lint — wiki health" },
+  { id: "graph", label: "Graph — 3D network view" },
   { id: "schema", label: "Schema — editing CLAUDE.md" },
   { id: "settings", label: "Settings — models, costs, key" },
   { id: "disk", label: "Where everything lives on disk" },
