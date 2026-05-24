@@ -509,6 +509,64 @@ All that's left for actual npm publish is the manual `cd apps/web/dist-publish &
 
 ---
 
+## Sprint R — 2026-05-24: v1.1.0 cross-platform release shipped
+
+The 1.0.0 tarball built in sprint Q was darwin-arm64-only — better-sqlite3 and keytar ship platform-specific `.node` binaries, and my copy script grabbed whichever was built on the dev machine. Sprint R fixes that and ships the first cross-platform release.
+
+### R1. Externalize native deps to npm install time (commit `b15be3d`)
+
+`apps/web/scripts/build-publish-tarball.mjs` now strips the platform-locking packages from the standalone bundle AND lists them as runtime dependencies in the published `package.json`:
+
+- `better-sqlite3` — native .node binary, per-platform
+- `keytar` — native .node binary, per-platform
+- `chokidar` — pure JS but with optional fsevents on macOS
+- `jsdom`, `mammoth`, `officeparser`, `@mozilla/readability` — heavy pure JS, no point bundling
+
+Result: `npm install -g <tarball>` runs each package's normal install on the user's machine, which fetches the right prebuilt binary for their OS+arch via prebuild-install. One tarball, every platform.
+
+Versions are pinned to `^<currently-installed>` discovered from the standalone tree — not free-floating, so users get patch/minor updates of the externals automatically but stay on the major we've tested against.
+
+Strip step deletes both `dist-publish/.next/standalone/node_modules/<name>/` AND `dist-publish/.next/standalone/node_modules/.pnpm/<encoded-name>@*/`. Without the .pnpm cleanup, Node could still load the bundled (wrong-arch) copy on a user's machine.
+
+### R2. Version bump to 1.1.0 (commit `f053011`)
+
+Semver minor — V1.x sprint added real features post-1.0.0 (mobile sidebar, diff view, approval gate, export-to-zip, wiki templates, cross-wiki search, setup gate completion, wiki health dashboard, replay-tour fix, LLM cost computation). Wiki on-disk format unchanged — users upgrading from 1.0.0 keep all their data.
+
+### R3. GitHub Release v1.1.0 with tarball attached
+
+Created with `gh release create v1.1.0 ... --prerelease` for cross-platform verification, then promoted to latest after all three platforms passed.
+
+Install paths now:
+```bash
+# Direct from release URL
+npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.0/yasas-llm-wiki-1.1.0.tgz
+
+# Or download + install
+curl -LO https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.0/yasas-llm-wiki-1.1.0.tgz
+npm install -g ./yasas-llm-wiki-1.1.0.tgz
+```
+
+### R4. Cross-platform verification
+
+- **macOS (darwin/arm64)**: `npm install -g`, doctor passes, `llm-wiki start` boots standalone server, every route returns 200.
+- **Windows**: `npm install -g`, doctor passes, server boots, UI works.
+- **Ubuntu (WSL)**: install succeeded (162 packages, including native deps fresh-built for linux/x64), but `llm-wiki: command not found`. Diagnosis: non-standard npm prefix → bin dir not on PATH. Fixed via `echo 'export PATH="$(npm prefix -g)/bin:$PATH"' >> ~/.bashrc`. Added as a troubleshooting entry in `/help` + README.
+
+### R5. Doc sync after the cross-platform ship
+
+- **README.md** — Quick start now leads with `npm install -g <tarball>` instead of `git clone + pnpm dev`. From-source path moved to second position labeled "for development or contributing." New "`llm-wiki: command not found` after install" troubleshooting block. v1.0 → v1.1.0 throughout.
+- **docs/14-roadmap.md** — status block updated (cross-platform install ✓, v1.1.0 released). Open items trimmed to actual npm publish + CI matrix + the three V1.x items still genuinely deferred.
+- **In-app `/help`** — new "Dashboard — stats across every wiki" section documenting the Q-sprint addition. Two new Trouble entries: "command not found after npm install" and "native module error after install on Linux." Trouble component widened to accept ReactNode (was string-only).
+- **In-app `/developers`** — new "Build + publish pipeline" section covering the two-artifact split (standalone bundle vs. publishable tarball) and the `pnpm build:publish` / `pnpm pack:publish` scripts.
+- **In-app `/about`** — Install footer line mentioning the GitHub Releases path.
+
+### What's still open
+
+- The actual `npm publish --access public` to the registry — deliberate manual step (irreversible).
+- A GH Actions matrix that installs the tarball + runs `llm-wiki doctor` on macos-latest / ubuntu-latest / windows-latest. Right now cross-platform was verified manually on three user machines; CI would catch regressions automatically.
+
+---
+
 ## Open questions for future sessions
 
 > **Note:** The work-needed list has been consolidated into [`docs/14-roadmap.md`](14-roadmap.md). The questions below are *design / architecture* questions that don't translate cleanly into a roadmap entry — when in doubt, prefer the roadmap.

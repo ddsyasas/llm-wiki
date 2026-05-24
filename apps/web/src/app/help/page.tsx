@@ -444,6 +444,31 @@ export default function HelpPage() {
       </Section>
 
       <Section
+        id="dashboard"
+        eyebrow="Across all wikis"
+        title="The health dashboard"
+      >
+        <p>
+          The per-wiki home page (<Link href="/" className="text-primary underline underline-offset-2">/</Link>)
+          shows numbers for whatever wiki is currently active. The dashboard at{" "}
+          <Link href="/dashboard" className="text-primary underline underline-offset-2">/dashboard</Link>{" "}
+          shows the same numbers for every wiki you've ever opened, side by side
+          — pages, sources, chats, LLM spend, last touched. Sorted by recency so
+          the wikis you actually use bubble to the top.
+        </p>
+        <p>
+          A rollup row across the top adds them all up — the cumulative spend
+          answers the "how much have I actually spent on this app" question that
+          per-wiki cost numbers can't.
+        </p>
+        <p>
+          Three ways to get there: <strong>footer link</strong> (every screen),{" "}
+          <strong>LLM spend</strong> tile on the home page, <strong>⌘K → Dashboard</strong>.
+          Each card has a <em>Switch →</em> button to jump into that wiki.
+        </p>
+      </Section>
+
+      <Section
         id="disk"
         eyebrow="The folder"
         title="Where everything lives on disk"
@@ -498,6 +523,14 @@ export default function HelpPage() {
           <Trouble
             symptom="Dev server feels slow / clicks not registering"
             fix="Dev-mode Next.js compiles routes lazily. First click to a route is slow; subsequent are fast. Loading skeletons should appear instantly — if they don't, refresh the browser."
+          />
+          <Trouble
+            symptom={<><code>llm-wiki: command not found</code> after <code>npm install -g</code></>}
+            fix={<>npm put the binary somewhere that isn't on your PATH. Run <code>npm prefix -g</code> to find where, then <code>{`echo 'export PATH="$(npm prefix -g)/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc`}</code>. Common on WSL Ubuntu with a non-standard npm prefix.</>}
+          />
+          <Trouble
+            symptom="Standalone server crashes immediately after install with a native module error"
+            fix={<>Some Linux distros need build tools to compile <code>better-sqlite3</code> / <code>keytar</code> if no prebuilt binary matches. On Debian/Ubuntu: <code>sudo apt install build-essential python3 libsecret-1-dev</code>, then reinstall.</>}
           />
         </ul>
       </Section>
@@ -583,7 +616,13 @@ function SubCard({
   );
 }
 
-function Trouble({ symptom, fix }: { symptom: string; fix: string }) {
+function Trouble({
+  symptom,
+  fix,
+}: {
+  symptom: React.ReactNode;
+  fix: React.ReactNode;
+}) {
   return (
     <li className="rounded-md border border-border/70 bg-card p-3">
       <p className="font-medium">{symptom}</p>
@@ -601,6 +640,7 @@ const TOC: Array<{ id: string; label: string }> = [
   { id: "query", label: "Query vs Chats" },
   { id: "lint", label: "Lint — wiki health" },
   { id: "graph", label: "Graph — 3D network view" },
+  { id: "dashboard", label: "Dashboard — stats across every wiki" },
   { id: "schema", label: "Schema — editing CLAUDE.md" },
   { id: "settings", label: "Settings — models, costs, key" },
   { id: "disk", label: "Where everything lives on disk" },

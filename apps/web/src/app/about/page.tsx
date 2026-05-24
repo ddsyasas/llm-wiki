@@ -207,8 +207,20 @@ export default function AboutPage() {
           .
         </p>
         <p className="mt-2 text-caption text-muted-foreground">
-          v{APP_VERSION} · LLM Wiki is not affiliated with Andrej Karpathy or
-          Anthropic; the pattern is his, the implementation is independent.
+          v{APP_VERSION} · Install via{" "}
+          <a
+            href="https://github.com/ddsyasas/llm-wiki/releases/latest"
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary underline underline-offset-2"
+          >
+            GitHub Releases
+          </a>{" "}
+          (<code>npm install -g</code> the tarball). Verified on macOS, Linux, Windows.
+        </p>
+        <p className="mt-2 text-caption text-muted-foreground">
+          LLM Wiki is not affiliated with Andrej Karpathy or Anthropic; the
+          pattern is his, the implementation is independent.
         </p>
       </Section>
 

@@ -2,7 +2,7 @@
 
 > **A personal Wikipedia an LLM maintains for you.** Drop in articles, papers, notes, PDFs, or URLs — an agent compiles them into a cross-linked markdown wiki you fully own. Knowledge compounds: each new source makes every page richer, not just one new page longer.
 
-Open source · Local-first · Bring-your-own-key · MIT · v1.0
+Open source · Local-first · Bring-your-own-key · MIT · v1.1.0
 
 This is a from-scratch implementation of [Andrej Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f), released April 2026.
 
@@ -20,7 +20,7 @@ After a few weeks of feeding it sources, you have a navigable, cited, deliberate
 
 ---
 
-## What's in v1.0
+## What's in v1.1
 
 ### The three operations (Karpathy's pattern)
 
@@ -72,9 +72,20 @@ Everything is plain markdown. Delete the app, open the folder in Obsidian / VS C
 
 ## Install + run
 
-The fastest path today: clone the repo, install dependencies, run the dev server. About 90 seconds on a warm machine. **npm publish is on the roadmap but not shipped yet** — see [Roadmap](docs/14-roadmap.md) — so all install paths below run from source.
+Two paths. Pick one.
 
-### Quick start (any OS)
+### Quick start — install the CLI (recommended)
+
+```bash
+npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.0/yasas-llm-wiki-1.1.0.tgz
+llm-wiki start
+```
+
+That's it — no git clone, no monorepo, ~30 second install. The CLI auto-initializes your wiki folder, picks a free port (3737 by default), and opens the browser. Verified on **macOS / Linux (incl. WSL) / Windows**.
+
+The release page with download + changelog lives at [github.com/ddsyasas/llm-wiki/releases/latest](https://github.com/ddsyasas/llm-wiki/releases/latest).
+
+### From source — for development or contributing
 
 ```bash
 git clone https://github.com/ddsyasas/llm-wiki.git
@@ -85,26 +96,49 @@ pnpm dev
 
 Open `http://localhost:3000` → the first-run wizard collects your wiki topic + OpenRouter key → you're in.
 
-Want the richer CLI experience (auto port discovery, browser auto-open, `doctor` diagnostics)? See [Using the CLI](#using-the-cli) below.
-
 ### Prerequisites
 
 | Tool | Minimum | How to get it |
 |---|---|---|
 | **Node.js** | 20.x | [nodejs.org](https://nodejs.org) or `nvm install 20` (recommended) |
-| **pnpm** | 8.x | `npm install -g pnpm` (the lockfile is pnpm — npm/yarn won't work) |
 | **OpenRouter key** | — | [openrouter.ai/keys](https://openrouter.ai/keys) — pay-as-you-go, ~$5 lasts most users 2-4 weeks at default models |
+| **pnpm** *(source path only)* | 8.x | `npm install -g pnpm` |
 
-Check with `node --version` and `pnpm --version` before you start.
+Check with `node --version` before you start.
+
+### `llm-wiki: command not found` after install
+
+The package installed fine — npm just put the binary somewhere your shell isn't looking. Common on WSL Ubuntu when Node was installed via apt with a non-standard npm prefix. Diagnostic:
+
+```bash
+# Find where npm put the binary
+npm prefix -g
+
+# Confirm it landed there
+ls -la "$(npm prefix -g)/bin/llm-wiki"
+
+# One-off: run via full path
+"$(npm prefix -g)/bin/llm-wiki" doctor
+```
+
+Permanent fix (one-time):
+
+```bash
+echo 'export PATH="$(npm prefix -g)/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+llm-wiki doctor
+```
+
+(On zsh, swap `~/.bashrc` for `~/.zshrc`. On Windows PowerShell, `npm install -g` normally puts bins in `%AppData%\npm\` which is on PATH by default — if you hit this on Windows, run `npm config get prefix` and add `<that>/bin` to your user PATH via System Properties.)
 
 ### Per-OS install notes
 
-**macOS** — primary development platform. `pnpm install` Just Works (Xcode Command Line Tools are usually already present; if not, `xcode-select --install`).
+**macOS** — verified end-to-end. Works out of the box with Node from nodejs.org or nvm. Xcode Command Line Tools are usually already present; if `npm install` complains: `xcode-select --install`.
 
-**Linux** (Ubuntu / Debian / Fedora / Arch) — works cleanly. If `pnpm install` fails on the native deps (`better-sqlite3`, `keytar`), install build tools:
+**Linux** (Ubuntu / Debian / Fedora / Arch / WSL) — verified end-to-end. If `npm install -g` fails on the native deps (`better-sqlite3`, `keytar`), install build tools first:
 
 ```bash
-# Debian / Ubuntu
+# Debian / Ubuntu / WSL
 sudo apt install build-essential python3 libsecret-1-dev
 
 # Fedora / RHEL
@@ -116,16 +150,11 @@ sudo pacman -S base-devel python libsecret
 
 `libsecret` is what `keytar` talks to for the system keychain (GNOME Keyring, KWallet). Without it `keytar` still installs, but secret storage falls back to a chmod-600 file in `~/.llm-wiki/`.
 
-**Windows** — works, with one extra step. The native dependencies need a C++ toolchain to build. Two options:
-
-- **WSL 2 (recommended)**: install Ubuntu via `wsl --install`, open the Ubuntu shell, follow the Linux path above. Cleanest experience.
-- **Native Windows**: install the *C++ build tools* component of [Visual Studio Build Tools 2022](https://visualstudio.microsoft.com/downloads/) (or run `npm install -g windows-build-tools` as Administrator). Then `pnpm install` from PowerShell or cmd.
-
-`keytar` uses Windows Credential Manager natively — no extra setup needed for secret storage.
+**Windows** — verified end-to-end via PowerShell + Node 20. `keytar` uses Windows Credential Manager natively, no extra setup. If `npm install -g` fails on the native deps, install the *C++ build tools* component of [Visual Studio Build Tools 2022](https://visualstudio.microsoft.com/downloads/) — most recent Node versions skip this since prebuilt binaries are usually available.
 
 **ChromeOS** — enable [Crostini Linux dev environment](https://chromeos.dev/en/linux), then follow the Linux path.
 
-**Docker** — not officially shipped, but works fine: `node:20-bookworm` base image, `pnpm install`, bind-mount your wiki folder. PR with a Dockerfile welcome.
+**Docker** — not officially shipped, but works fine: `node:20-bookworm` base image, install the tarball, bind-mount your wiki folder. PR with a Dockerfile welcome.
 
 **Mobile (iOS / Android)** — not supported. LLM Wiki is a local server, not a packaged mobile app. The V2 Tauri installer (roadmapped) targets desktop OSes, not phones.
 
@@ -166,30 +195,26 @@ You can also switch wikis at runtime from **Settings → Wikis** without restart
 
 ### Using the CLI
 
-A `llm-wiki` CLI lives at `apps/web/bin/llm-wiki.mjs`. It wraps the dev server with port discovery, auto-folder-init, browser auto-open, and a `doctor` diagnostics command. The CLI **is not on npm yet** (see [Roadmap](docs/14-roadmap.md) — `pnpm pack` workspace dep blocker), so for now you invoke it locally after `pnpm install`.
+After `npm install -g <tarball>`, the `llm-wiki` command is on your PATH globally:
 
 ```bash
 # Start (uses current directory as the wiki folder)
-node apps/web/bin/llm-wiki.mjs start
+llm-wiki start
 
 # Start in a specific folder (auto-initializes it if empty)
-node apps/web/bin/llm-wiki.mjs start ~/research/quantum
+llm-wiki start ~/research/quantum
 
 # Initialize a folder as a wiki without starting the server
-node apps/web/bin/llm-wiki.mjs init ~/research/quantum
+llm-wiki init ~/research/quantum
 
 # Probe install + OpenRouter connectivity
-node apps/web/bin/llm-wiki.mjs doctor
+llm-wiki doctor
 
 # Full command + flag list
-node apps/web/bin/llm-wiki.mjs help
+llm-wiki help
 ```
 
-Or via the workspace script (same thing, shorter):
-
-```bash
-pnpm --filter @llm-wiki/web cli -- start ~/research/quantum
-```
+If you're working from source (didn't `npm install -g`), invoke via Node directly: `node apps/web/bin/llm-wiki.mjs <command>` — or use the workspace shortcut `pnpm --filter @llm-wiki/web cli -- <command>`.
 
 The CLI defaults to port **3737** (vs. `pnpm dev`'s 3000) and auto-picks the next free port if it's taken. Brand-new directories become working wikis on first start — no separate `init` step required unless you want one.
 
@@ -205,9 +230,9 @@ The CLI defaults to port **3737** (vs. `pnpm dev`'s 3000) and auto-picks the nex
 **`doctor` output**:
 
 ```
-$ node apps/web/bin/llm-wiki.mjs doctor
+$ llm-wiki doctor
 Checking installation...
-  ✓ llm-wiki version: 1.0.0
+  ✓ llm-wiki version: 1.1.0
   ✓ Node version: v20.11.0
   ✓ Platform: darwin arm64
 
@@ -310,17 +335,17 @@ For the **design contract** + execution history, see `/docs` in this repo:
 
 ---
 
-## Project status (v1.0)
+## Project status (v1.1.0)
 
 **All P0 features shipped.** All three Karpathy operations (ingest / query / lint) wired end-to-end with cost previews, error recovery, and one-click fixes. Chats, schema editor, settings, log timeline, source-lineage UI, and the 3D graph view all live.
 
 **Test suite**: ~158 core + 25 llm + 11 ingestion ≈ **194 passing tests**. (One chokidar live-watch test is a known flake.)
 
-**Production build**: works end-to-end. `next build` produces a standalone bundle that serves every route (`pnpm build:publish` then `cd apps/web/dist-publish && npm pack` produces a 29MB publishable tarball — verified by install-and-boot into a clean temp dir).
+**Cross-platform install**: verified end-to-end on macOS / Linux / Windows. v1.1.0 ships as a single 28MB tarball; native deps (`better-sqlite3`, `keytar`) install fresh per-platform via npm.
 
-**npm publish**: the tarball is built and verified — `cd apps/web/dist-publish && npm publish --access public` is the one remaining manual step.
+**Distribution**: [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest) is the install path today. Publishing to npm under `@yasas/llm-wiki` is a one-command step away (`cd apps/web/dist-publish && npm publish --access public`) — held back pending a few real-world install reports.
 
-**Deferred to V1.x or V2** (tracked in [`docs/14-roadmap.md`](docs/14-roadmap.md)):
+**Deferred to V2 / V3** (tracked in [`docs/14-roadmap.md`](docs/14-roadmap.md)):
 
 - **Tauri desktop installer** (V2)
 - **MCP server mode** (V3)
@@ -328,7 +353,7 @@ For the **design contract** + execution history, see `/docs` in this repo:
 - **Ollama / local-model support** (V2)
 - **Scheduled lint runs** (V2)
 
-The full V1.x sprint (10 items in section P + 4 more in section Q including the wiki health dashboard, production build, and publish pipeline) shipped on 2026-05-24 — see [`docs/dev-log.md`](docs/dev-log.md).
+The full V1.x sprint (14 items across sections P + Q + R — mobile sidebar, diff view, approval gate, export-to-zip, wiki templates, cross-wiki search, setup gate completion, wiki health dashboard, replay-tour fix, LLM cost calculation, production build, publish pipeline, cross-platform tarball) shipped on 2026-05-24 — see [`docs/dev-log.md`](docs/dev-log.md).
 
 ---
 

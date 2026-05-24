@@ -460,6 +460,52 @@ pnpm -r exec tsc --noEmit            # monorepo typecheck`}
       </Section>
 
       <Section
+        id="distribution"
+        eyebrow="Shipping it"
+        title="Build + publish pipeline"
+      >
+        <p>
+          Two artifacts come out of the build, with very different shapes:
+        </p>
+        <ul className="space-y-2">
+          <li>
+            <strong>Standalone server bundle</strong> (<code>.next/standalone/</code>)
+            — what <code>llm-wiki start</code> actually runs. <code>next build</code>
+            traces every module the server needs and copies them into a
+            self-contained tree alongside <code>server.js</code>. A postbuild
+            script (<code>scripts/copy-standalone-assets.mjs</code>) does the
+            things Next 14 leaves for you: copies <code>.next/static</code> +{" "}
+            <code>public</code> into the standalone tree, and resolves +
+            deep-copies every <code>serverComponentsExternalPackages</code>{" "}
+            entry from the right workspace root (Next's tracer skips
+            externals in pnpm + transpilePackages setups).
+          </li>
+          <li>
+            <strong>Publishable tarball</strong> (<code>dist-publish/</code>)
+            — what gets uploaded to GitHub Releases / npm.
+            {" "}<code>scripts/build-publish-tarball.mjs</code> assembles a
+            clean package: rewrites <code>package.json</code> with the
+            public name (<code>@yasas/llm-wiki</code>), strips workspace
+            deps + build-time deps, and externalizes the native packages
+            (<code>better-sqlite3</code>, <code>keytar</code>, plus heavy
+            pure-JS like <code>jsdom</code>) so <code>npm install</code>
+            fetches per-platform binaries at install time. Flattens the
+            standalone <code>.pnpm/</code> store so Node's regular
+            resolver can find everything without pnpm's symlink graph.
+          </li>
+        </ul>
+        <p>Two pnpm scripts in <code>apps/web</code>:</p>
+        <pre className="overflow-x-auto rounded-md border border-border/70 bg-card p-3 text-[12px]">
+{`pnpm build:publish    # build + assemble dist-publish/
+pnpm pack:publish     # build:publish + npm pack (smoke test)`}
+        </pre>
+        <p>
+          To actually publish: <code>cd apps/web/dist-publish && npm publish --access public</code>
+          {" "}— this is intentionally a manual step (irreversible upload).
+        </p>
+      </Section>
+
+      <Section
         id="contributing"
         eyebrow="Contributing"
         title="Open questions + pointers"
@@ -585,6 +631,7 @@ const TOC: Array<{ id: string; label: string }> = [
   { id: "quickfixes", label: "Lint quick-fix dispatch" },
   { id: "graph", label: "3D graph view" },
   { id: "testing", label: "Test suite" },
+  { id: "distribution", label: "Build + publish pipeline" },
   { id: "contributing", label: "Contributing" },
 ];
 
