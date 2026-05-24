@@ -62,6 +62,13 @@ export type IngestSourceOptions = {
   model: string;
   /** Existing sources row id. If omitted, the caller is just dry-running. */
   sourceId?: string;
+  /**
+   * When true, the LLM response is returned WITHOUT calling
+   * applyIngestResponse — no pages written, no index touched, no log
+   * append. Caller is expected to either call applyIngestResponse later
+   * (after user approval) or discard the response.
+   */
+  dryRun?: boolean;
   onProgress?: (event: IngestProgressEvent) => void;
 };
 
@@ -112,6 +119,11 @@ export async function ingestSource(opts: IngestSourceOptions): Promise<IngestRes
     created_at: new Date().toISOString(),
   });
 
+  if (opts.dryRun) {
+    opts.onProgress?.({ phase: "done", result: result.data });
+    return result.data;
+  }
+
   opts.onProgress?.({
     phase: "apply",
     message: `Writing ${result.data.newPages.length} new pages, updating ${result.data.pageUpdates.length}…`,
@@ -140,6 +152,8 @@ export type IngestVisionSourceOptions = {
   /** Vision-capable model (settings.defaultModels.vision). */
   model: string;
   sourceId?: string;
+  /** See IngestSourceOptions.dryRun — same semantics. */
+  dryRun?: boolean;
   onProgress?: (event: IngestProgressEvent) => void;
 };
 
@@ -206,6 +220,11 @@ export async function ingestVisionSource(
     cost_cents: null,
     created_at: new Date().toISOString(),
   });
+
+  if (opts.dryRun) {
+    opts.onProgress?.({ phase: "done", result: result.data });
+    return result.data;
+  }
 
   opts.onProgress?.({
     phase: "apply",
@@ -299,6 +318,8 @@ export type IngestPastedTextOptions = {
   db: Db;
   client: LlmClient;
   model: string;
+  /** See IngestSourceOptions.dryRun — same semantics. */
+  dryRun?: boolean;
   onProgress?: (event: IngestProgressEvent) => void;
 };
 
@@ -306,6 +327,8 @@ export type IngestPastedTextResult = {
   sourceId: string;
   rawFilename: string;
   response: IngestResponse;
+  /** True when the result is a proposal that hasn't been applied yet. */
+  dryRun: boolean;
 };
 
 export async function ingestPastedText(
@@ -345,11 +368,19 @@ export async function ingestPastedText(
       client: opts.client,
       model: opts.model,
       sourceId,
+      dryRun: opts.dryRun,
       onProgress: opts.onProgress,
     });
 
+    if (opts.dryRun) {
+      // Leave the source row as ingested_at=null. The UI's preview flow
+      // will either call /api/ingest/apply (which marks it ingested) or
+      // delete the row entirely via /api/sources/[id]/delete.
+      return { sourceId, rawFilename, response, dryRun: true };
+    }
+
     updateSource(opts.db, { ...sourceRow, ingested_at: new Date().toISOString() });
-    return { sourceId, rawFilename, response };
+    return { sourceId, rawFilename, response, dryRun: false };
   } catch (err) {
     // Source row stays in DB so the UI can show "Not yet ingested" with a Retry
     // affordance later (Step 6 doesn't surface this yet, but the data is there).
@@ -408,7 +439,7 @@ async function loadRelevantPages(
   return snippets;
 }
 
-type ApplyOpts = {
+export type ApplyIngestResponseOptions = {
   response: IngestResponse;
   wikiPath: string;
   db: Db;
@@ -417,7 +448,13 @@ type ApplyOpts = {
   format: SourceFormat;
 };
 
-async function applyIngestResponse(opts: ApplyOpts): Promise<void> {
+/**
+ * Writes new pages, updates existing pages (with backup), refreshes the
+ * index, appends to log.md, and links page→source rows. Exported so the
+ * approval-gate flow can call it from a separate endpoint after the user
+ * reviews + confirms a previously-returned proposal.
+ */
+export async function applyIngestResponse(opts: ApplyIngestResponseOptions): Promise<void> {
   const { response, wikiPath, db, sourceId } = opts;
   const today = new Date().toISOString().slice(0, 10);
   const written: string[] = [];

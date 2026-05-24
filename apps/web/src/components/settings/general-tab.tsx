@@ -9,6 +9,7 @@ import { useTheme, type UiTheme } from "@/components/theme-provider";
 type SettingsResponse = {
   settings: {
     topic: string;
+    requireApprovalForIngest?: boolean;
   };
   wikiPath: string;
 };
@@ -21,6 +22,8 @@ export function GeneralTab() {
   const [topic, setTopic] = useState<string>("");
   const [original, setOriginal] = useState<string>("");
   const [wikiPath, setWikiPath] = useState<string>("");
+  const [requireApproval, setRequireApproval] = useState(false);
+  const [approvalSaving, setApprovalSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,11 +37,30 @@ export function GeneralTab() {
         setTopic(data.settings.topic);
         setOriginal(data.settings.topic);
         setWikiPath(data.wikiPath);
+        setRequireApproval(Boolean(data.settings.requireApprovalForIngest));
       } catch (err) {
         setError((err as Error).message);
       }
     })();
   }, []);
+
+  async function toggleRequireApproval(next: boolean) {
+    setApprovalSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ requireApprovalForIngest: next }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setRequireApproval(next);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setApprovalSaving(false);
+    }
+  }
 
   async function onSave() {
     setBusy(true);
@@ -105,6 +127,32 @@ llm-wiki start ~/llm-wiki-machine-learning`}
             switches every page, chat, source, and schema in one go.
           </p>
         </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-medium">Approval gate for ingest</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          When on, every ingest shows you the LLM&apos;s proposed changes
+          (new pages, page updates, contradictions) before anything is
+          written. You click Apply to commit. Useful when you don&apos;t
+          fully trust a cheap ingest model — or just want to see what the
+          LLM thinks before it edits your wiki.
+        </p>
+        <label className="mt-3 flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={requireApproval}
+            disabled={approvalSaving}
+            onChange={(e) => void toggleRequireApproval(e.target.checked)}
+            className="h-4 w-4 rounded border-border"
+          />
+          <span className="text-sm">
+            Require approval before applying ingest changes
+            {approvalSaving ? (
+              <span className="ml-2 text-xs text-muted-foreground">saving…</span>
+            ) : null}
+          </span>
+        </label>
       </div>
 
       <div>

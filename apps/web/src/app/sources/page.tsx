@@ -16,6 +16,8 @@ type Mode = "paste" | "file" | "url";
 
 type IngestSuccess = {
   ok: true;
+  /** "applied" = wiki changes already written. "preview" = approval pending. */
+  kind: "applied" | "preview";
   wikiPath: string;
   sourceId: string;
   rawFilename: string;
@@ -26,6 +28,8 @@ type IngestSuccess = {
     pageUpdates: Array<{ slug: string; updateReason: string }>;
     contradictions: Array<{ description: string; pages: string[] }>;
   };
+  /** Full IngestResponse for re-send to /api/ingest/apply when kind=preview. */
+  fullResponse: unknown | null;
 };
 
 type IngestResult = IngestSuccess | { ok: false; error: string; type?: string } | { error: string };
@@ -42,8 +46,64 @@ export default function SourcesPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<IngestSuccess | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [applyBusy, setApplyBusy] = useState(false);
+  const [discardBusy, setDiscardBusy] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function onApplyPreview() {
+    if (!result || result.kind !== "preview") return;
+    setApplyBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/ingest/apply", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sourceId: result.sourceId,
+          response: result.fullResponse,
+        }),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? `HTTP ${res.status}`);
+      }
+      // Flip the local result to applied so the preview UI clears.
+      setResult({ ...result, kind: "applied" });
+      setRefreshNonce((n) => n + 1);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setApplyBusy(false);
+    }
+  }
+
+  async function onDiscardPreview() {
+    if (!result || result.kind !== "preview") return;
+    if (
+      !confirm(
+        `Discard this proposal? The raw source moves to .llm-wiki/trash/raw/ and the pending row drops from the list. Recoverable for 30 days.`,
+      )
+    )
+      return;
+    setDiscardBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/sources/${result.sourceId}/delete`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error ?? `HTTP ${res.status}`);
+      }
+      setResult(null);
+      setRefreshNonce((n) => n + 1);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setDiscardBusy(false);
+    }
+  }
 
   const canSubmit =
     !busy &&
@@ -285,14 +345,63 @@ export default function SourcesPage() {
         {error ? <IngestErrorBanner message={error} /> : null}
 
         {result ? (
-          <div className="mt-6 space-y-3 rounded-md bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
+          <div
+            className={cn(
+              "mt-6 space-y-3 rounded-md px-4 py-3 text-sm",
+              result.kind === "preview"
+                ? "border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100"
+                : "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+            )}
+          >
             <div>
-              <strong>Ingested.</strong> {result.response.summary}
+              {result.kind === "preview" ? (
+                <>
+                  <strong>Proposal ready for review.</strong> Approval gate is on
+                  (Settings → General). Nothing has been written to your wiki
+                  yet.
+                </>
+              ) : (
+                <>
+                  <strong>Ingested.</strong> {result.response.summary}
+                </>
+              )}
             </div>
+            {result.kind === "preview" && result.response.summary ? (
+              <div className="text-xs">
+                <strong>Summary:</strong> {result.response.summary}
+              </div>
+            ) : null}
             <div className="text-xs text-muted-foreground">
-              Saved as <code>raw/{result.rawFilename}</code> via <code>{result.model}</code>. Wiki
-              folder: <code className="break-all">{result.wikiPath}</code>
+              Raw saved as <code>raw/{result.rawFilename}</code> via{" "}
+              <code>{result.model}</code>.
+              {result.kind === "preview"
+                ? " The raw file lives in your wiki folder regardless of whether you Apply or Discard the proposal below."
+                : null}
             </div>
+
+            {result.kind === "preview" ? (
+              <div className="flex flex-wrap items-center gap-2 border-t border-amber-500/30 pt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void onApplyPreview()}
+                  disabled={applyBusy || discardBusy}
+                >
+                  {applyBusy ? "Applying…" : "Apply changes"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void onDiscardPreview()}
+                  disabled={applyBusy || discardBusy}
+                >
+                  {discardBusy ? "Discarding…" : "Discard"}
+                </Button>
+                <span className="text-[11px] text-amber-800/70 dark:text-amber-200/70">
+                  Apply runs the standard write — same as a non-approval ingest.
+                </span>
+              </div>
+            ) : null}
 
             {result.response.newPages.length > 0 ? (
               <div>

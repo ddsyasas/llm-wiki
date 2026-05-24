@@ -188,6 +188,13 @@ export type WikiSettings = {
   };
   autoLintAfterIngest: boolean;
   showCostEstimates: boolean;
+  /**
+   * When true, ingest runs in dry-run mode — the LLM produces a proposal
+   * (new pages, page updates, contradictions) but nothing is written to
+   * disk until the user clicks Apply in the UI. Off by default since
+   * most users want auto-apply.
+   */
+  requireApprovalForIngest: boolean;
 };
 
 export const DEFAULT_WIKI_SETTINGS: WikiSettings = {
@@ -205,6 +212,7 @@ export const DEFAULT_WIKI_SETTINGS: WikiSettings = {
   },
   autoLintAfterIngest: false,
   showCostEstimates: true,
+  requireApprovalForIngest: false,
 };
 
 export function wikiSettingsPath(wikiPath: string): string {
@@ -227,6 +235,9 @@ function parseWikiSettings(raw: unknown): WikiSettings {
   }
   if (typeof data["showCostEstimates"] === "boolean") {
     out.showCostEstimates = data["showCostEstimates"];
+  }
+  if (typeof data["requireApprovalForIngest"] === "boolean") {
+    out.requireApprovalForIngest = data["requireApprovalForIngest"];
   }
   const models = data["defaultModels"];
   if (typeof models === "object" && models !== null) {

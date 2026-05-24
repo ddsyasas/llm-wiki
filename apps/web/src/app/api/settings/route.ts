@@ -22,6 +22,7 @@ type PutBody = Partial<{
   defaultModels: Partial<WikiSettings["defaultModels"]>;
   autoLintAfterIngest: boolean;
   showCostEstimates: boolean;
+  requireApprovalForIngest: boolean;
 }>;
 
 export async function PUT(req: Request) {
@@ -51,6 +52,10 @@ export async function PUT(req: Request) {
       typeof body.showCostEstimates === "boolean"
         ? body.showCostEstimates
         : current.showCostEstimates,
+    requireApprovalForIngest:
+      typeof body.requireApprovalForIngest === "boolean"
+        ? body.requireApprovalForIngest
+        : current.requireApprovalForIngest,
   };
   await saveWikiSettings(wikiPath, next);
   // Return both the saved settings and the model defaults for the UI's

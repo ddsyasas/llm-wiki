@@ -88,6 +88,7 @@ async function handleText(
   const ctx = await openWikiContext();
   const client = createClient(apiKey);
   const model = modelOverride ?? ctx.settings.defaultModels.ingest;
+  const dryRun = ctx.settings.requireApprovalForIngest;
   try {
     const result = await ingestPastedText({
       text,
@@ -96,6 +97,7 @@ async function handleText(
       db: ctx.db,
       client,
       model,
+      dryRun,
     });
     return ingestSuccess({
       wikiPath: resolveWikiPath(),
@@ -103,6 +105,7 @@ async function handleText(
       rawFilename: result.rawFilename,
       model,
       response: result.response,
+      kind: dryRun ? "preview" : "applied",
     });
   } finally {
     ctx.db.close();
@@ -130,6 +133,7 @@ async function handleUrl(
   const ctx = await openWikiContext();
   const client = createClient(apiKey);
   const model = modelOverride ?? ctx.settings.defaultModels.ingest;
+  const dryRun = ctx.settings.requireApprovalForIngest;
   try {
     const saved = await saveRawSource({
       wikiPath: ctx.wikiPath,
@@ -147,13 +151,15 @@ async function handleUrl(
       client,
       model,
       sourceId: saved.sourceId,
+      dryRun,
     });
-    markSourceIngested(ctx.db, saved.sourceId);
+    if (!dryRun) markSourceIngested(ctx.db, saved.sourceId);
     return ingestSuccess({
       wikiPath: resolveWikiPath(),
       sourceId: saved.sourceId,
       rawFilename: saved.rawFilename,
       model,
+      kind: dryRun ? "preview" : "applied",
       response,
     });
   } finally {
@@ -192,6 +198,7 @@ async function handleFileUpload(req: Request, apiKey: string): Promise<Response>
   const client = createClient(apiKey);
   const visionModel = modelOverride ?? ctx.settings.defaultModels.vision;
   const textModel = modelOverride ?? ctx.settings.defaultModels.ingest;
+  const dryRun = ctx.settings.requireApprovalForIngest;
 
   try {
     const ext = extname(filename) || `.${format}`;
@@ -216,6 +223,7 @@ async function handleFileUpload(req: Request, apiKey: string): Promise<Response>
         client,
         model: visionModel,
         sourceId: saved.sourceId,
+        dryRun,
       });
     } else {
       modelUsed = textModel;
@@ -226,15 +234,17 @@ async function handleFileUpload(req: Request, apiKey: string): Promise<Response>
         client,
         model: textModel,
         sourceId: saved.sourceId,
+        dryRun,
       });
     }
-    markSourceIngested(ctx.db, saved.sourceId);
+    if (!dryRun) markSourceIngested(ctx.db, saved.sourceId);
     return ingestSuccess({
       wikiPath: resolveWikiPath(),
       sourceId: saved.sourceId,
       rawFilename: saved.rawFilename,
       model: modelUsed,
       response,
+      kind: dryRun ? "preview" : "applied",
     });
   } finally {
     ctx.db.close();
@@ -284,13 +294,19 @@ function ingestSuccess(args: {
   rawFilename: string;
   model: string;
   response: IngestResponse;
+  kind: "applied" | "preview";
 }) {
   return NextResponse.json({
     ok: true,
+    kind: args.kind,
     wikiPath: args.wikiPath,
     sourceId: args.sourceId,
     rawFilename: args.rawFilename,
     model: args.model,
+    // Short-form response (always returned) — drives the user-facing
+    // summary UI. When kind === "preview", the client also reads
+    // `fullResponse` below so it can re-send the proposal to
+    // /api/ingest/apply unchanged.
     response: {
       summary: args.response.summary,
       newPages: args.response.newPages.map((p) => ({
@@ -304,6 +320,7 @@ function ingestSuccess(args: {
       })),
       contradictions: args.response.contradictions,
     },
+    fullResponse: args.kind === "preview" ? args.response : null,
   });
 }
 
