@@ -1,6 +1,12 @@
 import { notFound } from "next/navigation";
 
-import { findBacklinks, listPageRows, readPage } from "@llm-wiki/core";
+import {
+  findBacklinks,
+  getSource,
+  listPageRows,
+  listSourceIdsForPage,
+  readPage,
+} from "@llm-wiki/core";
 
 import { PageView } from "@/components/wiki/page-view";
 import { openWikiContext } from "@/lib/server-wiki";
@@ -23,6 +29,22 @@ export default async function WikiSlugPage({ params }: { params: { slug: string 
     ]);
     const knownSlugs = allRows.map((r) => r.slug);
 
+    // Pull the source rows that contributed to this page. Surfaces the raw
+    // lineage so the reader can answer "where did this claim come from?"
+    // without leaving the wiki.
+    const sourceIds = listSourceIdsForPage(ctx.db, params.slug);
+    const sources = sourceIds.flatMap((id) => {
+      const row = getSource(ctx.db, id);
+      if (!row) return [];
+      return [
+        {
+          id: row.id,
+          title: row.title?.trim() || row.original_name?.trim() || row.filename,
+          format: row.format as string,
+        },
+      ];
+    });
+
     return (
       <PageView
         slug={page.slug}
@@ -34,6 +56,7 @@ export default async function WikiSlugPage({ params }: { params: { slug: string 
         content={page.content}
         backlinks={backlinks}
         knownSlugs={knownSlugs}
+        sources={sources}
       />
     );
   } finally {

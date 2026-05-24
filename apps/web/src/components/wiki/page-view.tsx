@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { PageEditor } from "@/components/wiki/page-editor";
 import { cn } from "@/lib/utils";
 
 type Backlink = { slug: string; title: string; excerpt: string };
+type SourceLink = { id: string; title: string; format: string };
 
 type Props = {
   slug: string;
@@ -19,6 +21,8 @@ type Props = {
   content: string;
   backlinks: ReadonlyArray<Backlink>;
   knownSlugs: ReadonlyArray<string>;
+  /** Raw sources that contributed to this page (from page_sources join). */
+  sources?: ReadonlyArray<SourceLink>;
 };
 
 export function PageView(props: Props) {
@@ -69,6 +73,33 @@ export function PageView(props: Props) {
       ) : (
         <>
           <MarkdownView content={props.content} knownSlugs={props.knownSlugs} />
+
+          {props.sources && props.sources.length > 0 ? (
+            <section className="mt-10 border-t border-border pt-4">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Sources ({props.sources.length})
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground/80">
+                Original input(s) this page was compiled from. The raw bytes are
+                preserved untouched on disk.
+              </p>
+              <ul className="mt-2 flex flex-wrap gap-1.5">
+                {props.sources.map((s) => (
+                  <li key={s.id}>
+                    <Link
+                      href={`/sources/${s.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs hover:border-primary/40 hover:bg-accent"
+                    >
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {s.format}
+                      </span>
+                      <span>{s.title}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <section className="mt-10 border-t border-border pt-4">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

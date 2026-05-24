@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type SourceItem = {
@@ -110,44 +111,34 @@ export function SourcesList({ refreshNonce }: Props) {
         const formatBadge = FORMAT_LABEL[s.format] ?? s.format.toUpperCase();
         const isPending = s.ingestedAt === null;
         return (
-          <li
-            key={s.id}
-            className="flex flex-wrap items-baseline justify-between gap-2 py-2.5"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{label}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                <span className="font-mono">{formatBadge}</span>
-                {" · "}
-                {formatSize(s.sizeBytes)}
-                {" · added "}
-                {relativeDate(s.addedAt)}
-                {s.url ? (
-                  <>
-                    {" · "}
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline underline-offset-2 hover:text-foreground"
-                    >
-                      source
-                    </a>
-                  </>
-                ) : null}
-              </p>
-            </div>
-            <div className="shrink-0 text-right text-[11px]">
-              {isPending ? (
-                <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-amber-700 dark:text-amber-300">
-                  pending
-                </span>
-              ) : (
-                <span className="text-muted-foreground">
-                  {s.pageCount} page{s.pageCount === 1 ? "" : "s"}
-                </span>
-              )}
-            </div>
+          <li key={s.id}>
+            <Link
+              href={`/sources/${s.id}`}
+              prefetch
+              className="-mx-2 flex flex-wrap items-baseline justify-between gap-2 rounded-md px-2 py-2.5 transition-colors hover:bg-accent/40 active:scale-[0.997]"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{label}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  <span className="font-mono">{formatBadge}</span>
+                  {" · "}
+                  {formatSize(s.sizeBytes)}
+                  {" · added "}
+                  {relativeDate(s.addedAt)}
+                </p>
+              </div>
+              <div className="shrink-0 text-right text-[11px]">
+                {isPending ? (
+                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-amber-700 dark:text-amber-300">
+                    pending
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">
+                    {s.pageCount} page{s.pageCount === 1 ? "" : "s"}
+                  </span>
+                )}
+              </div>
+            </Link>
           </li>
         );
       })}
