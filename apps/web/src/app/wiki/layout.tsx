@@ -1,19 +1,19 @@
+import { SidebarLayoutWrapper } from "@/components/sidebar-layout-wrapper";
 import { WikiSidebar } from "@/components/wiki/sidebar";
 import { requireSetup } from "@/lib/server-wiki";
 
-// Sidebar (left) + content (right) split. flex-1 grows to fill main's height,
-// overflow-hidden locks the row so sidebar can stretch naturally (flex default
-// align-items: stretch) and the content area owns its own scroll.
+// Sidebar (left) + content (right) split. On desktop: side-by-side, sidebar's
+// fixed width takes over. On mobile: sidebar collapses to an off-canvas drawer
+// with a floating ≡ trigger; behavior lives in SidebarLayoutWrapper.
 //
 // Layout-level requireSetup() gate catches direct-bookmark hits to /wiki and
-// /wiki/<slug> when the user hasn't completed the welcome wizard yet.
-// Same pattern in chats/layout.tsx and each protected page below.
+// /wiki/<slug> when the user hasn't completed the welcome wizard yet. Same
+// pattern in chats/layout.tsx.
 export default async function WikiLayout({ children }: { children: React.ReactNode }) {
   await requireSetup();
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <WikiSidebar />
-      <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
-    </div>
+    <SidebarLayoutWrapper sidebar={<WikiSidebar />} triggerLabel="Open wiki pages">
+      {children}
+    </SidebarLayoutWrapper>
   );
 }

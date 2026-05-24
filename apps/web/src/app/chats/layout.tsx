@@ -1,14 +1,14 @@
 import { ChatsSidebar } from "@/components/chats/sidebar";
+import { SidebarLayoutWrapper } from "@/components/sidebar-layout-wrapper";
 import { requireSetup } from "@/lib/server-wiki";
 
-// Sidebar (left) + content (right) split. See wiki/layout.tsx for the
-// flex-stretch reasoning — same shape here. Same requireSetup() gate too.
+// Sidebar (left) + content (right) split. See wiki/layout.tsx — same shape,
+// same off-canvas drawer on mobile, same requireSetup() gate.
 export default async function ChatsLayout({ children }: { children: React.ReactNode }) {
   await requireSetup();
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <ChatsSidebar />
-      <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
-    </div>
+    <SidebarLayoutWrapper sidebar={<ChatsSidebar />} triggerLabel="Open chats list">
+      {children}
+    </SidebarLayoutWrapper>
   );
 }
