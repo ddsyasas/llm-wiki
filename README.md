@@ -294,12 +294,46 @@ If `doctor` reports the API key as "NOT set in config file", that's expected —
 
 ### Updating
 
+**If you installed via `npm install -g`** (the canonical path):
+
 ```bash
-git pull
-pnpm install   # picks up any new deps
+npm install -g @syasas/llm-wiki@latest
+llm-wiki version    # verify the new version landed
 ```
 
-Database migrations run automatically on the next server start.
+`@latest` pulls whatever the newest published version is. To upgrade to a specific version: `npm install -g @syasas/llm-wiki@1.1.1`.
+
+If you have a `llm-wiki start` server already running, stop it first with `Ctrl+C` — npm can't replace a binary that's executing. After the install completes, `llm-wiki start` again to pick up the new code.
+
+**Your wiki data is safe across upgrades.** The on-disk format (markdown + SQLite metadata) is stable within v1.x — your folder, schema, pages, chats, history, and OpenRouter key all carry over. Database migrations (when any ship) run automatically on the next server start; no manual step.
+
+**If you installed from source** (git clone path, for contributors):
+
+```bash
+cd /path/to/llm-wiki
+git pull
+pnpm install        # picks up any new deps
+```
+
+Then re-run `pnpm dev` (or however you start it). Same data-safety guarantees apply.
+
+**If you installed from the GitHub release tarball directly** (without npm):
+
+```bash
+# Get the latest release URL from https://github.com/ddsyasas/llm-wiki/releases/latest
+npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.1/syasas-llm-wiki-1.1.1.tgz
+```
+
+Replace `v1.1.1` / `1.1.1` with whichever version is current on the [releases page](https://github.com/ddsyasas/llm-wiki/releases/latest).
+
+**Verifying the upgrade**:
+
+```bash
+llm-wiki version    # should print the new version
+llm-wiki doctor     # confirm install + OpenRouter still healthy
+```
+
+If `llm-wiki version` still prints the old number after upgrading, try opening a new terminal window — sometimes (especially on Windows) the shell needs to re-resolve the PATH after `npm install -g` replaces the binary.
 
 ### Building a publishable tarball
 

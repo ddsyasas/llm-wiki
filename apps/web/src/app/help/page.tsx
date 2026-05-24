@@ -499,6 +499,62 @@ export default function HelpPage() {
       </Section>
 
       <Section
+        id="updating"
+        eyebrow="Staying current"
+        title="Updating to a new version"
+      >
+        <p>
+          The app is published to npm as{" "}
+          <a
+            href="https://www.npmjs.com/package/@syasas/llm-wiki"
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary underline underline-offset-2"
+          >
+            @syasas/llm-wiki
+          </a>
+          . New versions ship as patch / minor releases; check{" "}
+          <a
+            href="https://github.com/ddsyasas/llm-wiki/releases"
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary underline underline-offset-2"
+          >
+            GitHub Releases
+          </a>{" "}
+          for the changelog.
+        </p>
+        <p>
+          <strong>If you installed via <code>npm install -g</code></strong>,
+          stop the running server first (<kbd>Ctrl</kbd>+<kbd>C</kbd>),
+          then in any terminal:
+        </p>
+        <pre className="overflow-x-auto rounded-md border border-border/70 bg-card p-3 text-[12px]">
+{`npm install -g @syasas/llm-wiki@latest
+llm-wiki version     # confirm the new version
+llm-wiki start       # back up and running`}
+        </pre>
+        <p>
+          <strong>If you installed from source</strong> (git clone): from
+          the repo root, <code>git pull && pnpm install</code>, then
+          restart <code>pnpm dev</code>.
+        </p>
+        <p>
+          <strong>Your wiki data is safe across upgrades.</strong> The
+          on-disk format is stable within v1.x — folder, schema, pages,
+          chats, history, and your OpenRouter key all carry over intact.
+          When schema migrations ship in future versions, they run
+          automatically on the next server start; no manual step.
+        </p>
+        <p>
+          If <code>llm-wiki version</code> still prints the old number
+          after upgrading, open a new terminal window — sometimes
+          (especially on Windows) the shell needs to re-resolve PATH
+          after <code>npm install -g</code> replaces the binary.
+        </p>
+      </Section>
+
+      <Section
         id="troubleshooting"
         eyebrow="When things go sideways"
         title="Troubleshooting"
@@ -644,5 +700,6 @@ const TOC: Array<{ id: string; label: string }> = [
   { id: "schema", label: "Schema — editing CLAUDE.md" },
   { id: "settings", label: "Settings — models, costs, key" },
   { id: "disk", label: "Where everything lives on disk" },
+  { id: "updating", label: "Updating to a new version" },
   { id: "troubleshooting", label: "Troubleshooting" },
 ];
