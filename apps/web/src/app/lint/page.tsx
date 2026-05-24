@@ -151,31 +151,17 @@ export default function LintPage() {
   // Lint history — loaded on mount + re-fetched after every successful run
   // so the "Recent runs" panel reflects the just-appended log entry.
   const [history, setHistory] = useState<LintHistoryEntry[] | null>(null);
-  const [logPath, setLogPath] = useState<string | null>(null);
-  const [pathCopied, setPathCopied] = useState(false);
 
   const refreshHistory = useCallback(async () => {
     try {
       const res = await fetch("/api/lint/history?limit=10", { cache: "no-store" });
       if (!res.ok) return;
-      const data = (await res.json()) as { history: LintHistoryEntry[]; wikiPath?: string };
+      const data = (await res.json()) as { history: LintHistoryEntry[] };
       setHistory(data.history);
-      if (data.wikiPath) setLogPath(`${data.wikiPath}/log.md`);
     } catch {
       // non-fatal — the panel just stays empty
     }
   }, []);
-
-  async function copyLogPath() {
-    if (!logPath) return;
-    try {
-      await navigator.clipboard.writeText(logPath);
-      setPathCopied(true);
-      setTimeout(() => setPathCopied(false), 1500);
-    } catch {
-      // clipboard API can be blocked; ignore silently
-    }
-  }
 
   useEffect(() => {
     void refreshHistory();
@@ -486,23 +472,17 @@ export default function LintPage() {
               })}
             </ul>
           )}
-          {logPath ? (
-            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
-              <span>Full history at</span>
-              <code className="font-mono break-all text-foreground/80">{logPath}</code>
-              <button
-                type="button"
-                onClick={copyLogPath}
-                className="rounded border border-border bg-background px-1.5 py-0.5 hover:bg-accent"
-                title="Copy path to clipboard"
-              >
-                {pathCopied ? "copied" : "copy"}
-              </button>
-              <span className="text-muted-foreground/70">
-                · open in Obsidian, VS Code, or <code className="font-mono">cat</code> it
-              </span>
-            </div>
-          ) : null}
+          <div className="mt-3 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+            <Link
+              href="/log"
+              className="text-primary underline underline-offset-2 hover:text-primary/80"
+            >
+              View full timeline →
+            </Link>
+            <span className="ml-2">
+              (ingests, edits, lint, schema saves — everything that touched the wiki)
+            </span>
+          </div>
         </section>
       ) : null}
 
