@@ -618,7 +618,29 @@ Same as 1.1.0 but smoother because the muscle memory + scripts existed:
 3. `cd apps/web/dist-publish && npm pack` → `syasas-llm-wiki-1.1.1.tgz` (27.8MB, 8738 files)
 4. Local install verification: install tarball into `/tmp`, `llm-wiki version` → 1.1.1, `llm-wiki Doctor` (capital D) dispatched correctly
 5. GitHub Release v1.1.1 created with new tarball as the only asset
-6. `npm publish --access public --otp=<code>` from `dist-publish/` (uses a 2FA recovery code until proper TOTP authenticator is set up — see sprint S notes)
+6. `npm publish --access public` from `dist-publish/` — see "Publish gotcha: passkey 2FA" below
+
+### Publish gotcha: passkey 2FA (the actual flow we ended up using)
+
+The sprint S notes assumed publishing would use `--otp=<recovery-code>` long-term. That turned out to be wrong: **npm has migrated to passkey-based 2FA (WebAuthn)**. Recovery codes are NOT accepted as OTPs anymore — they're for account recovery only (resetting 2FA if you lose your Mac).
+
+What actually happens during `npm publish` once passkey 2FA is set up:
+
+1. `npm publish --access public` — **no `--otp` flag**
+2. npm prints: `Visit https://www.npmjs.com/login/cli/<token> to authenticate`
+3. Open URL in browser → npm prompts "Authorize this publish?"
+4. macOS pops the passkey dialog → tap Touch ID
+5. Browser confirms → terminal proceeds → `+ @syasas/llm-wiki@X.Y.Z`
+
+**Setup for this** (one-time, done on 2026-05-24 mid-sprint-T): on the npm 2FA settings page, the only available method is now "Security key" (passkey). Selecting it triggers a macOS system dialog to save a passkey for npmjs.com — Touch ID confirms it. From then on, the Mac IS the 2FA device.
+
+**Common confusion to avoid next time**:
+- Don't paste a recovery code into the `--otp` prompt — npm rejects it
+- The "long codes" npm gives you at setup are recovery codes, NOT TOTP codes
+- There's no QR code anymore — TOTP authenticator apps don't apply
+- If npm prompts "Enter OTP:" on the CLI, you're on an older 2FA flow. The newer flow prints a URL instead.
+
+Long-term alternative for non-interactive publishes (CI/CD or just skipping Touch ID): create a **granular access token** at npmjs.com → settings → tokens with "Bypass 2FA Required to Publish" enabled, scoped to `@syasas/llm-wiki`. Then `npm publish --token <token>` or `NPM_TOKEN=<token>`. Not set up yet; the user does manual publishes via Touch ID.
 
 ### Doc updates bundled in the same commit
 
