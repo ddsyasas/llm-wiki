@@ -322,47 +322,49 @@ export function ChatView({ chatId, initialChat, knownSlugs, folders }: Props) {
         </div>
       ) : null}
 
+      {/*
+       * Asymmetric Claude-style layout:
+       *  - User messages → bubble on the right, max-w-[80%], filled bg
+       *  - Assistant messages → flow on the left, full-ish width, no
+       *    bubble. Long cited answers, tables, and code blocks all need
+       *    width to breathe, so we don't constrain them.
+       * Position alone signals who said what — role badges dropped.
+       */}
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {chat.messages.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Empty thread. Ask the wiki a question to start it off.
           </p>
         ) : (
-          <ol className="space-y-6">
+          <ol className="space-y-5">
             {chat.messages.map((m, i) => (
-              <li key={`${m.time}-${i}`} className="space-y-1">
-                <header className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-                  <span
-                    className={cn(
-                      "rounded px-1.5 py-0.5",
-                      m.role === "user"
-                        ? "bg-secondary text-foreground"
-                        : "bg-primary/10 text-primary",
-                    )}
-                  >
-                    {m.role}
-                  </span>
-                  <span>{m.time}</span>
-                  {m.role === "assistant" ? (
-                    <button
-                      type="button"
-                      onClick={() => setPromoteFor(m)}
-                      className="ml-auto text-[11px] text-muted-foreground hover:text-foreground"
-                    >
-                      Save as wiki page →
-                    </button>
-                  ) : null}
-                </header>
-                <article
-                  className={cn(
-                    "rounded-lg border p-4 text-sm",
-                    m.role === "user"
-                      ? "border-border bg-background"
-                      : "border-border bg-card",
-                  )}
-                >
-                  <MarkdownView content={m.content} knownSlugs={knownSlugs} />
-                </article>
+              <li key={`${m.time}-${i}`}>
+                {m.role === "user" ? (
+                  <div className="flex justify-end">
+                    <div className="max-w-[80%] rounded-2xl rounded-tr-md bg-primary/10 px-4 py-3 text-sm text-foreground">
+                      <MarkdownView content={m.content} knownSlugs={knownSlugs} />
+                      <p className="mt-1 text-right text-[10px] text-muted-foreground/70">
+                        {m.time}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-w-[92%]">
+                    <article className="text-sm">
+                      <MarkdownView content={m.content} knownSlugs={knownSlugs} />
+                    </article>
+                    <div className="mt-1.5 flex items-center gap-3 text-[10px] text-muted-foreground/80">
+                      <span>{m.time}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPromoteFor(m)}
+                        className="hover:text-foreground"
+                      >
+                        Save as wiki page →
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ol>
