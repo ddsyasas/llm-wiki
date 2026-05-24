@@ -197,6 +197,10 @@ function FirstRunWizard(props: Props) {
         <KeyStep
           apiKey={key}
           setApiKey={setKey}
+          // When the user is replaying the tour, an OpenRouter key is
+          // already on disk (we just don't surface it here for security).
+          // Let them advance without re-typing it.
+          alreadyHasKey={!props.needsKey}
           onBack={() => goTo("topic")}
           onNext={onAdvanceFromKey}
           onSkip={onSkip}
@@ -337,6 +341,7 @@ function TopicStep({
 function KeyStep({
   apiKey,
   setApiKey,
+  alreadyHasKey,
   onBack,
   onNext,
   onSkip,
@@ -349,6 +354,7 @@ function KeyStep({
 }: {
   apiKey: string;
   setApiKey: (v: string) => void;
+  alreadyHasKey: boolean;
   onBack: () => void;
   onNext: () => void;
   onSkip: () => void;
@@ -359,7 +365,9 @@ function KeyStep({
   busy: boolean;
   error: string | null;
 }) {
-  const ready = apiKey.trim().length > 0;
+  // Replay flow: a key is already on disk; let the user advance with the
+  // input empty. New-install flow: require a non-empty key.
+  const ready = alreadyHasKey || apiKey.trim().length > 0;
   return (
     <div>
       <p className="text-caption uppercase tracking-wider text-muted-foreground">
@@ -387,11 +395,14 @@ function KeyStep({
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder="sk-or-v1-..."
+          placeholder={alreadyHasKey ? "leave blank to keep current key" : "sk-or-v1-..."}
           className="font-mono text-[13px] sm:flex-1"
           autoComplete="off"
         />
-        <Button variant="outline" onClick={onTest} disabled={!ready || testing || busy}>
+        {/* Test always needs a typed key — it validates new input, not the
+            stored one. So gate on `apiKey`, not `ready` (which is true on
+            replay regardless of input). */}
+        <Button variant="outline" onClick={onTest} disabled={!apiKey.trim() || testing || busy}>
           {testing ? "Testing…" : "Test"}
         </Button>
       </div>

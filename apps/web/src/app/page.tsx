@@ -47,8 +47,13 @@ export default async function HomePage() {
   ]);
   const needsTopic = topic.trim().length === 0;
   const needsKey = apiKeyStatus.key === null;
+  // `onboardingCompletedAt` absent means either (a) brand-new install or
+  // (b) the user just clicked Settings → About → "Replay welcome tour",
+  // which clears the flag. In both cases we want the 4-step wizard, even
+  // when topic+key are already saved — the wizard becomes a pure walkthrough
+  // and the KeyStep allows blank advance via `alreadyHasKey` downstream.
   const isFirstRun = !globalCfg.onboardingCompletedAt;
-  if (needsTopic || needsKey) {
+  if (needsTopic || needsKey || isFirstRun) {
     return (
       <Onboarding
         needsTopic={needsTopic}
