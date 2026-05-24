@@ -32,7 +32,7 @@ Anywhere project work happens publicly or that represents the project — GitHub
 
 If you see or experience behavior that violates this code, report it:
 
-- **Privately via email**: yasasdreamz@gmail.com
+- **Privately via email**: yasas@idersolutions.com
 - **Privately via GitHub**: open a [private security advisory](https://github.com/ddsyasas/llm-wiki/security/advisories/new) — the same channel used for security issues. It's encrypted, only maintainers see it.
 
 Reports are taken seriously and confidentially. Reporters won't be retaliated against, regardless of who the report is about.
@@ -47,7 +47,7 @@ Maintainers (currently just [@ddsyasas](https://github.com/ddsyasas)) handle rep
 
 Severe violations (harassment, threats, doxing, etc.) skip steps 1-2 and go straight to a ban.
 
-Decisions can be appealed by emailing yasasdreamz@gmail.com — a different perspective on the situation is welcome, though "I didn't break the rules" arguments after a clear violation will not change the outcome.
+Decisions can be appealed by emailing yasas@idersolutions.com — a different perspective on the situation is welcome, though "I didn't break the rules" arguments after a clear violation will not change the outcome.
 
 ## Attribution
 

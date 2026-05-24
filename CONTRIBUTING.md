@@ -154,13 +154,13 @@ Maintainer (currently just [@ddsyasas](https://github.com/ddsyasas)) reviews whe
 
 ## Code of conduct
 
-This project adopts the [Contributor Covenant 2.1](CODE_OF_CONDUCT.md). Read it. Behaviors that violate it get a warning, then a ban. Report via GitHub Issues or yasasdreamz@gmail.com.
+This project adopts the [Contributor Covenant 2.1](CODE_OF_CONDUCT.md). Read it. Behaviors that violate it get a warning, then a ban. Report via GitHub Issues or yasas@idersolutions.com.
 
 ---
 
 ## Security
 
-Found a security issue? **Please don't open a public issue.** Use [GitHub's private vulnerability reporting](https://github.com/ddsyasas/llm-wiki/security/advisories/new) or email yasasdreamz@gmail.com directly. See [`SECURITY.md`](SECURITY.md) for full policy.
+Found a security issue? **Please don't open a public issue.** Use [GitHub's private vulnerability reporting](https://github.com/ddsyasas/llm-wiki/security/advisories/new) or email yasas@idersolutions.com directly. See [`SECURITY.md`](SECURITY.md) for full policy.
 
 ---
 
