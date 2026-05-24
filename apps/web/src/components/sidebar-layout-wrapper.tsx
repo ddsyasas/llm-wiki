@@ -53,13 +53,17 @@ export function SidebarLayoutWrapper({ sidebar, children, triggerLabel }: Props)
 
       {/* Sidebar. On desktop: normal flex item, the inner sidebar's
           fixed width takes over. On mobile: absolute positioning,
-          slides in/out via translate. */}
+          slides in/out via translate.
+          `flex` on the wrapper is critical — without it, the inner
+          aside's `self-stretch` would no-op (self-stretch requires a
+          flex parent) and the sidebar would only be as tall as its
+          content, leaving a visible white gap below. */}
       <div
         className={cn(
-          "z-40 transition-transform duration-200 ease-out",
+          "z-40 flex transition-transform duration-200 ease-out",
           // Desktop: in-flow, no transform applied.
           "sm:relative sm:translate-x-0",
-          // Mobile: anchored to the wrapper's left edge.
+          // Mobile: anchored to the wrapper's left edge, full height.
           "absolute inset-y-0 left-0",
           open ? "translate-x-0" : "-translate-x-full sm:translate-x-0",
         )}
