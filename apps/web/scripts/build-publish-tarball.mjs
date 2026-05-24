@@ -43,22 +43,58 @@ async function readJson(p) {
   return JSON.parse(await readFile(p, "utf8"));
 }
 
+// Packages the published tarball declares as runtime dependencies (so
+// `npm install -g @yasas/llm-wiki` pulls them on the user's machine, which
+// gets the right prebuilt binary per platform). Same list as
+// serverComponentsExternalPackages in next.config.mjs minus archiver (which
+// is pure JS but heavy — keeping it in the bundle is fine, and it's used
+// by exactly one route).
+//
+// Native (must NOT be bundled — bundling locks the tarball to one OS):
+//   - better-sqlite3 (.node binary, per-platform)
+//   - keytar         (.node binary, per-platform)
+//
+// Pure JS but with optional native sub-deps (fsevents on macOS for chokidar):
+//   - chokidar
+//
+// Heavy pure-JS extractors we leave to npm install to avoid bloat + keep
+// the tarball minimal:
+//   - jsdom, mammoth, officeparser, @mozilla/readability
+const PUBLISHED_RUNTIME_PACKAGES = [
+  "better-sqlite3",
+  "keytar",
+  "chokidar",
+  "jsdom",
+  "mammoth",
+  "officeparser",
+  "@mozilla/readability",
+];
+
 // Build the publishable package.json. Strips:
 //   - workspace:* deps (everything's in the standalone bundle)
 //   - build-time deps (React, Next, Tailwind, etc — all bundled)
 //   - devDependencies + scripts (not relevant to consumers)
 // Keeps:
-//   - the one true runtime dep: `open` (browser auto-launch in the CLI;
-//     not bundled because the CLI script itself runs outside the standalone
-//     server bundle).
+//   - `open` for the CLI's browser auto-launch
+//   - PUBLISHED_RUNTIME_PACKAGES (see comment above) so npm install fetches
+//     the right per-platform binary at install time. Crucial for cross-OS
+//     support — bundling these locks the tarball to one OS+arch.
 // Sets:
 //   - public-facing name (`@yasas/llm-wiki`, per docs/09) instead of the
 //     internal workspace name (`@llm-wiki/web`)
 //   - description / homepage / repository / bugs / keywords for npmjs.com
-function buildPublishablePackageJson(src) {
+function buildPublishablePackageJson(src, packageJsonByName) {
   const runtimeDeps = {
     open: src.dependencies?.open ?? "^10.2.0",
   };
+  for (const name of PUBLISHED_RUNTIME_PACKAGES) {
+    const pkg = packageJsonByName.get(name);
+    if (pkg?.version) {
+      // Pin to the major (caret range) so users get patch + minor updates
+      // for free but stay on the same major we've tested against.
+      runtimeDeps[name] = `^${pkg.version}`;
+    }
+  }
   return {
     name: "@yasas/llm-wiki",
     version: src.version,
@@ -183,18 +219,39 @@ async function main() {
   await rm(DIST_DIR, { recursive: true, force: true });
   await mkdir(DIST_DIR, { recursive: true });
 
+  // Discover the on-disk version of each runtime-published package by
+  // reading its package.json from the source standalone bundle. Used to
+  // pin the published dependency range to whatever we actually tested
+  // against, not whatever floats by next time `npm install` runs upstream.
+  const standaloneNm = join(PACKAGE_DIR, ".next", "standalone", "node_modules");
+  const packageJsonByName = new Map();
+  for (const name of PUBLISHED_RUNTIME_PACKAGES) {
+    try {
+      const pkg = await readJson(join(standaloneNm, name, "package.json"));
+      packageJsonByName.set(name, pkg);
+    } catch {
+      // Will be silently omitted from runtimeDeps — the script logs a
+      // warning below so it doesn't slip past the operator.
+    }
+  }
+  for (const name of PUBLISHED_RUNTIME_PACKAGES) {
+    if (!packageJsonByName.has(name)) {
+      console.warn(
+        `  ⚠ ${name} not found in standalone node_modules — skipping runtime dep. ` +
+          `Did copy-standalone-assets.mjs run?`,
+      );
+    }
+  }
+
   // Rewritten package.json.
   const srcPkg = await readJson(join(PACKAGE_DIR, "package.json"));
-  const pubPkg = buildPublishablePackageJson(srcPkg);
-  // If the source package is marked private, the published copy can't be
-  // (npm refuses to publish private packages). Strip the field.
-  // The dist-publish copy is intentionally not private.
+  const pubPkg = buildPublishablePackageJson(srcPkg, packageJsonByName);
   await writeFile(
     join(DIST_DIR, "package.json"),
     JSON.stringify(pubPkg, null, 2) + "\n",
     "utf8",
   );
-  console.log(`  ✓ package.json (${Object.keys(pubPkg.dependencies).length} runtime dep)`);
+  console.log(`  ✓ package.json (${Object.keys(pubPkg.dependencies).length} runtime deps)`);
 
   // CLI bin.
   await mkdir(join(DIST_DIR, "bin"), { recursive: true });
@@ -221,6 +278,41 @@ async function main() {
     join(DIST_DIR, ".next", "standalone", "node_modules"),
   );
   console.log(`  ✓ flattened ${promoted} pnpm packages to top-level`);
+
+  // Strip the externalized packages out of the bundle. They're declared as
+  // runtime deps in the published package.json, so `npm install` pulls them
+  // on the user's machine — which gets the correct prebuilt native binary
+  // for that platform. Bundling them here would lock the tarball to one
+  // OS+arch (whatever this build host happens to be).
+  //
+  // We delete both the top-level node_modules/<name>/ AND the .pnpm/<name>@*
+  // store entry, otherwise the resolver could still load the bundled (wrong-
+  // arch) copy via the pnpm path.
+  const distNm = join(DIST_DIR, ".next", "standalone", "node_modules");
+  let stripped = 0;
+  for (const name of PUBLISHED_RUNTIME_PACKAGES) {
+    const topLevel = join(distNm, name);
+    if (await fileExists(topLevel)) {
+      await rm(topLevel, { recursive: true, force: true });
+      stripped++;
+    }
+    // Walk .pnpm/ for any group matching this name@... and remove.
+    const pnpmDir = join(distNm, ".pnpm");
+    try {
+      const groups = await readdir(pnpmDir);
+      for (const group of groups) {
+        // pnpm store dirs look like `<name>@<version>[_<peer>]`.
+        // For scoped packages, `@` is encoded as `+`: `@mozilla+readability@...`.
+        const pnpmEncoded = name.replace("/", "+");
+        if (group.startsWith(`${pnpmEncoded}@`)) {
+          await rm(join(pnpmDir, group), { recursive: true, force: true });
+        }
+      }
+    } catch {
+      // No .pnpm dir, nothing to clean.
+    }
+  }
+  console.log(`  ✓ stripped ${stripped} per-platform packages from bundle`);
 
   // .next/static at the published-package root (some Next versions expect
   // it there in addition to inside standalone). Cheap to ship both — the
