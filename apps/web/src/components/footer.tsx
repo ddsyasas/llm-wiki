@@ -60,6 +60,14 @@ export async function Footer({ className = "" }: { className?: string }) {
           </>
         ) : null}
         <span aria-hidden>·</span>
+        <Link
+          href="/dashboard"
+          className="hover:text-foreground"
+          title="Per-wiki page / source / chat counts + cumulative LLM spend across every wiki"
+        >
+          Dashboard
+        </Link>
+        <span aria-hidden>·</span>
         <Link href="/about" className="hover:text-foreground">
           About
         </Link>

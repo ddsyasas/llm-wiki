@@ -90,8 +90,21 @@ export default async function HomePage() {
         <StatTile label="Pages" value={pageCount.toString()} href="/wiki" />
         <StatTile label="Sources" value={sourceCount.toString()} href="/sources" />
         <StatTile label="Chats" value={chatCount.toString()} href="/chats" />
-        <StatTile label="LLM spend" value={formatCost(costCents)} href="/settings" />
+        {/* LLM spend tile points at /dashboard, not /settings — dashboard
+            shows this wiki's spend in context with every other wiki's, plus
+            a cumulative roll-up. Settings → Models still has the per-model
+            breakdown table for a deeper view. */}
+        <StatTile label="LLM spend" value={formatCost(costCents)} href="/dashboard" />
       </section>
+      <p className="mt-2 text-right text-caption text-muted-foreground">
+        <Link
+          href="/dashboard"
+          className="hover:text-foreground"
+          title="Stats across every wiki you've opened"
+        >
+          ↗ See all wikis
+        </Link>
+      </p>
 
       <section className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <ActionCard
