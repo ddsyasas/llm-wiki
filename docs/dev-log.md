@@ -360,7 +360,15 @@ Closes the user's "don't we lose data?" concern with UI. Every wiki page already
 
 Sources list rows on `/sources` were also made into `Link`s to `/sources/[id]` (previously inert div rows).
 
-### H. Doc pages: About / Help / Developers — HEAD
+### I. 3D Graph View — adds `docs/12-graph-view.md` + `/graph` route
+
+User asked for an Obsidian-style 3D graph view ("knowledge as neural network") to make the wiki's compounding structure visible. Full design doc + decisions in **`docs/12-graph-view.md`**.
+
+Shipped: new `packages/core/src/graph.ts` (`buildGraph(wikiPath, db)`) reusing the existing `uniqueLinkedSlugs` parser from `links.ts`; 7-test suite covers empty/single/linked/broken/self-link/dedupe/preview-strip cases. New `/graph` route with server component that calls `buildGraph`, dynamic-imports `react-force-graph-3d` (~600KB bundle hidden behind `ssr: false` so other routes don't pay). `vault-graph.tsx` client component handles the 3D scene + side panel + URL state (`?node=<slug>`) via `window.history.replaceState` so selection clicks don't trigger router re-renders. Theme reactivity via `MutationObserver` on `<html>` watching our `ThemeProvider`'s class toggle — WebGL canvas can't read CSS vars directly. Five hardcoded type colors (overview=red, concept=cyan, entity=amber, comparison=violet, source=slate) — restrained enough to look right in both light and dark modes. Node size scales with degree; selected node turns near-white, neighbors keep their color, non-neighbors dim to barely-visible — same focus mechanic Obsidian uses. New deps in apps/web only: `react-force-graph-3d` + `three`. Added `Graph` to PRIMARY_NAV after `Wiki`.
+
+Two things deferred: a CLI `graph` subcommand printing stats+orphans (nice-to-have), and a 5th home-page action card (existing 4 already crowded). 2D toggle, search/filter overlay, persistent camera state are all V2.
+
+### H. Doc pages: About / Help / Developers — `73fb90e`
 
 User asked for "proper about page", a "developer page / doc page" set, and a wiki-style reference accessible to local + future cloud users.
 

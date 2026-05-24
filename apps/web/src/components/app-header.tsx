@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 // out, conversation, hygiene).
 const PRIMARY_NAV = [
   { label: "Wiki", href: "/wiki" },
+  { label: "Graph", href: "/graph" },
   { label: "Sources", href: "/sources" },
   { label: "Query", href: "/query" },
   { label: "Chats", href: "/chats" },
