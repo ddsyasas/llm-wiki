@@ -8,9 +8,16 @@ import {
 } from "@llm-wiki/core";
 
 import { PageContainer, PageHeader } from "@/components/page-shell";
+import { UndoDeleteBanner } from "@/components/wiki/undo-delete-banner";
 import { openWikiContext } from "@/lib/server-wiki";
 
 export const dynamic = "force-dynamic";
+
+type SearchParams = {
+  deleted?: string;
+  deletedTitle?: string;
+  trash?: string;
+};
 
 // Category order on the page. Overviews first because they're the wiki's
 // high-level synthesis — a researcher landing here wants the bird's-eye
@@ -66,7 +73,11 @@ function cleanSummary(s: string): string {
 
 type EnrichedPage = PageRow & { summary: string };
 
-export default async function WikiIndexPage() {
+export default async function WikiIndexPage({
+  searchParams,
+}: {
+  searchParams?: SearchParams;
+}) {
   const ctx = await openWikiContext();
   let pageRows: PageRow[] = [];
   let summaries = new Map<string, string>();
@@ -138,6 +149,14 @@ export default async function WikiIndexPage() {
 
   const summary = formatSummary(byType, totalPages, lastUpdate);
 
+  // Undo banner — server-renders when the page-view's delete flow
+  // redirected here with the trash filename in the URL. One click and the
+  // restore endpoint puts the page back.
+  const deletedSlug = searchParams?.deleted;
+  const deletedTitle = searchParams?.deletedTitle;
+  const trashFilename = searchParams?.trash;
+  const showUndo = !!(deletedSlug && trashFilename);
+
   return (
     <PageContainer width="wide">
       <PageHeader
@@ -153,6 +172,14 @@ export default async function WikiIndexPage() {
           </Link>
         }
       />
+
+      {showUndo ? (
+        <UndoDeleteBanner
+          slug={deletedSlug!}
+          title={deletedTitle ?? deletedSlug!}
+          trashFilename={trashFilename!}
+        />
+      ) : null}
 
       <div className="space-y-12">
         {TYPE_ORDER.filter((t) => byType.has(t)).map((type) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,54 @@ type Props = {
 };
 
 export function PageView(props: Props) {
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [backlinkCount, setBacklinkCount] = useState<number | null>(null);
+
+  // We already have `props.backlinks` server-rendered — surface the count
+  // in the confirm dialog so the user sees the consequence ("3 other pages
+  // link to this; they'll become broken links until you fix them in lint").
+  function openDeleteDialog() {
+    setBacklinkCount(props.backlinks.length);
+    setDeleteOpen(true);
+    setDeleteError(null);
+  }
+
+  async function confirmDelete() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(
+        `/api/pages/${encodeURIComponent(props.slug)}/delete`,
+        { method: "POST" },
+      );
+      const json = (await res.json()) as {
+        ok?: boolean;
+        trashFilename?: string;
+        error?: string;
+      };
+      if (!res.ok || !json.ok || !json.trashFilename) {
+        throw new Error(json.error ?? `HTTP ${res.status}`);
+      }
+      // Redirect to /wiki with delete metadata in the query so the wiki
+      // index can show an "Undo" banner with one-click restore.
+      const params = new URLSearchParams({
+        deleted: props.slug,
+        deletedTitle: props.title,
+        trash: json.trashFilename,
+      });
+      router.push(`/wiki?${params.toString()}`);
+      // router.refresh() needed because /wiki is a server component that
+      // needs to re-read the updated page list.
+      router.refresh();
+    } catch (err) {
+      setDeleteError((err as Error).message);
+      setDeleting(false);
+    }
+  }
 
   return (
     // Reading view stays narrow (prose-friendly). Editing view expands to
@@ -49,6 +97,13 @@ export function PageView(props: Props) {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setEditing(true)}>
               Edit
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={openDeleteDialog}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              Delete
             </Button>
           </div>
         </header>
@@ -127,6 +182,84 @@ export function PageView(props: Props) {
           </section>
         </>
       )}
+
+      {/* Delete confirm dialog — bespoke modal (no shadcn Dialog installed)
+          so we can show the backlinks consequence inline. */}
+      {deleteOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => !deleting && setDeleteOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-display text-h3 font-semibold">
+              Move this page to trash?
+            </h2>
+            <p className="mt-1 text-ui text-muted-foreground">
+              <strong className="text-foreground">{props.title}</strong>
+            </p>
+
+            <div className="mt-4 space-y-2 text-ui">
+              <p>
+                The page file will move to{" "}
+                <code className="font-mono text-[12px]">
+                  .llm-wiki/trash/wiki/
+                </code>
+                . Recoverable for 30 days, plus a one-click <strong>Undo</strong>{" "}
+                option will appear on the next screen.
+              </p>
+              {backlinkCount !== null && backlinkCount > 0 ? (
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-[13px] text-amber-800 dark:text-amber-200">
+                  <p>
+                    <strong>{backlinkCount} other page{backlinkCount === 1 ? "" : "s"}</strong>{" "}
+                    link{backlinkCount === 1 ? "s" : ""} to this one — those
+                    references become broken links. Lint will flag them so you
+                    can clean up.
+                  </p>
+                  {props.backlinks.length > 0 ? (
+                    <ul className="mt-2 list-disc pl-5 text-[12px]">
+                      {props.backlinks.slice(0, 3).map((b) => (
+                        <li key={b.slug}>{b.title}</li>
+                      ))}
+                      {props.backlinks.length > 3 ? (
+                        <li className="text-muted-foreground">
+                          + {props.backlinks.length - 3} more
+                        </li>
+                      ) : null}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            {deleteError ? (
+              <p className="mt-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {deleteError}
+              </p>
+            ) : null}
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="border-destructive/40 text-destructive hover:bg-destructive/10"
+              >
+                {deleting ? "Moving to trash…" : "Move to trash"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }

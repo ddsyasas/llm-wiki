@@ -469,33 +469,45 @@ export function listChats(db: Db, folder?: string): ChatRow[] {
 const DEFAULT_TRASH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 /**
- * Removes files in .llm-wiki/trash/chats/ older than maxAgeMs. Tolerant of a
- * missing trash directory (returns 0). Returns the number of files deleted.
+ * Removes files in `.llm-wiki/trash/**` older than maxAgeMs. Scans every
+ * subdirectory under `.llm-wiki/trash/` (chats, wiki, raw, anything future
+ * deletes might add). Tolerant of missing trash directories (returns 0).
+ * Returns the total number of files deleted across all subdirs.
  */
 export async function purgeOldTrash(
   wikiPath: string,
   maxAgeMs: number = DEFAULT_TRASH_TTL_MS,
 ): Promise<number> {
-  const trashDir = join(wikiPath, WIKI_PATHS.tooling, TRASH_DIR);
+  const rootTrash = join(wikiPath, WIKI_PATHS.tooling, "trash");
   const { readdir, stat: statFs, unlink } = await import("node:fs/promises");
-  let entries: string[];
+  let subdirs: string[];
   try {
-    entries = await readdir(trashDir);
+    const entries = await readdir(rootTrash, { withFileTypes: true });
+    subdirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
   } catch {
     return 0;
   }
   const cutoff = Date.now() - maxAgeMs;
   let removed = 0;
-  for (const name of entries) {
-    const p = join(trashDir, name);
+  for (const sub of subdirs) {
+    const dir = join(rootTrash, sub);
+    let files: string[];
     try {
-      const s = await statFs(p);
-      if (s.isFile() && s.mtimeMs < cutoff) {
-        await unlink(p);
-        removed++;
-      }
+      files = await readdir(dir);
     } catch {
-      // entry vanished between readdir and stat; skip
+      continue;
+    }
+    for (const name of files) {
+      const p = join(dir, name);
+      try {
+        const s = await statFs(p);
+        if (s.isFile() && s.mtimeMs < cutoff) {
+          await unlink(p);
+          removed++;
+        }
+      } catch {
+        // entry vanished between readdir and stat; skip
+      }
     }
   }
   return removed;

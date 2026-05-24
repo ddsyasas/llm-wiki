@@ -1,12 +1,22 @@
-import { access, copyFile, mkdir, stat } from "node:fs/promises";
+import { access, copyFile, mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { Db } from "./db";
-import { indexPageForSearch, upsertPage } from "./db-pages";
+import {
+  deletePage as deletePageRow,
+  indexPageForSearch,
+  unindexPageFromSearch,
+  upsertPage,
+} from "./db-pages";
 import { upsertSyncState } from "./db-sync";
-import { refreshIndexEntryForSlug } from "./index-builder";
+import {
+  parseIndexEntries,
+  refreshIndexEntryForSlug,
+  renderIndex,
+} from "./index-builder";
+import { uniqueLinkedSlugs } from "./links";
 import type { Page, PageType } from "./types";
-import { appendLog, readPage, WIKI_PATHS, writePage } from "./wiki";
+import { appendLog, listPages, readPage, WIKI_PATHS, writeIndex, writePage } from "./wiki";
 
 const PAGE_HISTORY_DIR = "page-history";
 
@@ -285,6 +295,195 @@ export async function createPage(
 
   return page;
 }
+
+// ---- soft delete + restore for wiki pages -------------------------------
+
+const WIKI_TRASH_DIR = "trash/wiki";
+
+export type SoftDeletePageResult = {
+  slug: string;
+  /** Filename inside .llm-wiki/trash/wiki/ — pass back to restoreDeletedPage. */
+  trashFilename: string;
+  /** Absolute path on disk, surfaced for "Recoverable from <path>" UI text. */
+  trashPath: string;
+  /** Pages that linked to this slug. Now broken; lint will flag them. */
+  backlinkSlugs: string[];
+};
+
+export class PageNotFoundError extends Error {
+  readonly slug: string;
+  constructor(slug: string) {
+    super(`page not found: ${slug}`);
+    this.name = "PageNotFoundError";
+    this.slug = slug;
+  }
+}
+
+/**
+ * Soft-deletes a wiki page. Moves the .md file to
+ * `.llm-wiki/trash/wiki/<timestamp>-<slug>.md` (recoverable for 30 days via
+ * the existing purgeOldTrash cleanup), drops the SQLite + FTS5 rows, and
+ * strips the slug's entry from index.md. Wiki pages that linked to this
+ * slug are NOT touched — those references become broken links and surface
+ * in the next lint run.
+ *
+ * Pair with restoreDeletedPage() if the user clicks Undo.
+ */
+export async function softDeletePage(
+  wikiPath: string,
+  db: Db,
+  slug: string,
+): Promise<SoftDeletePageResult> {
+  const filePath = join(wikiPath, WIKI_PATHS.wiki, `${slug}.md`);
+  if (!(await fileExists(filePath))) {
+    throw new PageNotFoundError(slug);
+  }
+
+  // Count inbound links so the caller can warn the user before deleting.
+  const allPages = await listPages(wikiPath);
+  const backlinkSlugs: string[] = [];
+  for (const summary of allPages) {
+    if (summary.slug === slug) continue;
+    try {
+      const page = await readPage(wikiPath, summary.slug);
+      if (uniqueLinkedSlugs(page.content).has(slug)) {
+        backlinkSlugs.push(summary.slug);
+      }
+    } catch {
+      // page deleted between listing and read; skip
+    }
+  }
+
+  // Move to trash. Timestamp-prefixed so the same slug can be deleted +
+  // restored + deleted again without name collisions.
+  const trashDir = join(wikiPath, WIKI_PATHS.tooling, WIKI_TRASH_DIR);
+  await mkdir(trashDir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const trashFilename = `${stamp}-${slug}.md`;
+  const trashPath = join(trashDir, trashFilename);
+  await rename(filePath, trashPath);
+
+  // DB + FTS5 + index cleanup. Cascades: page_sources rows drop via FK.
+  deletePageRow(db, slug);
+  unindexPageFromSearch(db, slug);
+
+  // Strip just this slug's line from index.md (cheaper than a full rebuild
+  // and avoids re-reading every page on disk).
+  const indexPath = join(wikiPath, WIKI_PATHS.index);
+  try {
+    const raw = await readFile(indexPath, "utf8");
+    const entries = parseIndexEntries(raw);
+    if (entries.delete(slug)) {
+      await writeIndex(wikiPath, renderIndex(entries));
+    }
+  } catch {
+    // No index.md yet, nothing to strip.
+  }
+
+  const ts = new Date().toISOString().replace("T", " ").slice(0, 16);
+  await appendLog(
+    wikiPath,
+    `## [${ts}] delete | ${slug} (trashed → ${WIKI_TRASH_DIR}/${trashFilename})`,
+  );
+
+  return { slug, trashFilename, trashPath, backlinkSlugs };
+}
+
+export type RestoreDeletedPageResult = {
+  slug: string;
+  page: Page;
+};
+
+export class PageRestoreConflictError extends Error {
+  readonly slug: string;
+  constructor(slug: string) {
+    super(
+      `cannot restore: a page already exists at slug "${slug}". Rename or delete it first, or restore the trash file manually.`,
+    );
+    this.name = "PageRestoreConflictError";
+    this.slug = slug;
+  }
+}
+
+/**
+ * Restores a soft-deleted page by moving the trash file back to wiki/<slug>.md
+ * and re-populating the DB + FTS5 + index. Refuses if a new page now occupies
+ * the same slug (caller should surface the error and let the user resolve
+ * the conflict manually).
+ *
+ * Note: page_sources links are NOT restored — they cascaded on delete and
+ * we don't keep a separate audit log of what they were. Re-ingesting the
+ * source(s) would re-create them. For now, the restored page is "lineage-
+ * orphan" until then; the body content is intact.
+ */
+export async function restoreDeletedPage(
+  wikiPath: string,
+  db: Db,
+  slug: string,
+  trashFilename: string,
+): Promise<RestoreDeletedPageResult> {
+  // Refuse to clobber a real page.
+  const filePath = join(wikiPath, WIKI_PATHS.wiki, `${slug}.md`);
+  if (await fileExists(filePath)) {
+    throw new PageRestoreConflictError(slug);
+  }
+
+  // Validate the trash file exists + lives under our trash dir (defense
+  // against a malicious caller passing "../etc/passwd").
+  const trashDir = join(wikiPath, WIKI_PATHS.tooling, WIKI_TRASH_DIR);
+  const trashPath = join(trashDir, trashFilename);
+  // Reject anything that escapes the trash dir.
+  if (!trashPath.startsWith(trashDir + "/") && trashPath !== trashDir) {
+    throw new Error("trashFilename must not contain path separators");
+  }
+  if (!(await fileExists(trashPath))) {
+    throw new Error(`trash file not found: ${trashFilename}`);
+  }
+
+  await rename(trashPath, filePath);
+
+  // Re-populate DB + FTS5 from the restored file.
+  const page = await readPage(wikiPath, slug);
+  const today = new Date().toISOString().slice(0, 10);
+  const tags = page.frontmatter.tags ?? [];
+  upsertPage(db, {
+    slug,
+    title: page.frontmatter.title,
+    type: page.frontmatter.type,
+    created_at: page.frontmatter.created,
+    updated_at: page.frontmatter.updated || today,
+    word_count: wordCount(page.content),
+    tags,
+  });
+  indexPageForSearch(db, {
+    slug,
+    title: page.frontmatter.title,
+    content: page.content,
+    tags,
+  });
+
+  try {
+    const s = await stat(filePath);
+    upsertSyncState(db, {
+      rel_path: `${WIKI_PATHS.wiki}/${slug}.md`,
+      mtime_ms: s.mtimeMs,
+      size_bytes: s.size,
+      synced_at: new Date().toISOString(),
+    });
+  } catch {
+    // best-effort
+  }
+
+  // Add to index.md if it wasn't already there.
+  await refreshIndexEntryForSlug(wikiPath, db, slug);
+
+  const ts = new Date().toISOString().replace("T", " ").slice(0, 16);
+  await appendLog(wikiPath, `## [${ts}] restore | ${slug} (from trash)`);
+
+  return { slug, page };
+}
+
+// ---- internals ----------------------------------------------------------
 
 async function fileExists(path: string): Promise<boolean> {
   try {
