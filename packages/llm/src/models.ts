@@ -90,19 +90,51 @@ export type ModelPricing = {
 // Hardcoded prices, accurate as of 2026-05. These shift over time on
 // OpenRouter; revisit before each release. A `null` from `getPricing`
 // surfaces in the UI as "unknown cost" rather than guessing.
+//
+// Why so many duplicate entries:
+// - Our SUGGESTED_MODELS / DEFAULT_MODELS use the slug we send to OpenRouter
+//   (e.g. `anthropic/claude-sonnet-4.6`). But OpenRouter's response.model
+//   often comes back in a different order (`anthropic/claude-4.6-sonnet`)
+//   and sometimes with a release-date suffix (`-20260217`). Both forms end
+//   up in the `usage` table, so both need pricing entries.
+// - The 3.5 family is retired but historical rows reference it; pricing is
+//   from OpenRouter's archived listings.
 const PRICING: Record<string, ModelPricing> = {
+  // Current Anthropic — our canonical slug + OpenRouter's reordered form
   "anthropic/claude-haiku-4.5": { inputPerMillion: 1.0, outputPerMillion: 5.0 },
+  "anthropic/claude-4.5-haiku": { inputPerMillion: 1.0, outputPerMillion: 5.0 },
   "anthropic/claude-sonnet-4.6": { inputPerMillion: 3.0, outputPerMillion: 15.0 },
+  "anthropic/claude-4.6-sonnet": { inputPerMillion: 3.0, outputPerMillion: 15.0 },
   "anthropic/claude-opus-4.7": { inputPerMillion: 15.0, outputPerMillion: 75.0 },
+  "anthropic/claude-4.7-opus": { inputPerMillion: 15.0, outputPerMillion: 75.0 },
+  // Legacy Anthropic 3.x family — retired but rows in older wikis reference them
+  "anthropic/claude-3-5-haiku": { inputPerMillion: 0.8, outputPerMillion: 4.0 },
+  "anthropic/claude-3-5-sonnet": { inputPerMillion: 3.0, outputPerMillion: 15.0 },
+  "anthropic/claude-3-haiku": { inputPerMillion: 0.25, outputPerMillion: 1.25 },
+  "anthropic/claude-3-opus": { inputPerMillion: 15.0, outputPerMillion: 75.0 },
+  // OpenAI
   "openai/gpt-4o-mini": { inputPerMillion: 0.15, outputPerMillion: 0.6 },
   "openai/gpt-4o": { inputPerMillion: 2.5, outputPerMillion: 10.0 },
+  // Google
   "google/gemini-2.5-pro": { inputPerMillion: 1.25, outputPerMillion: 10.0 },
   "google/gemini-2.5-flash": { inputPerMillion: 0.3, outputPerMillion: 2.5 },
+  // Open weights
   "meta-llama/llama-3.3-70b-instruct": { inputPerMillion: 0.1, outputPerMillion: 0.3 },
 };
 
+/**
+ * OpenRouter (and the upstream provider) sometimes attaches a release-date
+ * suffix to the model slug in the response — `anthropic/claude-4.6-sonnet-20260217`
+ * or `openai/gpt-4o-2024-08-06`. We don't want a date-pinned variant to
+ * disappear from cost tracking, so strip the suffix for pricing lookup.
+ * The original slug is still stored verbatim in the `usage` table.
+ */
+export function normalizeModelSlug(model: string): string {
+  return model.replace(/-(?:\d{8}|\d{4}-\d{2}-\d{2})$/, "");
+}
+
 export function getPricing(model: string): ModelPricing | null {
-  return PRICING[model] ?? null;
+  return PRICING[model] ?? PRICING[normalizeModelSlug(model)] ?? null;
 }
 
 export function estimateCostCents(
