@@ -20,6 +20,45 @@ After a few weeks of feeding it sources, you have a navigable, cited, deliberate
 
 ---
 
+## Screenshots
+
+![Home page — per-wiki stats, primary action cards, and footer chips for navigation](docs/screenshots/01-home.png)
+
+*Home — per-wiki page / source / chat counts, cumulative LLM spend (click → cross-wiki dashboard), and the four primary actions. Footer chips reach every meta-surface (About, Help, Developers, Dashboard).*
+
+### The wiki layer
+
+![Wiki landing — page cards grouped by type](docs/screenshots/02-wiki-landing.png)
+
+*`/wiki` — pages grouped by type (Concepts, Entities, Comparisons, Overviews). Sidebar has search + filter; clicking any card opens the page with backlinks and source lineage.*
+
+![3D knowledge graph](docs/screenshots/03-graph.png)
+*`/graph` — every page and every `[[wikilink]]` as a 3D force-directed network, colored by page type. Drag to orbit, scroll to zoom, click any node to focus.*
+
+![Graph view with a node selected and side panel showing details](docs/screenshots/04-graph-node-panel.png)
+*Clicking a node opens a side panel: outgoing links, full summary, connected pages. "Open page →" jumps to the wiki view of that node.*
+
+### Operations
+
+![Chat thread with a wiki question and an LLM answer that cross-links to wiki pages](docs/screenshots/05-chat.png)
+*`/chats/[id]` — multi-turn conversations over your wiki, saved as plain markdown in `chats/`. "Ingest → wiki" promotes the conversation into permanent pages; per-message "Save as wiki page" promotes a single answer.*
+
+![Schema editor — split-pane markdown editor with live preview](docs/screenshots/06-schema-editor.png)
+*`/schema` — edit `CLAUDE.md` (the LLM's operating contract) with a split-pane markdown editor + live preview. Auto-backup to `.llm-wiki/schema-history/` on every save.*
+
+### Settings + multi-wiki
+
+![Settings General — topic, approval gate, default folder](docs/screenshots/07-settings-general.png)
+*`/settings` — one-line wiki topic (the LLM reads this on every operation), optional approval gate for ingest, theme picker, default models per operation slot.*
+
+![Settings Costs — per-model cumulative usage breakdown](docs/screenshots/08-settings-costs.png)
+*`/settings → Costs` — cumulative tokens + spend per (model, operation) pair. The `Cost (recorded)` column populates as new LLM calls land; historical rows get backfilled from the pricing table on next startup.*
+
+![Active wiki dropdown in the header](docs/screenshots/09-wiki-switcher.png)
+*Header chip → dropdown with the active wiki (topic + folder path), plus quick links to Create / Manage. Same actions are reachable from `⌘K` ("Switch to…" group) and `/dashboard` (per-wiki cards with Switch buttons).*
+
+---
+
 ## What's in v1.1
 
 ### The three operations (Karpathy's pattern)
