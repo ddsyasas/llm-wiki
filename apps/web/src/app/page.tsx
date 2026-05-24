@@ -6,6 +6,7 @@ import {
   listChatRows,
   listPageRows,
   listSourceRows,
+  loadGlobalConfig,
 } from "@llm-wiki/core";
 
 import { Onboarding } from "@/components/onboarding";
@@ -34,9 +35,19 @@ export default async function HomePage() {
   // (a) named the wiki's topic so the LLM has scope and (b) configured an
   // OpenRouter key so any operation can actually run. Both are saved to the
   // user's own machine, no remote round-trip.
-  const apiKeyStatus = await getApiKey();
+  //
+  // The wizard mode (isFirstRun) vs minimal mode is decided by whether the
+  // user has ever completed the welcome flow before — tracked in the global
+  // config. First-ever app open gets the 4-step Welcome → Topic → Key →
+  // Tour. Returning users who somehow ended up here again (new wiki without
+  // a topic, key removed) get the compact single-card form.
+  const [apiKeyStatus, globalCfg] = await Promise.all([
+    getApiKey(),
+    loadGlobalConfig(),
+  ]);
   const needsTopic = topic.trim().length === 0;
   const needsKey = apiKeyStatus.key === null;
+  const isFirstRun = !globalCfg.onboardingCompletedAt;
   if (needsTopic || needsKey) {
     return (
       <Onboarding
@@ -44,6 +55,7 @@ export default async function HomePage() {
         needsKey={needsKey}
         initialTopic={topic}
         wikiPath={wikiPath}
+        isFirstRun={isFirstRun}
       />
     );
   }

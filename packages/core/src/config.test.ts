@@ -15,6 +15,7 @@ import {
   saveGlobalConfig,
   saveWikiSettings,
   setActiveWiki,
+  setOnboardingCompleted,
   wikiSettingsPath,
 } from "./config";
 import { initWikiFolder } from "./wiki";
@@ -123,6 +124,28 @@ describe("setActiveWiki", () => {
     await setActiveWiki("/wiki-x");
     const loaded = await loadGlobalConfig();
     expect(loaded.activeWiki).toBe("/wiki-x");
+  });
+});
+
+describe("setOnboardingCompleted", () => {
+  it("sets an ISO timestamp on the first call", async () => {
+    const cfg = await setOnboardingCompleted();
+    expect(cfg.onboardingCompletedAt).toBeDefined();
+    expect(new Date(cfg.onboardingCompletedAt!).toString()).not.toBe("Invalid Date");
+  });
+
+  it("is idempotent — re-call preserves the original timestamp", async () => {
+    const first = await setOnboardingCompleted();
+    const original = first.onboardingCompletedAt;
+    await new Promise((r) => setTimeout(r, 10));
+    const second = await setOnboardingCompleted();
+    expect(second.onboardingCompletedAt).toBe(original);
+  });
+
+  it("persists across loads", async () => {
+    await setOnboardingCompleted();
+    const loaded = await loadGlobalConfig();
+    expect(loaded.onboardingCompletedAt).toBeDefined();
   });
 });
 

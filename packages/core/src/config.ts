@@ -22,6 +22,13 @@ export type GlobalConfig = {
    * first run.
    */
   activeWiki?: string;
+  /**
+   * ISO timestamp set the first time the user completes (or skips) the
+   * first-run welcome wizard. Once set, the wizard never shows the welcome
+   * + tour steps again — only the minimal topic+key form when a wiki is
+   * still missing them. Absent until the wizard fires for the first time.
+   */
+  onboardingCompletedAt?: string;
   recentWikis: string[];
   uiTheme: UiTheme;
 };
@@ -56,6 +63,9 @@ function parseGlobalConfig(raw: unknown): GlobalConfig {
   }
   if (typeof data["activeWiki"] === "string" && data["activeWiki"].length > 0) {
     out.activeWiki = data["activeWiki"];
+  }
+  if (typeof data["onboardingCompletedAt"] === "string" && data["onboardingCompletedAt"].length > 0) {
+    out.onboardingCompletedAt = data["onboardingCompletedAt"];
   }
   if (Array.isArray(data["recentWikis"])) {
     out.recentWikis = data["recentWikis"].filter((v): v is string => typeof v === "string");
@@ -120,6 +130,23 @@ export async function setActiveWiki(wikiPath: string): Promise<GlobalConfig> {
     ...current,
     activeWiki: wikiPath,
     recentWikis: [wikiPath, ...filtered].slice(0, 10),
+  };
+  await saveGlobalConfig(next);
+  return next;
+}
+
+/**
+ * Marks the first-run welcome wizard as completed. The next time the
+ * onboarding gate fires (e.g. a new wiki has no topic yet), the user
+ * gets the minimal topic+key form instead of the full welcome+tour
+ * flow. Idempotent — re-call doesn't overwrite an existing timestamp.
+ */
+export async function setOnboardingCompleted(): Promise<GlobalConfig> {
+  const current = await loadGlobalConfig();
+  if (current.onboardingCompletedAt) return current;
+  const next: GlobalConfig = {
+    ...current,
+    onboardingCompletedAt: new Date().toISOString(),
   };
   await saveGlobalConfig(next);
   return next;

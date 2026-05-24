@@ -360,6 +360,34 @@ Closes the user's "don't we lose data?" concern with UI. Every wiki page already
 
 Sources list rows on `/sources` were also made into `Link`s to `/sources/[id]` (previously inert div rows).
 
+### M. First-run welcome wizard
+
+User feedback: the existing onboarding (single card with topic + API key) was functional but flat. New users landed cold without context about what they were about to build. Replaced with a 4-step wizard that fires once ever:
+
+**Step 1: Welcome.** Big serif wordmark + one-paragraph value-prop in Crimson Pro + a footnote naming the on-disk folder. Two paths out: `[Get started →]` and a quieter `skip the tour` link.
+
+**Step 2: Topic.** Single Input with a placeholder showing the user's likely real example. Enter-to-advance, Next button gated on non-empty. Reminds the user they can change it later in Settings.
+
+**Step 3: API key.** Password input + Test button + OpenRouter signup link inline. Test result shows green/red below the field. Clicking Next *saves both topic and key in parallel* before advancing — so the user can't get into a state where they typed two things and lost them by backing out.
+
+**Step 4: Tour.** Five numbered cards explaining Sources → Wiki → Graph → Query/Chats → Lint. Each row uses a display-serif numeral + title + one-line description. CTA is `[Take me to Sources →]` which marks onboarding complete and routes the user to `/sources` for their first real action.
+
+Skippable at every step. Skip = save what's been entered + mark onboarding complete + `router.refresh()` → falls back to the minimal single-card form if topic/key still missing, or the dashboard if everything got captured.
+
+**Mechanism**:
+- New `onboardingCompletedAt?: string` ISO timestamp on `GlobalConfig`. Set on first wizard completion OR first skip. Idempotent — re-call preserves the original timestamp.
+- New `setOnboardingCompleted()` helper in `packages/core/src/config.ts`. 3 new tests.
+- New `POST /api/onboarding` route. Single-purpose endpoint so callers don't have to merge with apiKey writes.
+- `apps/web/src/app/page.tsx` reads `globalCfg.onboardingCompletedAt` and passes `isFirstRun` prop. Wizard mode vs minimal mode is one boolean.
+- The onboarding component now wraps two implementations: `<FirstRunWizard>` for first-run, `<MinimalOnboarding>` for everyone else. Same save plumbing, different chrome.
+
+Subsequent flow:
+- Create a new wiki via Settings → Wikis: topic is collected in the create form, so the user lands on the dashboard for the new wiki without seeing onboarding again
+- API key gets deleted somehow: minimal form fires (already completed onboarding, just needs the key)
+- Switch wikis where the destination has no topic: shouldn't happen since switch validates the path is initialized, but the minimal form catches it
+
+Per docs/08 tone: calm, not loud. No animations, no progress bars sweeping, no confetti. Just a clean stepper with three dots, restrained typography, and Sun Tzu-level brevity in each step's copy.
+
 ### L. Header wiki switcher + Cmd+K integration
 
 Settings → Wikis is the management surface (create / remove / detail view), but the user pointed out switching needed a faster path for "I'm deep in a page, want to flip wikis without losing my place." Added two surfaces, both additive:
