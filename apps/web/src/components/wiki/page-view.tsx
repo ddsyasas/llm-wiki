@@ -98,6 +98,13 @@ export function PageView(props: Props) {
             <Button variant="outline" onClick={() => setEditing(true)}>
               Edit
             </Button>
+            <Link
+              href={`/wiki/${props.slug}/history`}
+              className="inline-flex items-center rounded-md border border-input bg-background px-3 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+              title="See backups + diff against the current page"
+            >
+              History
+            </Link>
             <Button
               variant="ghost"
               onClick={openDeleteDialog}
