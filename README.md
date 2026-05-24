@@ -37,6 +37,7 @@ After a few weeks of feeding it sources, you have a navigable, cited, deliberate
 - **Schema editor** — Edit the `CLAUDE.md` contract the LLM reads on every operation. Split-pane preview, auto-backup to `.llm-wiki/schema-history/`.
 - **Log timeline** — `/log` shows every ingest / edit / lint / schema-save in chronological order. Wikilinks inside log entries are clickable.
 - **Multiple wikis** — keep separate wikis for separate topics (e.g. "Physics", "ML research", "Personal KB"). Switch from the active-wiki chip in the header, the `Cmd+K` palette, or **Settings → Wikis** (full CRUD). Switching is in-place — you stay on whatever page you're on, the data refreshes around you. Spec: [`docs/13-multi-wiki.md`](docs/13-multi-wiki.md).
+- **Wiki health dashboard** at `/dashboard` *(new in v1.x)* — cross-wiki overview: per-wiki page / source / chat counts, cumulative LLM spend, last-touched timestamps, sortable by recency. Roll-up totals at the top. One-click switch into any wiki.
 
 ### Quality / safety
 
@@ -236,6 +237,20 @@ pnpm install   # picks up any new deps
 
 Database migrations run automatically on the next server start.
 
+### Building a publishable tarball
+
+Want to package the app as a standalone npm tarball you can host yourself (or publish under your own scope)? After `pnpm install`:
+
+```bash
+pnpm --filter @llm-wiki/web build:publish    # produces apps/web/dist-publish/
+cd apps/web/dist-publish
+npm pack                                      # 29MB tarball, fully self-contained
+# or:
+npm publish --access public                   # ship it to npm
+```
+
+The published artifact is a single package with one runtime dep (`open`, for browser auto-launch). Everything else — Next, React, native deps, workspace packages — is inlined into the standalone bundle. The bin field exposes the `llm-wiki` CLI verbatim.
+
 ### Uninstalling
 
 The app is a Next.js server plus a SQLite metadata cache. To remove it:
@@ -301,15 +316,19 @@ For the **design contract** + execution history, see `/docs` in this repo:
 
 **Test suite**: ~158 core + 25 llm + 11 ingestion ≈ **194 passing tests**. (One chokidar live-watch test is a known flake.)
 
+**Production build**: works end-to-end. `next build` produces a standalone bundle that serves every route (`pnpm build:publish` then `cd apps/web/dist-publish && npm pack` produces a 29MB publishable tarball — verified by install-and-boot into a clean temp dir).
+
+**npm publish**: the tarball is built and verified — `cd apps/web/dist-publish && npm publish --access public` is the one remaining manual step.
+
 **Deferred to V1.x or V2** (tracked in [`docs/14-roadmap.md`](docs/14-roadmap.md)):
 
-- **Production build** (`next build` standalone bundle) — V1 currently ships via `pnpm dev`
-- **CLI npm publish** — `pnpm pack` workspace:* deps blocker
 - **Tauri desktop installer** (V2)
 - **MCP server mode** (V3)
 - **Embeddings-based search** + **2D graph toggle** + persistent camera state (V2)
+- **Ollama / local-model support** (V2)
+- **Scheduled lint runs** (V2)
 
-The full V1.x sprint (10 items including approval gate, diff view, export-to-zip, wiki templates, mobile sidebar) shipped on 2026-05-24 — see [`docs/dev-log.md`](docs/dev-log.md) section P.
+The full V1.x sprint (10 items in section P + 4 more in section Q including the wiki health dashboard, production build, and publish pipeline) shipped on 2026-05-24 — see [`docs/dev-log.md`](docs/dev-log.md).
 
 ---
 

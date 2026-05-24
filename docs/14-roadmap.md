@@ -2,7 +2,7 @@
 
 **The single forward-looking view: what's left to do, sorted by priority.** Consolidated from "open questions" in `docs/dev-log.md`, "deferred" items in `docs/04-features-v1.md`, "future enhancements" in `docs/12-graph-view.md` / `docs/13-multi-wiki.md`, and known blockers across the codebase.
 
-Last updated: **2026-05-24** (post-v1.0.0 release).
+Last updated: **2026-05-24** (post-Q sprint: setup-gate / dashboard / production build / publishable tarball).
 
 > If you're picking this project up cold, read `README.md` → `docs/01-vision.md` → this file → `docs/dev-log.md` in that order. You'll be operational in about 30 minutes.
 
@@ -11,13 +11,12 @@ Last updated: **2026-05-24** (post-v1.0.0 release).
 ## Status at a glance
 
 - ✅ **v1.0.0 tagged + released** on GitHub
-- ✅ All P0 features (`docs/04-features-v1.md`) shipped end-to-end
-- ✅ 1 of 4 P1 features shipped (graph view); 3 deferred to V1.x
+- ✅ All P0 + all P1 features shipped end-to-end
 - ✅ 1 of 7 P2 features shipped early (multi-wiki); 6 still V2/V3
-- ✅ ~10 post-V1 enhancements shipped on top (first-run wizard, lint quick-fixes, source lineage, doc pages, header chip, asymmetric chat, etc.)
-- ✅ Test suite: ~145 core + 17 llm + 11 ingestion = ~173 passing (1 known chokidar flake)
-- ⚠ Runs via `pnpm dev` only — `next build` standalone bundle has unresolved 500s
-- ⚠ CLI works in-tree but **not yet on npm** — workspace:* packaging blocker
+- ✅ V1.x sprint complete (10 items in section P + 4 more in section Q)
+- ✅ Test suite: ~158 core + 25 llm + 11 ingestion ≈ **194 passing** (1 known chokidar flake)
+- ✅ **Production build works** — `next build` standalone bundle serves every route (fixed 2026-05-24, dev-log Q)
+- ✅ **Publishable tarball ready** — `pnpm build:publish` produces a clean `apps/web/dist-publish/` with no workspace deps; `npm publish --access public` from there is the last manual step
 
 ---
 
@@ -31,17 +30,15 @@ Things that complete the V1 promise. Roughly ordered by impact-per-effort.
 
 ### Medium (1–3 hours each)
 
-*All six V1.x medium items shipped 2026-05-24 (dev-log section P): per-page diff view (P1 #11), approval gate (P1 #12), export to zip (P1 #13), setup gate via page-level helper, wiki templates, cross-wiki search in Cmd+K.*
-
-**Carryovers** still on the medium list:
-
-- **Convert client-page-only routes to server-wrapped views** for full setup-gate coverage. Today `requireSetup()` runs in `/wiki`, `/wiki/[slug]`, `/sources/[id]`, `/chats`, `/chats/[id]`, `/log`, `/graph`. Missed routes (`/sources`, `/query`, `/lint`, `/schema`) are "use client" components and still fail loud at the API layer with a no-key error instead of a redirect. Convert each to a server wrapper + client view to close the gap.
+*All six V1.x medium items shipped 2026-05-24 (dev-log section P): per-page diff view (P1 #11), approval gate (P1 #12), export to zip (P1 #13), setup gate via page-level helper, wiki templates, cross-wiki search in Cmd+K. The "setup gate for client-only routes" carryover also shipped (dev-log Q1).*
 
 ### Bigger (3+ hours each)
 
-- **Production build (`next build`).** v1.0 ships via `pnpm dev` only because the standalone bundle had unresolved 500s in earlier session work. Worth picking up — would eliminate the "first click to a route is slow" dev-mode lag entirely.
-- **CLI npm publish.** `pnpm pack` against `workspace:*` deps doesn't produce a clean tarball. Options: switch internal deps to file: refs at publish time, or bundle packages into the CLI (esbuild / tsup).
-- **Wiki health dashboard.** New surface aggregating: per-wiki page count + sources + chats + last-touched + cumulative cost. Sort across wikis by recency. Would live at `/dashboard` or similar.
+*Production build, CLI npm publish-ready tarball, and Wiki health dashboard all shipped 2026-05-24 — see dev-log section Q.*
+
+**Still open:**
+
+- **The actual `npm publish --access public` invocation.** The tarball at `apps/web/dist-publish/` is built and verified end-to-end (installs cleanly into a temp dir, CLI boots the standalone server, every route returns 200). All that's left is the one-time user action to push it to npm under the `@yasas` scope.
 - **Persistent camera state on /graph.** Remember the last camera position when returning. Requires storing camera state in URL or localStorage.
 - **Local-model support (Ollama).** Workable today by changing the OpenRouter base URL in `packages/llm/src/client.ts`, but no UI. Add a "Provider" picker in Settings → Models with sensible defaults per provider (OpenRouter / Anthropic direct / OpenAI direct / Ollama).
 - **Scheduled lint runs.** Cron-style: "Run lint nightly and append the result to log.md". V1.x if there's demand; needs an in-process scheduler or a CLI subcommand.
