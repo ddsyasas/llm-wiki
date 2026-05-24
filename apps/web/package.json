@@ -2,7 +2,7 @@
   "name": "@llm-wiki/web",
   "version": "1.1.0",
   "private": true,
-  "description": "LLM Wiki web app — Next.js UI + API routes. Published as @yasas/llm-wiki.",
+  "description": "LLM Wiki web app — Next.js UI + API routes. Published as @syasas/llm-wiki.",
   "license": "MIT",
   "bin": {
     "llm-wiki": "./bin/llm-wiki.mjs"

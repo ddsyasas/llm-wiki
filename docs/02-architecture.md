@@ -34,7 +34,7 @@ cd llm-wiki && pnpm install
 pnpm --filter @llm-wiki/web dev
 ```
 
-Once published, the original plan stands: `npm install -g @yasas/llm-wiki` then `llm-wiki start [folder]`.
+Once published, the original plan stands: `npm install -g @syasas/llm-wiki` then `llm-wiki start [folder]`.
 
 The CLI does three things:
 1. Initialize the folder if needed (create `raw/`, `wiki/`, `chats/`, `CLAUDE.md`, etc.)

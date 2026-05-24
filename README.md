@@ -77,7 +77,7 @@ Two paths. Pick one.
 ### Quick start — install the CLI (recommended)
 
 ```bash
-npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.0/yasas-llm-wiki-1.1.0.tgz
+npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.0/syasas-llm-wiki-1.1.0.tgz
 llm-wiki start
 ```
 

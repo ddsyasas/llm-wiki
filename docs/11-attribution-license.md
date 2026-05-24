@@ -3,7 +3,7 @@
 ## Project naming
 
 - **Product name**: LLM Wiki
-- **Package name**: `@yasas/llm-wiki` (npm scoped package)
+- **Package name**: `@syasas/llm-wiki` (npm scoped package)
 - **Binary name**: `llm-wiki`
 - **Repository**: `github.com/ddsyasas/llm-wiki`
 - **Local folder name** (in development): `llm-wiki`
@@ -22,7 +22,7 @@ The author of this project is **Yasas**. Replace placeholder occurrences of "yas
 | Location | What it says | Visible to |
 |----------|--------------|------------|
 | `package.json` `author` field | `Yasas <email> (https://your-site.com)` | npm users, contributors |
-| `package.json` `name` field | `@yasas/llm-wiki` | everyone who installs |
+| `package.json` `name` field | `@syasas/llm-wiki` | everyone who installs |
 | `LICENSE` copyright line | `Copyright (c) 2026 Yasas` | legal record |
 | GitHub repo URL | `github.com/ddsyasas/llm-wiki` | everyone |
 | `README.md` top | "Built by [Yasas](link)" | repo visitors |

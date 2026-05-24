@@ -207,7 +207,7 @@ Final pass before publish:
 2. Polish `README.md` with screenshots and quickstart
 3. Verify install on Mac, Windows (WSL), Linux
 4. Tag `v0.1.0`
-5. Publish to npm as `@yasas/llm-wiki` (or your actual scope)
+5. Publish to npm as `@syasas/llm-wiki` (or your actual scope)
 6. Announce wherever you announce things
 
 ## What to skip in V1

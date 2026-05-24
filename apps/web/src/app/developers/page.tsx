@@ -485,7 +485,7 @@ pnpm -r exec tsc --noEmit            # monorepo typecheck`}
             — what gets uploaded to GitHub Releases / npm.
             {" "}<code>scripts/build-publish-tarball.mjs</code> assembles a
             clean package: rewrites <code>package.json</code> with the
-            public name (<code>@yasas/llm-wiki</code>), strips workspace
+            public name (<code>@syasas/llm-wiki</code>), strips workspace
             deps + build-time deps, and externalizes the native packages
             (<code>better-sqlite3</code>, <code>keytar</code>, plus heavy
             pure-JS like <code>jsdom</code>) so <code>npm install</code>

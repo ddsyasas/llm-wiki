@@ -435,11 +435,60 @@ async function cmdStart(args) {
   child.on("exit", (code) => process.exit(code ?? 0));
 }
 
+// ---- first-run banner ----------------------------------------------------
+
+// Detects whether the global config exists (created lazily by `start` /
+// the wizard). Used to decide if this is the user's first time touching
+// the CLI. Returns true only if `~/.llm-wiki/config.json` is missing.
+async function isFirstRunEver() {
+  try {
+    await access(globalConfigPath());
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+async function printFirstRunBanner() {
+  const version = await readPackageVersion();
+  const banner = `
+\x1b[36m╭─────────────────────────────────────────────────╮\x1b[0m
+\x1b[36m│\x1b[0m  \x1b[1mWelcome to LLM Wiki\x1b[0m v${version}                   \x1b[36m│\x1b[0m
+\x1b[36m╰─────────────────────────────────────────────────╯\x1b[0m
+
+  Looks like this is your first time. Three commands to know:
+
+    \x1b[1mllm-wiki doctor\x1b[0m    Verify install + check for an API key
+    \x1b[1mllm-wiki start\x1b[0m     Boot the server (auto-opens browser)
+    \x1b[1mllm-wiki help\x1b[0m      Full command + flag list
+
+  You'll need an OpenRouter API key — get one at
+  \x1b[34mhttps://openrouter.ai/keys\x1b[0m (pay-as-you-go, ~$5 lasts weeks).
+
+`;
+  process.stdout.write(banner);
+}
+
 // ---- dispatch ------------------------------------------------------------
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const cmd = args._[0] ?? "start";
+
+  // First-run welcome — only on the very first invocation, only if not
+  // silenced by --quiet, and skip for `version` / `help` which don't
+  // need a friendly banner glued to their output.
+  if (
+    !args.flags.quiet &&
+    cmd !== "version" &&
+    cmd !== "--version" &&
+    cmd !== "-v" &&
+    cmd !== "help"
+  ) {
+    if (await isFirstRunEver()) {
+      await printFirstRunBanner();
+    }
+  }
 
   try {
     switch (cmd) {

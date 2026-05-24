@@ -44,7 +44,7 @@ async function readJson(p) {
 }
 
 // Packages the published tarball declares as runtime dependencies (so
-// `npm install -g @yasas/llm-wiki` pulls them on the user's machine, which
+// `npm install -g @syasas/llm-wiki` pulls them on the user's machine, which
 // gets the right prebuilt binary per platform). Same list as
 // serverComponentsExternalPackages in next.config.mjs minus archiver (which
 // is pure JS but heavy — keeping it in the bundle is fine, and it's used
@@ -80,7 +80,7 @@ const PUBLISHED_RUNTIME_PACKAGES = [
 //     the right per-platform binary at install time. Crucial for cross-OS
 //     support — bundling these locks the tarball to one OS+arch.
 // Sets:
-//   - public-facing name (`@yasas/llm-wiki`, per docs/09) instead of the
+//   - public-facing name (`@syasas/llm-wiki`, per docs/09) instead of the
 //     internal workspace name (`@llm-wiki/web`)
 //   - description / homepage / repository / bugs / keywords for npmjs.com
 function buildPublishablePackageJson(src, packageJsonByName) {
@@ -96,7 +96,7 @@ function buildPublishablePackageJson(src, packageJsonByName) {
     }
   }
   return {
-    name: "@yasas/llm-wiki",
+    name: "@syasas/llm-wiki",
     version: src.version,
     description:
       "A personal Wikipedia an LLM maintains for you. Local-first, BYOK, single CLI.",
@@ -122,6 +122,12 @@ function buildPublishablePackageJson(src, packageJsonByName) {
     ],
     bin: src.bin,
     engines: src.engines ?? { node: ">=20.0.0" },
+    // Postinstall prints a friendly welcome banner with next-step commands.
+    // Banner-only — no network, no file writes — so the security surface is
+    // identical to running a vanilla CLI.
+    scripts: {
+      postinstall: "node bin/postinstall.mjs",
+    },
     dependencies: runtimeDeps,
     files: [
       "bin",
@@ -253,10 +259,11 @@ async function main() {
   );
   console.log(`  ✓ package.json (${Object.keys(pubPkg.dependencies).length} runtime deps)`);
 
-  // CLI bin.
+  // CLI bin + postinstall banner.
   await mkdir(join(DIST_DIR, "bin"), { recursive: true });
   await cp(join(PACKAGE_DIR, "bin", "llm-wiki.mjs"), join(DIST_DIR, "bin", "llm-wiki.mjs"));
-  console.log("  ✓ bin/llm-wiki.mjs");
+  await cp(join(PACKAGE_DIR, "bin", "postinstall.mjs"), join(DIST_DIR, "bin", "postinstall.mjs"));
+  console.log("  ✓ bin/llm-wiki.mjs + bin/postinstall.mjs");
 
   // Standalone bundle (server.js + standalone/node_modules + everything).
   // The .next/static and public dirs were already copied INTO the standalone

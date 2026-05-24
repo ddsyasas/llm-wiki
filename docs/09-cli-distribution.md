@@ -2,7 +2,7 @@
 
 ## Package identity
 
-- **npm package name**: `@yasas/llm-wiki`
+- **npm package name**: `@syasas/llm-wiki`
 - **Binary name**: `llm-wiki`
 - **Repository**: `github.com/ddsyasas/llm-wiki`
 
@@ -11,9 +11,9 @@
 ### Global install (recommended)
 
 ```bash
-npm install -g @yasas/llm-wiki
+npm install -g @syasas/llm-wiki
 # or
-pnpm add -g @yasas/llm-wiki
+pnpm add -g @syasas/llm-wiki
 ```
 
 Then anywhere:
@@ -26,7 +26,7 @@ llm-wiki start ~/research   # specify wiki folder
 ### Try without install
 
 ```bash
-npx @yasas/llm-wiki@latest start ~/research
+npx @syasas/llm-wiki@latest start ~/research
 ```
 
 ### From source (contributors)
