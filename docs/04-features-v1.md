@@ -68,9 +68,9 @@ The scope of V1 is defined here. Anything not listed is out of scope for V1, eve
 ### P1, ship if time allows
 
 10. **Wiki graph view** (force-directed visualization of page links) — ✅ **shipped 2026-05-24**, see [`docs/12-graph-view.md`](12-graph-view.md). 3D scene at `/graph`, color by page type, click-to-focus + side panel + URL state.
-11. **Diff view** when LLM updates a page (highlight changes) — ❌ deferred to V1.x
-12. **Approval gate** for ingestion (review changes before applying) — ❌ deferred to V1.x
-13. **Export wiki to a zip** including all assets — ❌ deferred to V1.x
+11. **Diff view** when LLM updates a page (highlight changes) — ✅ **shipped 2026-05-24**, see dev-log section P6. `/wiki/<slug>/history` route with backup picker + line-by-line unified diff.
+12. **Approval gate** for ingestion (review changes before applying) — ✅ **shipped 2026-05-24**, see dev-log section P5. Toggle in Settings → General; preview UI on /sources with Apply / Discard.
+13. **Export wiki to a zip** including all assets — ✅ **shipped 2026-05-24**, see dev-log section P4. `/api/wikis/export` streams a zip; download link in Settings → Wikis.
 
 ### P2, post-V1
 
@@ -103,6 +103,7 @@ Sometimes a P1 / P2 item became cheap to do alongside something else, or a need 
 - **Graceful ingest schema** — `indexEntries[].summary` now truncates instead of failing validation when the LLM drifts past the char cap (dev-log section N)
 - **Wiki page delete** with soft-trash + backlinks-aware confirm dialog + one-click Undo banner — dev-log section O
 - **Generalized trash purge** — `.llm-wiki/trash/` now contains `chats/`, `wiki/`, `raw/` subdirs, all auto-pruned after 30 days (dev-log section O)
+- **V1.x sprint (10 items)** — mobile-chip + replay-tour + footer-hint + setup-gate + Cmd+K theme/copy/cross-wiki + wiki templates + per-page diff view + approval gate + export-to-zip — dev-log section P
 
 ## Acceptance criteria
 
