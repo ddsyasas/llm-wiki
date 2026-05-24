@@ -2,7 +2,7 @@
 
 **Maintained for context-window resilience.** This file is the single source of truth for where the project is, what's been built, what's broken, and what's next. Read this first when picking up after a long break or in a fresh chat session.
 
-Last updated: 2026-05-24 (post-lint-quick-fixes + UX polish sprint + doc-pages)
+Last updated: 2026-05-24 (v1.0 released)
 
 ---
 
@@ -19,9 +19,9 @@ Repo: **https://github.com/ddsyasas/llm-wiki** (public, MIT).
 
 ---
 
-## Status snapshot — 2026-05-24 (late)
+## Status snapshot — 2026-05-24 (v1.0)
 
-**42+ commits on `main`.** Build plan (docs/10) steps 0–14 complete. Two design passes, multiple UX fixes, model-slug update, Karpathy-pattern audit, lint quick-fixes wave, perceived-perf pass, and a doc-pages set (About / Help / Developers) shipped.
+**44+ commits on `main`, tagged `v1.0.0`.** Build plan (docs/10) steps 0–14 complete plus full P0 + P1 #10 (graph view). Two design passes, multiple UX fixes, model-slug update, Karpathy-pattern audit, lint quick-fixes wave, perceived-perf pass, doc-pages set (About / Help / Developers), 3D graph view, and v1.0 release shipped.
 
 ```
 HEAD    Doc pages: About, Help, Developers + footer links + dev-log update
@@ -359,6 +359,18 @@ Closes the user's "don't we lose data?" concern with UI. Every wiki page already
 - **"Sources" section on every `/wiki/[slug]`** above Backlinks. Source chips link to `/sources/[id]`. Bidirectional graph traversal: any wiki page → its sources → all OTHER pages that source produced → those pages' sources → …
 
 Sources list rows on `/sources` were also made into `Link`s to `/sources/[id]` (previously inert div rows).
+
+### J. v1.0 release — README rewrite, version bump, GitHub release
+
+After the graph view shipped, the project crossed the "this is genuinely a v1 product" threshold. Closed out the release prep:
+
+- **README.md** completely rewritten. The prior 63-line draft referenced files that don't exist (CONTRIBUTING.md, docs/openrouter-setup.md) and an unpublished npm package (`@yasas/llm-wiki`). New ~200-line README is a real product page: gap-analysis table, full v1.0 feature inventory (with graph view), on-disk layout, install-from-source instructions, links to in-app docs (/about /help /developers) AND repo `/docs/*`, honest status section listing what shipped vs what's deferred to V1.x/V2, full stack table.
+- **Version bumped 0.1.0 → 1.0.0** in `apps/web/package.json` and `apps/web/src/components/footer.tsx` `APP_VERSION`. Workspace packages stay at 0.0.0 (internal-only, workspace:* deps don't care).
+- **`docs/04-features-v1.md` P1 #10** marked ✅ (wiki graph view shipped) with a pointer to `docs/12-graph-view.md`.
+- **About / Help / Developers pages** woven with graph-view explanations during the previous session (commit `556cd31`) so the in-app docs are consistent with the README.
+- **Git tag `v1.0.0`** + GitHub release with summary notes.
+
+Open questions list (in §"Open questions for future sessions" below) is the authoritative work-needed list. The big rocks for V1.x are: diff view, approval gate, export-to-zip, production build, CLI npm publish.
 
 ### I. 3D Graph View — adds `docs/12-graph-view.md` + `/graph` route
 
