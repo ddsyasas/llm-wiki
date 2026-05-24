@@ -3,18 +3,23 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { useTheme } from "@/components/theme-provider";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-// Two shapes: navigate (push the href) or switch-wiki (POST then refresh).
-// Discriminated so the handler picks the right behavior at activation time.
+// Discriminated action type. Each kind has its own activation behavior:
+//  - navigate       → router.push(href)
+//  - switch-wiki    → POST /api/wikis switch + router.refresh()
+//  - switch-then-open → POST switch THEN router.push to the page (cross-wiki nav)
+//  - toggle-theme   → cycle light → dark → auto → light
+//  - copy-text      → navigator.clipboard.writeText(value)
 type Action =
   | {
       type: "navigate";
       id: string;
       label: string;
       hint?: string;
-      group: "Pages" | "Chats" | "Go to" | "Wikis";
+      group: "Pages" | "Chats" | "Go to" | "Wikis" | "App" | "Cross-wiki pages";
       href: string;
     }
   | {
@@ -24,9 +29,33 @@ type Action =
       hint?: string;
       group: "Wikis";
       path: string;
+    }
+  | {
+      type: "switch-then-open";
+      id: string;
+      label: string;
+      hint?: string;
+      group: "Cross-wiki pages";
+      wikiPath: string;
+      pageSlug: string;
+    }
+  | {
+      type: "toggle-theme";
+      id: string;
+      label: string;
+      hint?: string;
+      group: "App";
+    }
+  | {
+      type: "copy-text";
+      id: string;
+      label: string;
+      hint?: string;
+      group: "App";
+      value: string;
     };
 
-const STATIC_ACTIONS: Action[] = [
+const STATIC_NAV_ACTIONS: Action[] = [
   { type: "navigate", id: "go-wiki", label: "Wiki", hint: "browse pages", group: "Go to", href: "/wiki" },
   { type: "navigate", id: "go-graph", label: "Graph", hint: "3D knowledge view", group: "Go to", href: "/graph" },
   { type: "navigate", id: "go-sources", label: "Sources", hint: "add a source", group: "Go to", href: "/sources" },
@@ -42,12 +71,22 @@ const STATIC_ACTIONS: Action[] = [
 type PageItem = { slug: string; title: string };
 type ChatItem = { id: string; title: string; folder: string };
 type WikiItem = { path: string; topic: string | null; active: boolean };
+type CrossWikiPageItem = {
+  wikiPath: string;
+  wikiTopic: string | null;
+  isActive: boolean;
+  slug: string;
+  title: string;
+};
 
 export function CommandPalette() {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [pages, setPages] = useState<PageItem[]>([]);
+  const [activeWikiPath, setActiveWikiPath] = useState<string | null>(null);
+  const [crossWikiPages, setCrossWikiPages] = useState<CrossWikiPageItem[]>([]);
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [wikis, setWikis] = useState<WikiItem[]>([]);
   const [busy, setBusy] = useState(false);
@@ -79,10 +118,11 @@ export function CommandPalette() {
     setActiveIndex(0);
     void (async () => {
       try {
-        const [pagesRes, chatsRes, wikisRes] = await Promise.all([
+        const [pagesRes, chatsRes, wikisRes, crossPagesRes] = await Promise.all([
           fetch("/api/pages", { cache: "no-store" }),
           fetch("/api/chats", { cache: "no-store" }),
           fetch("/api/wikis", { cache: "no-store" }),
+          fetch("/api/wikis/pages", { cache: "no-store" }),
         ]);
         if (pagesRes.ok) {
           const data = (await pagesRes.json()) as { pages: PageItem[] };
@@ -99,6 +139,7 @@ export function CommandPalette() {
             active: { path: string };
             recents: Array<{ path: string; topic: string | null; exists: boolean }>;
           };
+          setActiveWikiPath(data.active.path);
           // Non-active + on-disk wikis only — switching to a missing folder
           // would error, and switching to the already-active one is a no-op.
           setWikis(
@@ -106,6 +147,15 @@ export function CommandPalette() {
               .filter((w) => w.exists && w.path !== data.active.path)
               .map((w) => ({ path: w.path, topic: w.topic, active: false })),
           );
+        }
+        if (crossPagesRes.ok) {
+          const data = (await crossPagesRes.json()) as {
+            pages: CrossWikiPageItem[];
+          };
+          // Drop active-wiki pages — they're already in the "Pages" group
+          // above; including them again would just duplicate every active
+          // page under "Cross-wiki pages" too.
+          setCrossWikiPages(data.pages.filter((p) => !p.isActive));
         }
       } catch {
         // ignore — input still works against the actions list
@@ -141,7 +191,44 @@ export function CommandPalette() {
       group: "Wikis",
       path: w.path,
     }));
-    const combined = [...STATIC_ACTIONS, ...wikiActions, ...pageActions, ...chatActions];
+    const crossPageActions: Action[] = crossWikiPages.map((p) => ({
+      type: "switch-then-open",
+      id: `cross-${p.wikiPath}-${p.slug}`,
+      label: p.title,
+      hint: `${p.wikiTopic ?? p.wikiPath.split("/").pop()} → ${p.slug}`,
+      group: "Cross-wiki pages",
+      wikiPath: p.wikiPath,
+      pageSlug: p.slug,
+    }));
+    const appActions: Action[] = [
+      {
+        type: "toggle-theme",
+        id: "toggle-theme",
+        label: `Theme: cycle (currently ${theme})`,
+        hint: "light → dark → auto",
+        group: "App",
+      },
+      ...(activeWikiPath
+        ? [
+            {
+              type: "copy-text" as const,
+              id: "copy-wiki-path",
+              label: "Copy active wiki folder path",
+              hint: activeWikiPath,
+              group: "App" as const,
+              value: activeWikiPath,
+            },
+          ]
+        : []),
+    ];
+    const combined = [
+      ...STATIC_NAV_ACTIONS,
+      ...appActions,
+      ...wikiActions,
+      ...pageActions,
+      ...chatActions,
+      ...crossPageActions,
+    ];
     const needle = query.trim().toLowerCase();
     if (!needle) return combined;
     return combined.filter(
@@ -173,6 +260,46 @@ export function CommandPalette() {
     if (item.type === "navigate") {
       close();
       router.push(item.href);
+      return;
+    }
+    if (item.type === "toggle-theme") {
+      const next = theme === "light" ? "dark" : theme === "dark" ? "auto" : "light";
+      setTheme(next);
+      close();
+      return;
+    }
+    if (item.type === "copy-text") {
+      try {
+        await navigator.clipboard.writeText(item.value);
+      } catch {
+        // Clipboard API blocked (rare in localhost dev). Fall back: silently
+        // close — the next user attempt is one keystroke away.
+      }
+      close();
+      return;
+    }
+    if (item.type === "switch-then-open") {
+      // Cross-wiki nav: switch the active wiki, THEN navigate to the page
+      // in that wiki. router.push handles the navigate; the switch updates
+      // server-side state so the destination route sees the right wiki.
+      setBusy(true);
+      try {
+        const res = await fetch("/api/wikis", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ type: "switch", path: item.wikiPath }),
+        });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          // eslint-disable-next-line no-alert
+          alert(j.error ?? `Switch failed (HTTP ${res.status})`);
+          return;
+        }
+        close();
+        router.push(`/wiki/${item.pageSlug}`);
+      } finally {
+        setBusy(false);
+      }
       return;
     }
     // Switch-wiki: POST then refresh the current route so the user stays
