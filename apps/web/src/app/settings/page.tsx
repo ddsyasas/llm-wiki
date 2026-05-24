@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { PageContainer, PageHeader } from "@/components/page-shell";
 import { AboutTab } from "@/components/settings/about-tab";
@@ -22,8 +23,20 @@ const TAB_LABEL: Record<Tab, string> = {
   about: "About",
 };
 
+function parseTab(raw: string | null): Tab {
+  return TAB_ORDER.includes(raw as Tab) ? (raw as Tab) : "general";
+}
+
 export default function SettingsPage() {
-  const [tab, setTab] = useState<Tab>("general");
+  const search = useSearchParams();
+  // Read ?tab= on mount so links like /settings?tab=wikis (from the header
+  // dropdown or anywhere else) deep-link straight to the right pane.
+  const initialTab = parseTab(search?.get("tab") ?? null);
+  const [tab, setTab] = useState<Tab>(initialTab);
+  useEffect(() => {
+    const next = parseTab(search?.get("tab") ?? null);
+    setTab(next);
+  }, [search]);
 
   return (
     <PageContainer>

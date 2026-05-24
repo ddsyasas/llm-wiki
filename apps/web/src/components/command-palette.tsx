@@ -6,26 +6,42 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-type Action = {
-  id: string;
-  label: string;
-  hint?: string;
-  group: "Pages" | "Chats" | "Go to";
-  href: string;
-};
+// Two shapes: navigate (push the href) or switch-wiki (POST then refresh).
+// Discriminated so the handler picks the right behavior at activation time.
+type Action =
+  | {
+      type: "navigate";
+      id: string;
+      label: string;
+      hint?: string;
+      group: "Pages" | "Chats" | "Go to" | "Wikis";
+      href: string;
+    }
+  | {
+      type: "switch-wiki";
+      id: string;
+      label: string;
+      hint?: string;
+      group: "Wikis";
+      path: string;
+    };
 
 const STATIC_ACTIONS: Action[] = [
-  { id: "go-wiki", label: "Wiki", hint: "browse pages", group: "Go to", href: "/wiki" },
-  { id: "go-sources", label: "Sources", hint: "add a source", group: "Go to", href: "/sources" },
-  { id: "go-query", label: "Query", hint: "ask a question", group: "Go to", href: "/query" },
-  { id: "go-chats", label: "Chats", hint: "start or open a chat", group: "Go to", href: "/chats" },
-  { id: "go-lint", label: "Lint", hint: "wiki health check", group: "Go to", href: "/lint" },
-  { id: "go-schema", label: "Schema editor", hint: "edit CLAUDE.md", group: "Go to", href: "/schema" },
-  { id: "go-settings", label: "Settings", hint: "models, theme, API key", group: "Go to", href: "/settings" },
+  { type: "navigate", id: "go-wiki", label: "Wiki", hint: "browse pages", group: "Go to", href: "/wiki" },
+  { type: "navigate", id: "go-graph", label: "Graph", hint: "3D knowledge view", group: "Go to", href: "/graph" },
+  { type: "navigate", id: "go-sources", label: "Sources", hint: "add a source", group: "Go to", href: "/sources" },
+  { type: "navigate", id: "go-query", label: "Query", hint: "ask a question", group: "Go to", href: "/query" },
+  { type: "navigate", id: "go-chats", label: "Chats", hint: "start or open a chat", group: "Go to", href: "/chats" },
+  { type: "navigate", id: "go-lint", label: "Lint", hint: "wiki health check", group: "Go to", href: "/lint" },
+  { type: "navigate", id: "go-log", label: "Log", hint: "wiki timeline", group: "Go to", href: "/log" },
+  { type: "navigate", id: "go-schema", label: "Schema editor", hint: "edit CLAUDE.md", group: "Go to", href: "/schema" },
+  { type: "navigate", id: "go-settings", label: "Settings", hint: "models, theme, API key", group: "Go to", href: "/settings" },
+  { type: "navigate", id: "manage-wikis", label: "Manage wikis…", hint: "create, switch, remove", group: "Wikis", href: "/settings?tab=wikis" },
 ];
 
 type PageItem = { slug: string; title: string };
 type ChatItem = { id: string; title: string; folder: string };
+type WikiItem = { path: string; topic: string | null; active: boolean };
 
 export function CommandPalette() {
   const router = useRouter();
@@ -33,6 +49,8 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [pages, setPages] = useState<PageItem[]>([]);
   const [chats, setChats] = useState<ChatItem[]>([]);
+  const [wikis, setWikis] = useState<WikiItem[]>([]);
+  const [busy, setBusy] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -61,9 +79,10 @@ export function CommandPalette() {
     setActiveIndex(0);
     void (async () => {
       try {
-        const [pagesRes, chatsRes] = await Promise.all([
+        const [pagesRes, chatsRes, wikisRes] = await Promise.all([
           fetch("/api/pages", { cache: "no-store" }),
           fetch("/api/chats", { cache: "no-store" }),
+          fetch("/api/wikis", { cache: "no-store" }),
         ]);
         if (pagesRes.ok) {
           const data = (await pagesRes.json()) as { pages: PageItem[] };
@@ -73,6 +92,19 @@ export function CommandPalette() {
           const data = (await chatsRes.json()) as { chats: ChatItem[] };
           setChats(
             data.chats.map((c) => ({ id: c.id, title: c.title, folder: c.folder })),
+          );
+        }
+        if (wikisRes.ok) {
+          const data = (await wikisRes.json()) as {
+            active: { path: string };
+            recents: Array<{ path: string; topic: string | null; exists: boolean }>;
+          };
+          // Non-active + on-disk wikis only — switching to a missing folder
+          // would error, and switching to the already-active one is a no-op.
+          setWikis(
+            data.recents
+              .filter((w) => w.exists && w.path !== data.active.path)
+              .map((w) => ({ path: w.path, topic: w.topic, active: false })),
           );
         }
       } catch {
@@ -86,6 +118,7 @@ export function CommandPalette() {
 
   const items = useMemo<Action[]>(() => {
     const pageActions: Action[] = pages.map((p) => ({
+      type: "navigate",
       id: `page-${p.slug}`,
       label: p.title,
       hint: p.slug,
@@ -93,13 +126,22 @@ export function CommandPalette() {
       href: `/wiki/${p.slug}`,
     }));
     const chatActions: Action[] = chats.map((c) => ({
+      type: "navigate",
       id: `chat-${c.id}`,
       label: c.title,
       hint: c.folder,
       group: "Chats",
       href: `/chats/${c.id}`,
     }));
-    const combined = [...STATIC_ACTIONS, ...pageActions, ...chatActions];
+    const wikiActions: Action[] = wikis.map((w) => ({
+      type: "switch-wiki",
+      id: `wiki-${w.path}`,
+      label: `Switch to ${w.topic ?? w.path.split("/").pop() ?? w.path}`,
+      hint: w.path,
+      group: "Wikis",
+      path: w.path,
+    }));
+    const combined = [...STATIC_ACTIONS, ...wikiActions, ...pageActions, ...chatActions];
     const needle = query.trim().toLowerCase();
     if (!needle) return combined;
     return combined.filter(
@@ -127,9 +169,32 @@ export function CommandPalette() {
     setActiveIndex(0);
   }, []);
 
-  function navigate(item: Action) {
-    close();
-    router.push(item.href);
+  async function activate(item: Action) {
+    if (item.type === "navigate") {
+      close();
+      router.push(item.href);
+      return;
+    }
+    // Switch-wiki: POST then refresh the current route so the user stays
+    // on the same page but sees the new wiki's data.
+    setBusy(true);
+    try {
+      const res = await fetch("/api/wikis", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type: "switch", path: item.path }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        // eslint-disable-next-line no-alert
+        alert(j.error ?? `Switch failed (HTTP ${res.status})`);
+        return;
+      }
+      close();
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -145,7 +210,7 @@ export function CommandPalette() {
     } else if (e.key === "Enter") {
       e.preventDefault();
       const pick = flatItems[activeIndex];
-      if (pick) navigate(pick);
+      if (pick) void activate(pick);
     }
   }
 
@@ -201,9 +266,10 @@ export function CommandPalette() {
                           type="button"
                           data-idx={idx}
                           onMouseEnter={() => setActiveIndex(idx)}
-                          onClick={() => navigate(item)}
+                          onClick={() => void activate(item)}
+                          disabled={busy}
                           className={cn(
-                            "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm",
+                            "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm disabled:opacity-50",
                             activeIndex === idx ? "bg-accent" : "hover:bg-accent/60",
                           )}
                         >

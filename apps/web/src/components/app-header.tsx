@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { WikiSwitcher } from "@/components/wiki-switcher";
 import { cn } from "@/lib/utils";
 
 // Primary destinations — what most actions converge on. Reads in the order a
@@ -47,6 +48,13 @@ export function AppHeader() {
           LLM Wiki
         </span>
       </Link>
+
+      {/* Active-wiki chip + dropdown. Sits next to the wordmark so the
+          "which wiki am I in" answer is always one glance away, and one
+          click reveals the switcher. Full CRUD lives in Settings → Wikis. */}
+      <div className="hidden sm:block">
+        <WikiSwitcher />
+      </div>
 
       {/* Primary destinations — left-anchored next to wordmark so the cluster
           reads as one navigation system. Active item gets a thin underline. */}

@@ -360,6 +360,21 @@ Closes the user's "don't we lose data?" concern with UI. Every wiki page already
 
 Sources list rows on `/sources` were also made into `Link`s to `/sources/[id]` (previously inert div rows).
 
+### L. Header wiki switcher + Cmd+K integration
+
+Settings → Wikis is the management surface (create / remove / detail view), but the user pointed out switching needed a faster path for "I'm deep in a page, want to flip wikis without losing my place." Added two surfaces, both additive:
+
+- **Active-wiki chip + dropdown in the header**, next to the wordmark. Shows the active wiki's topic (truncated to 14rem), click → dropdown with: active wiki summary, "Switch to" list of other on-disk recents (each switches in-place via `router.refresh()` so the user stays on whatever page they're on), and "+ Create new wiki" / "Manage wikis…" links to `/settings?tab=wikis`. Closes on outside-click + Escape.
+
+- **Command palette gains a "Wikis" group**. Switching from Cmd+K: each non-active, on-disk recent shows as "Switch to <topic>" with the path as hint. Discriminated `Action` type so the same activation handler dispatches navigate (push href) vs switch-wiki (POST + refresh). Plus a "Manage wikis…" link that deep-links to `/settings?tab=wikis`.
+
+- **Settings page gains `?tab=` URL param support** via `useSearchParams`, so the deep-link from the header dropdown / Cmd+K lands on the right tab.
+
+Decisions worth flagging:
+- Cmd+K filters to on-disk wikis only (skips missing-folder entries) — switching to a missing folder would error.
+- Header chip is hidden on small screens (`hidden sm:block`); mobile uses the existing hamburger menu where the wikis link lives in Settings.
+- The header dropdown stays single-purpose (everyday switching) and links out to Settings for CRUD — keeps the dropdown small + the management story unified.
+
 ### K. Multi-wiki switcher — adds `docs/13-multi-wiki.md` + Settings → Wikis tab
 
 User flagged that the app could only hold one wiki at a time. Real limitation — a physicist might want "Quantum computing" but also a separate "Machine learning research" wiki, and the current per-folder workflow required restarting the dev server with a different env var. Discussed four approaches (env-var swap, CLI port juggling, in-app switcher, full URL namespacing); user picked the in-app switcher (option C). Full design in **`docs/13-multi-wiki.md`**.
