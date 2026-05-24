@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MarkdownView } from "@/components/wiki/markdown-view";
 import { PageEditor } from "@/components/wiki/page-editor";
+import { cn } from "@/lib/utils";
 
 type Backlink = { slug: string; title: string; excerpt: string };
 
@@ -24,7 +25,14 @@ export function PageView(props: Props) {
   const [editing, setEditing] = useState(false);
 
   return (
-    <article className="mx-auto max-w-3xl px-6 py-10">
+    // Reading view stays narrow (prose-friendly). Editing view expands to
+    // give the split-pane markdown/preview room to breathe.
+    <article
+      className={cn(
+        "mx-auto px-6 py-10",
+        editing ? "max-w-[1400px]" : "max-w-3xl",
+      )}
+    >
       {!editing ? (
         <header className="mb-6 flex flex-wrap items-baseline justify-between gap-3 border-b border-border pb-4">
           <div>

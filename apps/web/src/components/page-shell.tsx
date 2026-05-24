@@ -11,7 +11,7 @@ export function PageContainer({
 }: {
   children: React.ReactNode;
   className?: string;
-  width?: "sm" | "md" | "lg" | "wide";
+  width?: "sm" | "md" | "lg" | "wide" | "xl";
 }) {
   const widthClass =
     width === "sm"
@@ -20,7 +20,9 @@ export function PageContainer({
         ? "max-w-3xl"
         : width === "lg"
           ? "max-w-4xl"
-          : "max-w-6xl";
+          : width === "wide"
+            ? "max-w-6xl"
+            : "max-w-[1400px]"; // xl — for split-pane editors
   return (
     <div className={cn("mx-auto w-full px-6 pb-16 pt-10", widthClass, className)}>
       {children}

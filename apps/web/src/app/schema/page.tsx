@@ -55,7 +55,7 @@ export default function SchemaEditorPage() {
   }
 
   return (
-    <PageContainer width="lg">
+    <PageContainer width="xl">
       <PageHeader
         eyebrow="The LLM's contract"
         title="Schema editor"
@@ -95,27 +95,30 @@ export default function SchemaEditorPage() {
         <p className="text-ui text-muted-foreground">Loading…</p>
       ) : (
         <>
+          {/* Split pane fills the available viewport height so the editor
+              feels like a real editing surface, not a small inline textarea.
+              Headers stay visible (sticky) while the panes scroll. */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div>
-              <h3 className="mb-1 text-caption font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="flex flex-col">
+              <h3 className="mb-2 text-caption font-semibold uppercase tracking-wider text-muted-foreground">
                 Markdown
               </h3>
               <Textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                className="min-h-[560px] font-mono text-[13px] leading-relaxed"
+                className="min-h-[calc(100vh-18rem)] flex-1 resize-none rounded-md border-border/70 bg-card p-5 font-mono text-[13px] leading-relaxed"
               />
             </div>
-            <div>
-              <h3 className="mb-1 text-caption font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="flex flex-col">
+              <h3 className="mb-2 text-caption font-semibold uppercase tracking-wider text-muted-foreground">
                 Preview
               </h3>
-              <div className="min-h-[560px] rounded-md border border-border/70 bg-card p-4">
+              <div className="min-h-[calc(100vh-18rem)] flex-1 overflow-y-auto rounded-md border border-border/70 bg-card p-5">
                 <MarkdownView content={content} knownSlugs={[]} />
               </div>
             </div>
           </div>
-          <p className="mt-3 text-caption text-muted-foreground">
+          <p className="mt-4 text-caption text-muted-foreground">
             <span className="font-mono break-all">{wikiPath}/CLAUDE.md</span>
           </p>
         </>
