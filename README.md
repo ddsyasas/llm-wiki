@@ -136,7 +136,8 @@ For the **design contract** + execution history, see `/docs` in this repo:
 | [`11-attribution-license.md`](docs/11-attribution-license.md) | Naming, credits, license |
 | [`12-graph-view.md`](docs/12-graph-view.md) | 3D graph view design + decisions (v1.0 addition) |
 | [`13-multi-wiki.md`](docs/13-multi-wiki.md) | Multi-wiki switcher: in-app picker, header chip, Cmd+K integration |
-| [`dev-log.md`](docs/dev-log.md) | **Execution history + open questions.** Read this first when picking up the project. |
+| [`14-roadmap.md`](docs/14-roadmap.md) | **What's remaining.** V1.x quick wins + V2/V3 ideas + known issues, consolidated from every other doc's "deferred" list. |
+| [`dev-log.md`](docs/dev-log.md) | **Execution history.** What was built + why, dated entries. Read with `14-roadmap.md` as the matched pair (history vs. future). |
 | [`dev-setup.md`](docs/dev-setup.md) | Run / stop / recover / troubleshoot |
 
 ---

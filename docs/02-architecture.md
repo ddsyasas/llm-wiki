@@ -26,12 +26,15 @@
 
 ## Distribution
 
-V1 ships as an npm package: `@yasas/llm-wiki`.
+V1.0 shipped 2026-05-24 (tag `v1.0.0`). The CLI exists in-tree at `apps/web/bin/llm-wiki.mjs` and is functional, but **npm publish is still open work** — `pnpm pack` against workspace:* deps doesn't produce a clean tarball without bundling. Tracked in [`docs/14-roadmap.md`](14-roadmap.md). Until that lands, users install from source:
 
 ```bash
-npm install -g @yasas/llm-wiki
-llm-wiki start [folder]
+git clone https://github.com/ddsyasas/llm-wiki.git
+cd llm-wiki && pnpm install
+pnpm --filter @llm-wiki/web dev
 ```
+
+Once published, the original plan stands: `npm install -g @yasas/llm-wiki` then `llm-wiki start [folder]`.
 
 The CLI does three things:
 1. Initialize the folder if needed (create `raw/`, `wiki/`, `chats/`, `CLAUDE.md`, etc.)

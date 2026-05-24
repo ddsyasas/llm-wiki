@@ -152,7 +152,11 @@ Each entry shows: pinned star, title, last-updated relative time. Right-click or
 
 ### Chat view
 
-Standard chat layout. Messages render as markdown with `[[wikilinks]]` clickable. Composer at the bottom. Header shows the chat title (editable inline), folder breadcrumb, and model selector. Each assistant message has a small action bar: "Copy", "Save as wiki page", "Regenerate".
+**Asymmetric Claude-style layout** (shipped 2026-05-24, commit `087a51a`). User messages render as right-aligned bubbles (`max-w-[80%]`, filled `bg-primary/10`, rounded with a squared top-right corner). Assistant messages flow left-aligned at `max-w-[92%]` with no bubble — long cited answers, tables, and code blocks need width to breathe, so we don't constrain them. Position alone tells you who said what; role badges dropped.
+
+Messages render as markdown with `[[wikilinks]]` clickable. Composer at the bottom. Header shows the chat title (editable inline), folder dropdown for moving, Pin / Ingest → wiki / Delete actions, and the model the chat uses (set on creation, stored in frontmatter).
+
+Each assistant message has a small action row beneath: **Save as wiki page** (opens the promote dialog) plus the timestamp. Whole-chat **Ingest → wiki** lives in the header so a useful thread can be filed back into the permanent wiki layer with one click — per Karpathy's *"good answers can be filed back into the wiki as new pages"*.
 
 ## Context window management
 

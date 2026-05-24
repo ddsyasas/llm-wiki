@@ -2,7 +2,7 @@
 
 **Maintained for context-window resilience.** This file is the single source of truth for where the project is, what's been built, what's broken, and what's next. Read this first when picking up after a long break or in a fresh chat session.
 
-Last updated: 2026-05-24 (v1.0 released)
+Last updated: 2026-05-24 (post-v1.0 sprint: multi-wiki, first-run wizard, chat layout, doc sync). Forward-looking work-needed view: [`docs/14-roadmap.md`](14-roadmap.md).
 
 ---
 
@@ -19,9 +19,11 @@ Repo: **https://github.com/ddsyasas/llm-wiki** (public, MIT).
 
 ---
 
-## Status snapshot — 2026-05-24 (v1.0)
+## Status snapshot — 2026-05-24 (post-v1.0 sprint)
 
-**44+ commits on `main`, tagged `v1.0.0`.** Build plan (docs/10) steps 0–14 complete plus full P0 + P1 #10 (graph view). Two design passes, multiple UX fixes, model-slug update, Karpathy-pattern audit, lint quick-fixes wave, perceived-perf pass, doc-pages set (About / Help / Developers), 3D graph view, and v1.0 release shipped.
+**~55 commits on `main`, tagged `v1.0.0`.** Build plan (docs/10) steps 0–14 complete plus full P0 + P1 #10 (graph view) + P2 multi-wiki UI. Post-V1 sprint added: multi-wiki switcher + Settings tab + header chip + Cmd+K integration, first-run welcome wizard, asymmetric chat layout, source-lineage UI, lint quick-fixes wave, /log + /graph routes, /about + /help + /developers doc pages, defensive JSON parse, GitHub SEO topics applied (18), consolidated roadmap doc.
+
+For the **what's-next view** see [`docs/14-roadmap.md`](14-roadmap.md). This file is the execution history (what was done + why), not the forward plan.
 
 ```
 HEAD    Doc pages: About, Help, Developers + footer links + dev-log update
@@ -455,6 +457,8 @@ User asked for "proper about page", a "developer page / doc page" set, and a wik
 ---
 
 ## Open questions for future sessions
+
+> **Note:** The work-needed list has been consolidated into [`docs/14-roadmap.md`](14-roadmap.md). The questions below are *design / architecture* questions that don't translate cleanly into a roadmap entry — when in doubt, prefer the roadmap.
 
 1. Should we ship `next-themes` instead of the homegrown ThemeProvider? Tradeoff: ~5KB dep vs. zero deps + a few extra lines.
 2. Should models.ts pull pricing from OpenRouter's `/models` endpoint at runtime instead of hardcoding? More correct but adds latency + a cache layer.

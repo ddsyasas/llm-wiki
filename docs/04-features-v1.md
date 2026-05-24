@@ -2,6 +2,8 @@
 
 The scope of V1 is defined here. Anything not listed is out of scope for V1, even if mentioned elsewhere.
 
+> **Status note (2026-05-24):** v1.0.0 is tagged. **All P0 shipped.** P1 #10 (graph view) shipped post-tag. P1 #11–#13 (diff view / approval gate / export-to-zip) are deferred to V1.x. Several **post-V1** features also shipped early — see "Post-V1 features already shipped" below. The forward-looking work-needed view lives in [`docs/14-roadmap.md`](14-roadmap.md).
+
 ## Feature list with priorities
 
 ### P0, must ship in V1
@@ -65,20 +67,38 @@ The scope of V1 is defined here. Anything not listed is out of scope for V1, eve
 
 ### P1, ship if time allows
 
-10. **Wiki graph view** (force-directed visualization of page links) — ✅ **shipped 2026-05-24**, see `docs/12-graph-view.md`. 3D scene at `/graph`, color by page type, click-to-focus + side panel + URL state.
-11. **Diff view** when LLM updates a page (highlight changes)
-12. **Approval gate** for ingestion (review changes before applying)
-13. **Export wiki to a zip** including all assets
+10. **Wiki graph view** (force-directed visualization of page links) — ✅ **shipped 2026-05-24**, see [`docs/12-graph-view.md`](12-graph-view.md). 3D scene at `/graph`, color by page type, click-to-focus + side panel + URL state.
+11. **Diff view** when LLM updates a page (highlight changes) — ❌ deferred to V1.x
+12. **Approval gate** for ingestion (review changes before applying) — ❌ deferred to V1.x
+13. **Export wiki to a zip** including all assets — ❌ deferred to V1.x
 
 ### P2, post-V1
 
-- Tauri desktop installer (V2)
-- MCP server mode (V3)
-- Multi-wiki management UI
-- Scheduled lint runs
-- Embeddings-based search
-- Ollama support
-- Plugin system
+- Tauri desktop installer (V2) — ❌ V2
+- MCP server mode (V3) — ❌ V3
+- Multi-wiki management UI — ✅ **shipped 2026-05-24** as the in-app wiki switcher, see [`docs/13-multi-wiki.md`](13-multi-wiki.md)
+- Scheduled lint runs — ❌ V2
+- Embeddings-based search — ❌ V2
+- Ollama support — ❌ V2 (workable today by changing the OpenRouter base URL in `packages/llm/src/client.ts`, but no UI)
+- Plugin system — ❌ V3
+
+### Post-V1 features already shipped
+
+Sometimes a P1 / P2 item became cheap to do alongside something else, or a need surfaced that wasn't in the original V1 spec. These shipped after v1.0.0 was tagged:
+
+- **3D graph view** — see P1 #10 above
+- **In-app multi-wiki switcher** — see P2 above; spec at [`docs/13-multi-wiki.md`](13-multi-wiki.md)
+- **First-run welcome wizard** (4-step Welcome → Topic → Key → Tour) — dev-log section M
+- **Lint quick-fixes** beyond remove-broken-link: bulk remove all broken, rebuild index (local), create stub page (LLM), apply suggested fix (LLM) — dev-log section B
+- **Lint history** appended to `log.md` + Recent Runs panel on /lint with the delta to previous run — dev-log section C
+- **Browseable `log.md`** at `/log` — dev-log section C
+- **Source lineage UI** — Sources section on every wiki page + `/sources/[id]` detail with raw content + "contributed to N pages" chips — dev-log section G
+- **About / Help / Developers in-app doc pages** — sections H (and woven graph + multi-wiki references in later sprints)
+- **Header active-wiki chip + dropdown** + Cmd+K wiki-switch actions — dev-log section L
+- **Asymmetric Claude-style chat layout** — commit `087a51a`
+- **Loading skeletons + click-state feedback** on cards — dev-log section D
+- **Defensive JSON parse** in the LLM client (strips ```json fences) — dev-log section A
+- **GitHub repo SEO topics** — applied 2026-05-24, 18 topics
 
 ## Acceptance criteria
 
