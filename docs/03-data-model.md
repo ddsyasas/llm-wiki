@@ -269,9 +269,12 @@ Cross-wiki user settings. NOT committed (contains the API key).
 {
   "version": 1,
   "openrouterKey": "sk-or-v1-...",
+  "activeWiki": "/Users/yasas/research/quantum",
   "recentWikis": ["/Users/yasas/research/quantum", "/Users/yasas/personal"],
   "uiTheme": "auto"
 }
 ```
 
 For security, the API key should ideally live in the OS keychain (use `keytar` npm package) and only be written to disk as fallback.
+
+The `activeWiki` field (added 2026-05-24, see [`docs/13-multi-wiki.md`](13-multi-wiki.md)) is what the in-app wiki switcher writes when the user picks a wiki. `apps/web/src/lib/server-wiki.ts` `resolveWikiPath()` consults it on every request, after the `LLM_WIKI_PATH` env override and before the `~/llm-wiki-default` fallback. Absent on first run.

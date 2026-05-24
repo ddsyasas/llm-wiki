@@ -124,7 +124,7 @@ The dev server reads/writes a wiki folder per `LLM_WIKI_PATH`. Defaults to `~/ll
 - The folder gets created on first server boot.
 - Layout: `wiki/*.md`, `chats/*/*.md`, `raw/*`, `CLAUDE.md`, `index.md`, `log.md`, `.llm-wiki/meta.sqlite`.
 - Wipe a wiki to start over: `rm -rf ~/llm-wiki-default` (the folder is reproducible — the LLM rebuilds it from raw sources).
-- Keep multiple wikis: just `export LLM_WIKI_PATH=~/another-wiki-folder` before `pnpm dev`.
+- Keep multiple wikis: easiest is via the app — **Settings → Wikis** (or the active-wiki chip in the header) to create / switch / remove. The chosen wiki persists in `~/.llm-wiki/config.json` `activeWiki` and survives restarts. The env var override (`export LLM_WIKI_PATH=~/another-wiki-folder` before `pnpm dev`) still wins if set, which is useful for scripting, CI, or running two dev servers on different ports for true side-by-side browsing. See [`docs/13-multi-wiki.md`](13-multi-wiki.md) for the full picture.
 
 ---
 

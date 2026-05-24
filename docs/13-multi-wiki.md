@@ -1,6 +1,6 @@
 # 13 — Multi-Wiki Switcher
 
-Status: **shipped** (2026-05-24). All phases complete.
+Status: **shipped** (2026-05-24). All initial phases complete; **post-launch additions** below.
 
 ---
 
@@ -214,13 +214,31 @@ If the user has two browser tabs pointing at the same dev server and they switch
 
 ---
 
+## Post-launch additions (2026-05-24, commits `3e7c81d` + `3be2962`)
+
+The initial ship was Settings → Wikis only. User feedback prompted three follow-ups on the same day:
+
+- **Active wiki shown with real topic, not "no topic set"** — `GET /api/wikis` now returns `active` as an enriched `{path, topic, exists}` object instead of just a path string. The Wikis tab's fallback row (for when the active wiki isn't in `recentWikis`) uses the real topic instead of hardcoding null. Bug was caught the moment a real user opened the tab — the default `~/llm-wiki-default` was never "switched to," so it wasn't in recents, so the fallback path triggered, so the hardcoded null showed. Fix touched 2 files.
+
+- **"Clean up N missing" bulk action** — old CLI test paths (`/var/folders/.../llm-wiki-standalone-XXXXXX*`) accumulated in `recentWikis` and surfaced as "folder missing" rows. Added an amber banner that appears whenever any rows have `exists: false`, with a single button that POSTs `type: remove` for each in sequence (sequential so each remove sees the prior's updated config).
+
+- **Active-wiki chip + dropdown in the header** — Settings is the management surface; the header is the everyday switcher. Chip sits next to the wordmark, shows the active topic truncated to 14rem, click → dropdown with: active wiki summary, "Switch to" list of on-disk recents, and "+ Create new wiki" / "Manage wikis…" links to `/settings?tab=wikis`. Each switch POSTs and `router.refresh()`es — you stay on whatever page you're on but see the new wiki's data inline. Closes on outside-click + Escape. Hidden on small screens (`hidden sm:block`) — mobile users use the hamburger menu.
+
+- **Command palette gets a "Wikis" group** — each non-active on-disk recent shows as a "Switch to <topic>" action. Action type is now discriminated (`navigate` vs `switch-wiki`) so the same handler dispatches push-href vs POST+refresh. Plus a "Manage wikis…" action linking to `/settings?tab=wikis`.
+
+- **Settings page reads `?tab=` URL param** so the header dropdown and Cmd+K can deep-link to the Wikis tab specifically.
+
+- **Cmd+K bonus** — Graph and Log routes also added to the "Go to" group. They shipped after the palette was last touched and somehow never made it in.
+
+---
+
 ## Future enhancements (out of scope for V1.x)
 
-- **Quick switcher in the header** — wordmark dropdown showing active wiki + recents, switch in one click without leaving the page you're on
-- **`Cmd+K` integration** — "Switch wiki..." action in the command palette
-- **Wiki templates** — when creating a new wiki, offer to pre-fill `CLAUDE.md` from a template (Research / Legal / Clinical / Project)
+- **Wiki templates** — when creating a new wiki, offer to pre-fill `CLAUDE.md` from a template (Research / Legal / Clinical / Project / Personal)
 - **Bulk export** — "export this wiki + all sources as a zip" (the V1 P1 #13 deferred feature, would naturally live in the Wikis tab)
 - **True URL-namespaced multi-wiki** (`/w/<id>/...`) — V2 work, lets users browse multiple wikis simultaneously in different browser tabs
+- **Per-wiki recent-files / activity** — show "last edited / ingested in this wiki" timestamps in the picker so you can see which wikis are stale
+- **Wiki search across all wikis** — currently search is scoped to the active wiki only; "find a page across all my wikis" would need a cross-wiki FTS5 query (small change, but no UI surface for it yet)
 
 ---
 
@@ -230,3 +248,6 @@ If the user has two browser tabs pointing at the same dev server and they switch
 - **2026-05-24** — env var `LLM_WIKI_PATH` keeps winning over global config when set. Reasoning: scripting / CI / advanced users who want explicit control. Most users will leave the env unset and the picker becomes the canonical mechanism.
 - **2026-05-24** — `remove` action on a wiki only edits the config, never deletes the on-disk folder. Reasoning: data safety > convenience. If a user truly wants to delete the wiki, they can `rm -rf` the folder themselves.
 - **2026-05-24** — UI lives in Settings → Wikis tab, not the header. Reasoning: switching wikis is a session-level action, not something users do dozens of times per session. Header chrome stays uncluttered.
+- **2026-05-24** — *Reversed within the day.* Added the header active-wiki chip + dropdown after user feedback that discovering "you can have multiple wikis" needed a more visible affordance. Settings tab is still the canonical CRUD surface; the header chip is the everyday switcher. Both stay.
+- **2026-05-24** — Switching from the command palette / header dropdown uses `router.refresh()`, not `router.push()`. Reasoning: the user explicitly wanted to keep their current page (e.g. they're reading `/wiki/peter-shor` and want the same URL but the OTHER wiki's `peter-shor` if it exists, or 404 if not). `router.push(pathname)` would have the same effect but `refresh()` is more semantically obvious.
+- **2026-05-24** — Cmd+K's switch actions only include on-disk wikis. Switching to a missing folder errors at the API layer; skipping them in the palette avoids surfacing the failure to keyboard-first users.

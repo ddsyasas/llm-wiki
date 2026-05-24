@@ -80,24 +80,26 @@ Line height: 1.65 for body, 1.3 for headings.
 ### App shell
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│  ¶ {Wiki Topic}    Wiki  Sources  Query  Chats  Lint  ⚙   │ ← header (56px)
-├────────┬───────────────────────────────────────────────────┤
-│        │                                                    │
-│ sidebar│  main content                                      │
-│ (256px)│                                                    │
-│        │                                                    │
-│        │                                                    │
-│        │                                                    │
-├────────┴───────────────────────────────────────────────────┤
-│  status bar: 47 pages · 23 sources · $0.43 spent this week│ ← footer (32px)
-└────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│  [[ LLM Wiki  [⌂ {topic} ▾]   Wiki Graph Sources Query Chats Lint │ ← header (56px)
+├────────┬───────────────────────────────────────────────────────────┤
+│        │                                                            │
+│ sidebar│  main content                                              │
+│ (256px)│                                                            │
+│        │                                                            │
+│        │                                                            │
+│        │                                                            │
+├────────┴───────────────────────────────────────────────────────────┤
+│  LLM Wiki by Yasas · v1.0.0 · About · Help · Developers · GitHub  │ ← footer
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 The header nav switches the main view. The sidebar contents depend on the view:
 - Wiki view: page tree with filter
 - Chats view: chat list grouped by folder
 - Other views: hidden or contextual
+
+The `[⌂ {topic} ▾]` chip next to the wordmark is the **active-wiki indicator + switcher** (added post-V1.0, see [`docs/13-multi-wiki.md`](13-multi-wiki.md)). Always shows the active wiki's topic; click → dropdown of recents + "Create new wiki" / "Manage wikis…" links. Switching uses `router.refresh()` so the current page stays put but its data refreshes for the new wiki.
 
 ### Key screens
 

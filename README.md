@@ -36,6 +36,7 @@ After a few weeks of feeding it sources, you have a navigable, cited, deliberate
 - **Chats** — Multi-turn conversations saved as `.md` files in folders. Per-message "Save as wiki page" + whole-chat "Ingest → wiki" buttons close the loop from exploratory thinking back into the permanent layer.
 - **Schema editor** — Edit the `CLAUDE.md` contract the LLM reads on every operation. Split-pane preview, auto-backup to `.llm-wiki/schema-history/`.
 - **Log timeline** — `/log` shows every ingest / edit / lint / schema-save in chronological order. Wikilinks inside log entries are clickable.
+- **Multiple wikis** — keep separate wikis for separate topics (e.g. "Physics", "ML research", "Personal KB"). Switch from the active-wiki chip in the header, the `Cmd+K` palette, or **Settings → Wikis** (full CRUD). Switching is in-place — you stay on whatever page you're on, the data refreshes around you. Spec: [`docs/13-multi-wiki.md`](docs/13-multi-wiki.md).
 
 ### Quality / safety
 
@@ -134,6 +135,7 @@ For the **design contract** + execution history, see `/docs` in this repo:
 | [`10-build-order.md`](docs/10-build-order.md) | Sequenced build plan |
 | [`11-attribution-license.md`](docs/11-attribution-license.md) | Naming, credits, license |
 | [`12-graph-view.md`](docs/12-graph-view.md) | 3D graph view design + decisions (v1.0 addition) |
+| [`13-multi-wiki.md`](docs/13-multi-wiki.md) | Multi-wiki switcher: in-app picker, header chip, Cmd+K integration |
 | [`dev-log.md`](docs/dev-log.md) | **Execution history + open questions.** Read this first when picking up the project. |
 | [`dev-setup.md`](docs/dev-setup.md) | Run / stop / recover / troubleshoot |
 
