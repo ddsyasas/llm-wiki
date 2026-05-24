@@ -21,10 +21,16 @@ try {
   // best-effort — fall back to the static placeholder
 }
 
+// 49 = inside-width of the box. Pad from visible text width so version
+// strings of any length keep the box square.
+const innerWidth = 49;
+const title = `  LLM Wiki v${version} installed`;
+const pad = " ".repeat(Math.max(0, innerWidth - title.length));
+const top = "─".repeat(innerWidth);
 const banner = `
-\x1b[36m╭─────────────────────────────────────────────────╮\x1b[0m
-\x1b[36m│\x1b[0m  \x1b[1mLLM Wiki\x1b[0m v${version} installed                    \x1b[36m│\x1b[0m
-\x1b[36m╰─────────────────────────────────────────────────╯\x1b[0m
+\x1b[36m╭${top}╮\x1b[0m
+\x1b[36m│\x1b[0m  \x1b[1mLLM Wiki\x1b[0m v${version} installed${pad}\x1b[36m│\x1b[0m
+\x1b[36m╰${top}╯\x1b[0m
 
   Get started in three commands:
 

@@ -2,7 +2,7 @@
 
 **The single forward-looking view: what's left to do, sorted by priority.** Consolidated from "open questions" in `docs/dev-log.md`, "deferred" items in `docs/04-features-v1.md`, "future enhancements" in `docs/12-graph-view.md` / `docs/13-multi-wiki.md`, and known blockers across the codebase.
 
-Last updated: **2026-05-24** (post-R sprint: v1.1.0 published to npm as `@syasas/llm-wiki`).
+Last updated: **2026-05-24** (post-R sprint: v1.1.1 published to npm as `@syasas/llm-wiki`).
 
 > If you're picking this project up cold, read `README.md` → `docs/01-vision.md` → this file → `docs/dev-log.md` in that order. You'll be operational in about 30 minutes.
 
@@ -10,7 +10,7 @@ Last updated: **2026-05-24** (post-R sprint: v1.1.0 published to npm as `@syasas
 
 ## Status at a glance
 
-- ✅ **v1.1.0 published to npm** as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki) — cross-platform, verified on macOS / Linux / Windows. [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest) mirror the tarball for direct download.
+- ✅ **v1.1.1 published to npm** as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki) — cross-platform, verified on macOS / Linux / Windows. [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest) mirror the tarball for direct download.
 - ✅ All P0 + all P1 features shipped end-to-end
 - ✅ 1 of 7 P2 features shipped early (multi-wiki); 6 still V2/V3
 - ✅ V1.x sprint complete (10 items in section P + 4 in section Q + 1 in section R)

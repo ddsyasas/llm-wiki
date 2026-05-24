@@ -451,10 +451,18 @@ async function isFirstRunEver() {
 
 async function printFirstRunBanner() {
   const version = await readPackageVersion();
+  // 49 = inside-width of the box (columns between the two │ characters).
+  // Padding is computed from VISIBLE text width — the ANSI escapes inside
+  // the box contribute zero columns to the terminal but were previously
+  // counted by hand, which drifted whenever the version string changed.
+  const innerWidth = 49;
+  const title = `  Welcome to LLM Wiki v${version}`;
+  const pad = " ".repeat(Math.max(0, innerWidth - title.length));
+  const top = "─".repeat(innerWidth);
   const banner = `
-\x1b[36m╭─────────────────────────────────────────────────╮\x1b[0m
-\x1b[36m│\x1b[0m  \x1b[1mWelcome to LLM Wiki\x1b[0m v${version}                   \x1b[36m│\x1b[0m
-\x1b[36m╰─────────────────────────────────────────────────╯\x1b[0m
+\x1b[36m╭${top}╮\x1b[0m
+\x1b[36m│\x1b[0m  \x1b[1mWelcome to LLM Wiki\x1b[0m v${version}${pad}\x1b[36m│\x1b[0m
+\x1b[36m╰${top}╯\x1b[0m
 
   Looks like this is your first time. Three commands to know:
 
@@ -473,7 +481,17 @@ async function printFirstRunBanner() {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const cmd = args._[0] ?? "start";
+  // Lowercase the command so `Doctor` / `DOCTOR` / `doctor` all dispatch the
+  // same. Common case-mismatch on Windows where the filesystem itself is
+  // case-insensitive and users naturally capitalize. Also normalize the
+  // first config sub-command (`get` / `set`) for the same reason — that
+  // walk happens inside cmdConfig() which reads args._[1] directly, so we
+  // patch it here at the source.
+  const cmd = (args._[0] ?? "start").toLowerCase();
+  args._[0] = cmd;
+  if (cmd === "config" && typeof args._[1] === "string") {
+    args._[1] = args._[1].toLowerCase();
+  }
 
   // First-run welcome — only on the very first invocation, only if not
   // silenced by --quiet, and skip for `version` / `help` which don't

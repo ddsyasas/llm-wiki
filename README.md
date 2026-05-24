@@ -2,7 +2,7 @@
 
 > **A personal Wikipedia an LLM maintains for you.** Drop in articles, papers, notes, PDFs, or URLs — an agent compiles them into a cross-linked markdown wiki you fully own. Knowledge compounds: each new source makes every page richer, not just one new page longer.
 
-Open source · Local-first · Bring-your-own-key · MIT · v1.1.0
+Open source · Local-first · Bring-your-own-key · MIT · v1.1.1
 
 This is a from-scratch implementation of [Andrej Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f), released April 2026.
 
@@ -122,7 +122,7 @@ llm-wiki start
 
 That's it — no git clone, no monorepo, ~30 second install. The CLI auto-initializes your wiki folder, picks a free port (3737 by default), and opens the browser. Verified on **macOS / Linux (incl. WSL) / Windows**.
 
-Package on npm: [npmjs.com/package/@syasas/llm-wiki](https://www.npmjs.com/package/@syasas/llm-wiki). Release notes + tarball mirror: [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest). If npm is unavailable for some reason, you can install directly from the GitHub tarball: `npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.0/syasas-llm-wiki-1.1.0.tgz`.
+Package on npm: [npmjs.com/package/@syasas/llm-wiki](https://www.npmjs.com/package/@syasas/llm-wiki). Release notes + tarball mirror: [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest). If npm is unavailable for some reason, you can install directly from the GitHub tarball: `npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.1/syasas-llm-wiki-1.1.1.tgz`.
 
 ### From source — for development or contributing
 
@@ -271,7 +271,7 @@ The CLI defaults to port **3737** (vs. `pnpm dev`'s 3000) and auto-picks the nex
 ```
 $ llm-wiki doctor
 Checking installation...
-  ✓ llm-wiki version: 1.1.0
+  ✓ llm-wiki version: 1.1.1
   ✓ Node version: v20.11.0
   ✓ Platform: darwin arm64
 
@@ -374,13 +374,13 @@ For the **design contract** + execution history, see `/docs` in this repo:
 
 ---
 
-## Project status (v1.1.0)
+## Project status (v1.1.1)
 
 **All P0 features shipped.** All three Karpathy operations (ingest / query / lint) wired end-to-end with cost previews, error recovery, and one-click fixes. Chats, schema editor, settings, log timeline, source-lineage UI, and the 3D graph view all live.
 
 **Test suite**: ~158 core + 25 llm + 11 ingestion ≈ **194 passing tests**. (One chokidar live-watch test is a known flake.)
 
-**Cross-platform install**: verified end-to-end on macOS / Linux / Windows. v1.1.0 ships as a single 28MB tarball; native deps (`better-sqlite3`, `keytar`) install fresh per-platform via npm.
+**Cross-platform install**: verified end-to-end on macOS / Linux / Windows. v1.1.1 ships as a single 28MB tarball; native deps (`better-sqlite3`, `keytar`) install fresh per-platform via npm.
 
 **Distribution**: published on npm as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki). `npm install -g @syasas/llm-wiki` is the canonical install. [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest) mirror the same tarball for direct download.
 

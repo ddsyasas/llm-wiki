@@ -599,6 +599,41 @@ The capstone. After R verified the cross-platform tarball on macOS / Linux / Win
 
 ---
 
+## Sprint T — 2026-05-24: v1.1.1 patch (case-insensitive commands + banner alignment)
+
+First real-user bug post-publish. A friend on Windows ran `llm-Wiki Doctor` (capitalizing both — natural for Windows users since the filesystem is case-insensitive) and got `unknown command: Doctor` followed by the help text. Real bug, real user, ~5 min fix + republish.
+
+### What shipped in 1.1.1
+
+- **Case-insensitive command dispatch** (`bin/llm-wiki.mjs`): lowercase `args._[0]` and the first `config` sub-command before the switch. `Doctor`, `DOCTOR`, `doctor`, `dOcToR` all dispatch the same. Same for `Start`, `Init`, etc.
+
+- **Banner alignment fix** (`bin/llm-wiki.mjs` + `bin/postinstall.mjs`): the welcome box's right edge had drifted by 2 characters because the inside line padded by hand-counted spaces and the count was off. Switched to dynamic padding computed from the visible (non-ANSI) text width vs. a fixed `innerWidth = 49`. Now box stays square regardless of version string length — future bumps to `v1.10.0` etc. won't break it.
+
+### Release flow
+
+Same as 1.1.0 but smoother because the muscle memory + scripts existed:
+
+1. Bump `apps/web/package.json` + `apps/web/src/components/footer.tsx` APP_VERSION → 1.1.1
+2. `pnpm install` + `pnpm --filter @llm-wiki/web build` + `node apps/web/scripts/build-publish-tarball.mjs`
+3. `cd apps/web/dist-publish && npm pack` → `syasas-llm-wiki-1.1.1.tgz` (27.8MB, 8738 files)
+4. Local install verification: install tarball into `/tmp`, `llm-wiki version` → 1.1.1, `llm-wiki Doctor` (capital D) dispatched correctly
+5. GitHub Release v1.1.1 created with new tarball as the only asset
+6. `npm publish --access public --otp=<code>` from `dist-publish/` (uses a 2FA recovery code until proper TOTP authenticator is set up — see sprint S notes)
+
+### Doc updates bundled in the same commit
+
+- README.md: every "1.1.0" → "1.1.1" (header, status block, tarball URL fallback, doctor example output)
+- docs/14-roadmap.md: header date + status block updated to v1.1.1
+
+### What this validated about the release process
+
+- Patch flow takes ~10 minutes end-to-end including verification — fast enough that small bugfixes don't pile up
+- The build script's version pinning for native deps (reads `^<currently-installed>` from the standalone tree) automatically picked up the same versions as 1.1.0, no drift
+- npm published cleanly (no scope-permission surprises since `@syasas/llm-wiki` was claimed during 1.1.0)
+- GitHub Release creation as the single fallback distribution path remains valuable — covers the rare "npm down" scenario or users behind corporate npm proxies
+
+---
+
 ## Open questions for future sessions
 
 > **Note:** The work-needed list has been consolidated into [`docs/14-roadmap.md`](14-roadmap.md). The questions below are *design / architecture* questions that don't translate cleanly into a roadmap entry — when in doubt, prefer the roadmap.
