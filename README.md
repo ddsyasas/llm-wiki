@@ -77,13 +77,13 @@ Two paths. Pick one.
 ### Quick start — install the CLI (recommended)
 
 ```bash
-npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.0/syasas-llm-wiki-1.1.0.tgz
+npm install -g @syasas/llm-wiki
 llm-wiki start
 ```
 
 That's it — no git clone, no monorepo, ~30 second install. The CLI auto-initializes your wiki folder, picks a free port (3737 by default), and opens the browser. Verified on **macOS / Linux (incl. WSL) / Windows**.
 
-The release page with download + changelog lives at [github.com/ddsyasas/llm-wiki/releases/latest](https://github.com/ddsyasas/llm-wiki/releases/latest).
+Package on npm: [npmjs.com/package/@syasas/llm-wiki](https://www.npmjs.com/package/@syasas/llm-wiki). Release notes + tarball mirror: [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest). If npm is unavailable for some reason, you can install directly from the GitHub tarball: `npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.0/syasas-llm-wiki-1.1.0.tgz`.
 
 ### From source — for development or contributing
 
@@ -343,7 +343,7 @@ For the **design contract** + execution history, see `/docs` in this repo:
 
 **Cross-platform install**: verified end-to-end on macOS / Linux / Windows. v1.1.0 ships as a single 28MB tarball; native deps (`better-sqlite3`, `keytar`) install fresh per-platform via npm.
 
-**Distribution**: [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest) is the install path today. Publishing to npm under `@yasas/llm-wiki` is a one-command step away (`cd apps/web/dist-publish && npm publish --access public`) — held back pending a few real-world install reports.
+**Distribution**: published on npm as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki). `npm install -g @syasas/llm-wiki` is the canonical install. [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest) mirror the same tarball for direct download.
 
 **Deferred to V2 / V3** (tracked in [`docs/14-roadmap.md`](docs/14-roadmap.md)):
 

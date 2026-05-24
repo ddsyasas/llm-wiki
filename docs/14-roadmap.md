@@ -2,7 +2,7 @@
 
 **The single forward-looking view: what's left to do, sorted by priority.** Consolidated from "open questions" in `docs/dev-log.md`, "deferred" items in `docs/04-features-v1.md`, "future enhancements" in `docs/12-graph-view.md` / `docs/13-multi-wiki.md`, and known blockers across the codebase.
 
-Last updated: **2026-05-24** (post-R sprint: v1.1.0 cross-platform release shipped to GitHub Releases).
+Last updated: **2026-05-24** (post-R sprint: v1.1.0 published to npm as `@syasas/llm-wiki`).
 
 > If you're picking this project up cold, read `README.md` → `docs/01-vision.md` → this file → `docs/dev-log.md` in that order. You'll be operational in about 30 minutes.
 
@@ -10,14 +10,14 @@ Last updated: **2026-05-24** (post-R sprint: v1.1.0 cross-platform release shipp
 
 ## Status at a glance
 
-- ✅ **v1.1.0 released** on [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest) — cross-platform tarball, verified on macOS / Linux / Windows
+- ✅ **v1.1.0 published to npm** as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki) — cross-platform, verified on macOS / Linux / Windows. [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest) mirror the tarball for direct download.
 - ✅ All P0 + all P1 features shipped end-to-end
 - ✅ 1 of 7 P2 features shipped early (multi-wiki); 6 still V2/V3
 - ✅ V1.x sprint complete (10 items in section P + 4 in section Q + 1 in section R)
 - ✅ Test suite: ~158 core + 25 llm + 11 ingestion ≈ **194 passing** (1 known chokidar flake)
 - ✅ **Production build works** — `next build` standalone bundle serves every route (dev-log Q)
 - ✅ **Cross-platform install path works** — `npm install -g <tarball>` succeeds on macOS / Ubuntu (incl. WSL) / Windows; native deps install per-platform (dev-log R)
-- ⚙ **npm publish** to `@yasas/llm-wiki` not yet executed — one-command step away (`cd apps/web/dist-publish && npm publish --access public`)
+- ✅ **Published to npm** as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki) — `npm install -g @syasas/llm-wiki` works
 
 ---
 
@@ -39,7 +39,6 @@ Things that complete the V1 promise. Roughly ordered by impact-per-effort.
 
 **Still open:**
 
-- **Publish to the npm registry.** Today the install path is `npm install -g <github-release-tarball-url>` — works, but `npm install -g @yasas/llm-wiki` is the canonical-feeling experience users expect. One command: `cd apps/web/dist-publish && npm publish --access public`. Held back until a few real-world install reports come in from users outside the dev team.
 - **Persistent camera state on /graph.** Remember the last camera position when returning. Requires storing camera state in URL or localStorage.
 - **Local-model support (Ollama).** Workable today by changing the OpenRouter base URL in `packages/llm/src/client.ts`, but no UI. Add a "Provider" picker in Settings → Models with sensible defaults per provider (OpenRouter / Anthropic direct / OpenAI direct / Ollama).
 - **Scheduled lint runs.** Cron-style: "Run lint nightly and append the result to log.md". V1.x if there's demand; needs an in-process scheduler or a CLI subcommand.

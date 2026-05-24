@@ -567,6 +567,38 @@ npm install -g ./yasas-llm-wiki-1.1.0.tgz
 
 ---
 
+## Sprint S — 2026-05-24: published to npm as @syasas/llm-wiki
+
+The capstone. After R verified the cross-platform tarball on macOS / Linux / Windows, S pushed the package to the public npm registry under the user's actual scope (`syasas`, not the placeholder `yasas` from earlier docs).
+
+### What shipped
+
+- **Scope rename**: `@yasas/llm-wiki` → `@syasas/llm-wiki` throughout the codebase (build script, README, docs/02 + /09 + /10 + /11, in-app /developers + /about). The `@yasas` scope was already taken; user's actual npm handle is `syasas`.
+- **First-run welcome banner** (commit `3e99454`): two complementary surfaces so users always see "you're installed, here's what to type next":
+  - `bin/postinstall.mjs` — runs during `npm install` if the user passed `--foreground-scripts` (npm 10+ captures lifecycle output by default; this only fires in verbose mode).
+  - `bin/llm-wiki.mjs` main() — checks for `~/.llm-wiki/config.json` and prints the same banner if absent. Always fires on the actual first invocation of any `llm-wiki <cmd>`, regardless of how the package was installed. Suppressed by `--quiet` and skipped for `version` / `help` to keep their output clean for scripting.
+- **GitHub Release v1.1.0 asset replaced** — old `yasas-llm-wiki-1.1.0.tgz` deleted, new `syasas-llm-wiki-1.1.0.tgz` uploaded. Release notes updated to mention both install paths.
+- **`npm publish --access public`** — actually ran, succeeded, package live at https://www.npmjs.com/package/@syasas/llm-wiki
+
+### Hiccups along the way (each a 5-minute fix)
+
+1. **`Error: ENOENT, uv_cwd`** — the rebuild step `rm -rf dist-publish && ...` deleted the directory while the user's shell was sitting inside it. `pwd` lied (read from stale `$PWD`), but Node's `process.cwd()` failed. Fix: `cd /` then `cd <path>` to force a real `chdir(2)`.
+2. **403 Forbidden — Two-factor authentication required** — npm enforces 2FA for publishes by default. The user had set up 2FA but only saved the recovery codes (skipped the QR code → authenticator app step). Fix: passed `--otp=<recovery-code>` to use one of the recovery codes. Long-term: reconfigure 2FA with an authenticator app (Apple Passwords / Authy / etc.) so future publishes are a 6-digit code, not a burned recovery code.
+
+### Doc sync (commit pending)
+
+- README.md — "Quick start" now reads `npm install -g @syasas/llm-wiki`. GitHub Releases retained as fallback. Status block updated.
+- docs/14-roadmap.md — header date + status block updated to "published to npm" ✓. "Publish to the npm registry" removed from the "still open" list.
+- apps/web/src/app/about/page.tsx — footer install line points at npmjs.com instead of GitHub Releases.
+
+### What's still open
+
+- Long-term: reconfigure 2FA with a TOTP authenticator app instead of relying on recovery codes (one-time codes that burn per use).
+- GH Actions matrix to install the tarball + run `llm-wiki doctor` on macos-latest / ubuntu-latest / windows-latest after each release. Currently cross-platform was verified manually on 3 user machines.
+- Future patch releases (1.1.1, 1.2.0…) — same flow, just bump version + `pnpm build:publish` + `npm publish --otp=<code>`.
+
+---
+
 ## Open questions for future sessions
 
 > **Note:** The work-needed list has been consolidated into [`docs/14-roadmap.md`](14-roadmap.md). The questions below are *design / architecture* questions that don't translate cleanly into a roadmap entry — when in doubt, prefer the roadmap.
