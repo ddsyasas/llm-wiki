@@ -1,3 +1,5 @@
+import { estimateCostCents } from "@llm-wiki/llm";
+
 import type { Db } from "./db";
 import { OPERATIONS, type Operation, type UsageInsert, type UsageRow } from "./types";
 
@@ -33,6 +35,39 @@ export function listUsageRows(db: Db, limit = 100): UsageRow[] {
     .prepare(`SELECT * FROM usage ORDER BY id DESC LIMIT ?`)
     .all(limit) as UsageRowDb[];
   return rows.map(rowFromDb);
+}
+
+/**
+ * Backfill cost_cents for any usage rows missing it. Cheap and idempotent:
+ * picks up only rows with NULL cost (caps at one pricing-table lookup
+ * each), so safe to call on every DB open. Exists because pre-2026-05-24
+ * builds hard-coded `cost_cents: null` at every insertUsage site — once
+ * those were fixed, this backfills the historical rows so the dashboard
+ * cumulative reflects real spend instead of just spend since the fix.
+ *
+ * Rows whose model isn't in the pricing table stay NULL (estimateCostCents
+ * returns null), so a future pricing-table update can re-run the backfill
+ * and pick them up too.
+ */
+export function backfillUsageCosts(db: Db): number {
+  const rows = db
+    .prepare(
+      `SELECT id, model, input_tokens, output_tokens FROM usage WHERE cost_cents IS NULL`,
+    )
+    .all() as Array<{ id: number; model: string; input_tokens: number; output_tokens: number }>;
+  if (rows.length === 0) return 0;
+  const update = db.prepare(`UPDATE usage SET cost_cents = ? WHERE id = ?`);
+  let updated = 0;
+  const tx = db.transaction(() => {
+    for (const r of rows) {
+      const cents = estimateCostCents(r.model, r.input_tokens, r.output_tokens);
+      if (cents === null) continue;
+      update.run(cents, r.id);
+      updated++;
+    }
+  });
+  tx();
+  return updated;
 }
 
 export function getTotalCostCents(db: Db): number {

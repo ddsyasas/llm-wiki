@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { redirect } from "next/navigation";
 
 import {
+  backfillUsageCosts,
   getApiKey,
   globalConfigPath,
   initWikiFolder,
@@ -24,6 +25,12 @@ import {
 // One purge per process per hour is plenty for V1.
 let lastPurgeMs = 0;
 const PURGE_INTERVAL_MS = 60 * 60 * 1000;
+
+// Track which wikis we've already cost-backfilled this process lifetime.
+// Backfill is for rows from the pre-fix era (where every insertUsage hard-
+// coded cost_cents: null); once per wiki per process is enough. Switching
+// wikis adds the new path to the set on first open.
+const backfilledWikis = new Set<string>();
 
 /**
  * Resolution order (docs/13-multi-wiki.md):
@@ -83,6 +90,18 @@ export async function openWikiContext(): Promise<WikiContext> {
   if (Date.now() - lastPurgeMs > PURGE_INTERVAL_MS) {
     lastPurgeMs = Date.now();
     purgeOldTrash(wikiPath).catch(() => {});
+  }
+
+  // One-shot cost backfill per wiki per process. Picks up any usage rows
+  // from before the cost_cents fix (2026-05-24) and fills them in from
+  // the pricing table. NULL stays NULL for unknown models.
+  if (!backfilledWikis.has(wikiPath)) {
+    backfilledWikis.add(wikiPath);
+    try {
+      backfillUsageCosts(db);
+    } catch {
+      // Non-fatal — dashboard just shows a smaller cumulative.
+    }
   }
 
   return { wikiPath, db, settings };

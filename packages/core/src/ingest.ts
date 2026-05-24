@@ -2,7 +2,7 @@ import { copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 
-import { callLLM, type LlmClient, type UserContentPart } from "@llm-wiki/llm";
+import { callLLM, estimateCostCents, type LlmClient, type UserContentPart } from "@llm-wiki/llm";
 
 import type { Db } from "./db";
 import {
@@ -115,7 +115,7 @@ export async function ingestSource(opts: IngestSourceOptions): Promise<IngestRes
     model: result.model,
     input_tokens: result.usage.inputTokens,
     output_tokens: result.usage.outputTokens,
-    cost_cents: null,
+    cost_cents: estimateCostCents(result.model, result.usage.inputTokens, result.usage.outputTokens),
     created_at: new Date().toISOString(),
   });
 
@@ -217,7 +217,7 @@ export async function ingestVisionSource(
     model: result.model,
     input_tokens: result.usage.inputTokens,
     output_tokens: result.usage.outputTokens,
-    cost_cents: null,
+    cost_cents: estimateCostCents(result.model, result.usage.inputTokens, result.usage.outputTokens),
     created_at: new Date().toISOString(),
   });
 

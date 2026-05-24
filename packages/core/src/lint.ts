@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { callLLM, type LlmClient } from "@llm-wiki/llm";
+import { callLLM, estimateCostCents, type LlmClient } from "@llm-wiki/llm";
 
 import type { Db } from "./db";
 import { listPageRows } from "./db-pages";
@@ -176,7 +176,7 @@ export async function lintWiki(opts: LintWikiOptions): Promise<LintResult> {
       model: result.model,
       input_tokens: result.usage.inputTokens,
       output_tokens: result.usage.outputTokens,
-      cost_cents: null,
+      cost_cents: estimateCostCents(result.model, result.usage.inputTokens, result.usage.outputTokens),
       created_at: new Date().toISOString(),
     });
 

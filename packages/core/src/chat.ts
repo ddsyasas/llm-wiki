@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import {
   chatComplete,
   DEFAULT_MODELS,
+  estimateCostCents,
   type ChatMessage as LlmChatMessage,
   type LlmClient,
 } from "@llm-wiki/llm";
@@ -374,7 +375,7 @@ export async function sendChatMessage(
     model: result.model,
     input_tokens: result.usage.inputTokens,
     output_tokens: result.usage.outputTokens,
-    cost_cents: null,
+    cost_cents: estimateCostCents(result.model, result.usage.inputTokens, result.usage.outputTokens),
     created_at: new Date().toISOString(),
   });
 
