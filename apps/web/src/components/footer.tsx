@@ -13,7 +13,7 @@ export function Footer({ className = "" }: { className?: string }) {
         className
       }
     >
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-3 gap-y-1">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1">
         <span>
           LLM Wiki by{" "}
           <Link
@@ -27,6 +27,18 @@ export function Footer({ className = "" }: { className?: string }) {
         </span>
         <span aria-hidden>·</span>
         <span>v{APP_VERSION}</span>
+        <span aria-hidden>·</span>
+        <Link href="/about" className="hover:text-foreground">
+          About
+        </Link>
+        <span aria-hidden>·</span>
+        <Link href="/help" className="hover:text-foreground">
+          Help
+        </Link>
+        <span aria-hidden>·</span>
+        <Link href="/developers" className="hover:text-foreground">
+          Developers
+        </Link>
         <span aria-hidden>·</span>
         <Link
           href="https://github.com/ddsyasas/llm-wiki"
