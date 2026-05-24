@@ -64,6 +64,7 @@ Material shifts in the product, not just polish on V1.
 - **Multi-user / shared wikis.** Out of V1 scope by design (docs/01 non-goal), but inevitable if someone runs the project on a NAS or wants a team knowledge base. Auth, ACLs, conflict resolution all become real.
 - **Live wiki sync via chokidar** — already half-built. Wire the file watcher to `revalidatePath()` so external edits (Obsidian, vim) show up live in the browser.
 - **Lint history sparklines / dedicated `/lint/history` view.** Right now the Recent Runs panel shows N rows; a sparkline of issue count over time would be a nice visual.
+- **Cloud-readiness prep — extract a `FileSystem` interface.** Pure refactor with no functional change. Today `packages/core/src/wiki.ts`, `index-builder.ts`, `editor.ts`, `chat.ts`, etc. all call `node:fs/promises` directly. Lift those calls behind a small interface (`readFile`, `writeFile`, `readdir`, `stat`, `mkdir`) so the file-IO layer is swap-able: local FS today, S3/R2 if a cloud version ever happens. Schedule alongside V2 Tauri work so the abstraction is informed by *two* consumers (local FS + Tauri webview) rather than designed for cloud in a vacuum. **Bonus**: cleaner test seams for everything that currently mocks file paths.
 
 ---
 
