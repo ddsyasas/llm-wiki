@@ -216,36 +216,46 @@ export async function lintWiki(opts: LintWikiOptions): Promise<LintResult> {
  * Reads log.md and returns the most recent lint summary, parsed from a
  * heading line like `## [YYYY-MM-DD HH:MM] lint | N issues — health`.
  * Returns null if log.md doesn't exist or has no lint entries yet.
- *
- * Exported so an upcoming "lint history" view (if it ever ships) can show
- * a longer timeline; today only lintWiki itself calls it.
  */
 export async function getLastLintSummary(
   wikiPath: string,
 ): Promise<PreviousLintSummary | null> {
+  const all = await getLintHistory(wikiPath, 1);
+  return all[0] ?? null;
+}
+
+/**
+ * Reads log.md and returns the N most recent lint summaries (newest first).
+ * Powers the "Recent runs" panel on /lint that shows the wiki-health trend.
+ */
+export async function getLintHistory(
+  wikiPath: string,
+  limit = 10,
+): Promise<PreviousLintSummary[]> {
   const logPath = join(wikiPath, WIKI_PATHS.log);
   let text: string;
   try {
     text = await readFile(logPath, "utf8");
   } catch {
-    return null;
+    return [];
   }
-  // Walk lines from the end backwards — most recent entry wins.
+  const out: PreviousLintSummary[] = [];
   const lines = text.split(/\r?\n/);
-  for (let i = lines.length - 1; i >= 0; i--) {
+  // Walk from the end (most-recent first) and stop once we have `limit`.
+  for (let i = lines.length - 1; i >= 0 && out.length < limit; i--) {
     const line = lines[i] ?? "";
     const m = line.match(
       /^## \[(.+?)\] lint \| (\d+) issues?\s*(?:—\s*([a-z-]+))?\s*$/i,
     );
     if (m) {
-      return {
+      out.push({
         stamp: m[1] ?? "",
         totalIssues: parseInt(m[2] ?? "0", 10),
         health: parseHealth(m[3]),
-      };
+      });
     }
   }
-  return null;
+  return out;
 }
 
 function parseHealth(s: string | undefined): LintResponse["overallHealth"] | null {

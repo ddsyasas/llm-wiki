@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { openInMemoryDb, type Db } from "./db";
 import { indexPageForSearch, upsertPage } from "./db-pages";
 import { removeBrokenLink } from "./editor";
-import { getLastLintSummary, lintWiki } from "./lint";
+import { getLastLintSummary, getLintHistory, lintWiki } from "./lint";
 import type { LintResponse } from "./schema";
 import { appendLog, initWikiFolder, readPage, writePage } from "./wiki";
 
@@ -206,6 +206,29 @@ describe("getLastLintSummary", () => {
     const r = await getLastLintSummary(wikiPath);
     expect(r?.totalIssues).toBe(0);
     expect(r?.health).toBeNull();
+  });
+});
+
+describe("getLintHistory", () => {
+  it("returns empty array when no lint entries exist", async () => {
+    expect(await getLintHistory(wikiPath, 5)).toEqual([]);
+  });
+
+  it("returns the N most-recent lint entries newest-first", async () => {
+    await appendLog(wikiPath, `## [2026-05-24 01:00] lint | 20 issues — needs-work\n- 10 high, 7 medium, 3 low across 10 pages`);
+    await appendLog(wikiPath, `## [2026-05-24 02:00] lint | 15 issues — needs-work\n- 6 high, 6 medium, 3 low across 10 pages`);
+    await appendLog(wikiPath, `## [2026-05-24 03:00] lint | 4 issues — fair\n- 1 high, 2 medium, 1 low across 10 pages`);
+    const r = await getLintHistory(wikiPath, 10);
+    expect(r.map((h) => h.totalIssues)).toEqual([4, 15, 20]);
+    expect(r[0]?.stamp).toBe("2026-05-24 03:00");
+  });
+
+  it("caps the result at the requested limit", async () => {
+    for (let i = 0; i < 6; i++) {
+      await appendLog(wikiPath, `## [2026-05-24 0${i}:00] lint | ${i} issues — good`);
+    }
+    const r = await getLintHistory(wikiPath, 3);
+    expect(r).toHaveLength(3);
   });
 });
 

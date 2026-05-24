@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,12 @@ type LintResult = {
 
 type LintSuccess = { ok: true; model: string; result: LintResult };
 type LintFailure = { ok?: false; error: string; type?: string };
+
+type LintHistoryEntry = {
+  stamp: string;
+  totalIssues: number;
+  health: "excellent" | "good" | "fair" | "needs-work" | null;
+};
 
 const HEALTH_STYLES: Record<LintResult["overallHealth"], string> = {
   excellent: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
@@ -142,6 +148,25 @@ export default function LintPage() {
   const [bulkBusy, setBulkBusy] = useState<null | "rebuild-index" | "fix-all-broken">(null);
   const [bulkFlash, setBulkFlash] = useState<string | null>(null);
 
+  // Lint history — loaded on mount + re-fetched after every successful run
+  // so the "Recent runs" panel reflects the just-appended log entry.
+  const [history, setHistory] = useState<LintHistoryEntry[] | null>(null);
+
+  const refreshHistory = useCallback(async () => {
+    try {
+      const res = await fetch("/api/lint/history?limit=10", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = (await res.json()) as { history: LintHistoryEntry[] };
+      setHistory(data.history);
+    } catch {
+      // non-fatal — the panel just stays empty
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshHistory();
+  }, [refreshHistory]);
+
   async function runLint() {
     setBusy(true);
     setError(null);
@@ -160,6 +185,9 @@ export default function LintPage() {
       }
       setResult(json.result);
       setModel(json.model);
+      // The lint call just appended a new entry to log.md; refresh the
+      // history panel so the user sees it without a page reload.
+      void refreshHistory();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -382,6 +410,70 @@ export default function LintPage() {
         <div className="mt-6 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </div>
+      ) : null}
+
+      {/* Always-visible "Recent runs" panel — pulled from log.md so the
+          trend is readable before re-running. Loads on mount, refreshes
+          after every successful lint. */}
+      {history !== null ? (
+        <section className="mt-6 rounded-md border border-border/70 bg-card p-4">
+          <h3 className="mb-2 text-caption font-semibold uppercase tracking-wider text-muted-foreground">
+            Recent runs
+          </h3>
+          {history.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No lint runs yet. Click <strong>Run lint</strong> to record the first one — the
+              count + health rating gets appended to{" "}
+              <code className="font-mono">log.md</code> so you can track wiki health over
+              time.
+            </p>
+          ) : (
+            <ul className="space-y-1.5 text-sm">
+              {history.map((h, i) => {
+                const prevCount = history[i + 1]?.totalIssues;
+                const delta =
+                  prevCount === undefined ? null : h.totalIssues - prevCount;
+                return (
+                  <li
+                    key={`${h.stamp}-${i}`}
+                    className="flex flex-wrap items-baseline gap-2 text-muted-foreground"
+                  >
+                    <span className="font-mono text-[11px]">{h.stamp}</span>
+                    <span className="text-foreground">
+                      {h.totalIssues} issue{h.totalIssues === 1 ? "" : "s"}
+                    </span>
+                    {h.health ? (
+                      <span
+                        className={cn(
+                          "rounded px-1.5 py-0 text-[10px] uppercase tracking-wider",
+                          HEALTH_STYLES[h.health],
+                        )}
+                      >
+                        {h.health}
+                      </span>
+                    ) : null}
+                    {delta !== null && delta !== 0 ? (
+                      <span
+                        className={
+                          "text-[11px] " +
+                          (delta < 0
+                            ? "text-emerald-700 dark:text-emerald-300"
+                            : "text-amber-700 dark:text-amber-300")
+                        }
+                      >
+                        {delta < 0 ? "−" : "+"}
+                        {Math.abs(delta)} vs previous
+                      </span>
+                    ) : null}
+                    <span className="text-[11px] text-muted-foreground/70">
+                      ({relativeFromLogStamp(h.stamp)})
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       ) : null}
 
       {result && counts ? (
