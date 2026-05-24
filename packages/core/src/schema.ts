@@ -44,7 +44,15 @@ export const IngestResponseSchema = z.object({
     z.object({
       slug: slugSchema,
       category: indexCategorySchema,
-      summary: z.string().max(120),
+      // Strict cap at 500 — anything beyond that is the LLM going off the
+      // rails and we want it surfaced. Below 500 we truncate gracefully to
+      // 200 chars so the index.md line stays readable. Validation never
+      // fails for "summary slightly too long" — that was happening even
+      // with Sonnet 4.6 (the prompt says <=120 but the model drifts).
+      summary: z
+        .string()
+        .max(500)
+        .transform((s) => (s.length > 200 ? `${s.slice(0, 199).trimEnd()}…` : s)),
     }),
   ),
   logEntry: z.string(),

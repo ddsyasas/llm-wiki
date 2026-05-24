@@ -47,7 +47,7 @@ const JSON_SHAPE = `Output ONLY a valid JSON object matching this exact shape. N
     {
       "slug": "page-slug",
       "category": "concepts",
-      "summary": "<= 120-char one-liner for the index."
+      "summary": "Short one-liner for the index — aim for 100-150 chars, hard cap 200."
     }
   ],
   "logEntry": "Single-line summary of this ingest.",

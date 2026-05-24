@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
 
 type SourceItem = {
   id: string;
@@ -57,25 +59,93 @@ type Props = {
 export function SourcesList({ refreshNonce }: Props) {
   const [sources, setSources] = useState<SourceItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionFlash, setActionFlash] = useState<string | null>(null);
+
+  const fetchSources = useCallback(async () => {
+    try {
+      const res = await fetch("/api/sources", { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as { sources: SourceItem[] };
+      setSources(data.sources);
+      setError(null);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      try {
-        const res = await fetch("/api/sources", { cache: "no-store" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as { sources: SourceItem[] };
-        if (!cancelled) setSources(data.sources);
-      } catch (err) {
-        if (!cancelled) setError((err as Error).message);
-      }
+      await fetchSources();
+      void cancelled;
     })();
     return () => {
       cancelled = true;
     };
-  }, [refreshNonce]);
+  }, [fetchSources, refreshNonce]);
 
-  if (error) {
+  async function onRetry(s: SourceItem) {
+    setBusyId(s.id);
+    setActionFlash(null);
+    setError(null);
+    try {
+      const res = await fetch(`/api/sources/${s.id}/retry`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        response?: {
+          newPages: Array<{ slug: string; title: string }>;
+          pageUpdates: Array<{ slug: string }>;
+        };
+      };
+      if (!res.ok || !json.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      const newN = json.response?.newPages.length ?? 0;
+      const updN = json.response?.pageUpdates.length ?? 0;
+      setActionFlash(
+        `Ingested. ${newN} new page${newN === 1 ? "" : "s"}, ${updN} updated.`,
+      );
+      await fetchSources();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function onDelete(s: SourceItem) {
+    const label =
+      s.title?.trim() || s.originalName?.trim() || s.url?.trim() || s.filename;
+    const isPending = s.ingestedAt === null;
+    const cascadeNote = s.pageCount > 0
+      ? ` It contributed to ${s.pageCount} wiki page${s.pageCount === 1 ? "" : "s"} — those pages stay (with a dangling source reference that lint can clean up).`
+      : "";
+    const msg = isPending
+      ? `Remove "${label}" (pending ingest)?\n\nThe raw file moves to .llm-wiki/trash/raw/ (recoverable for 30 days).`
+      : `Remove "${label}"?${cascadeNote}\n\nThe raw file moves to .llm-wiki/trash/raw/ (recoverable for 30 days).`;
+    if (!confirm(msg)) return;
+
+    setBusyId(s.id);
+    setActionFlash(null);
+    setError(null);
+    try {
+      const res = await fetch(`/api/sources/${s.id}/delete`, { method: "POST" });
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      setActionFlash(`Removed.`);
+      await fetchSources();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  if (error && sources === null) {
     return (
       <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
         Could not load sources: {error}
@@ -100,25 +170,54 @@ export function SourcesList({ refreshNonce }: Props) {
     a.addedAt < b.addedAt ? 1 : a.addedAt > b.addedAt ? -1 : 0,
   );
 
+  const pendingCount = sources.filter((s) => s.ingestedAt === null).length;
+
   return (
-    <ul className="divide-y divide-border">
-      {sorted.map((s) => {
-        const label =
-          s.title?.trim() ||
-          s.originalName?.trim() ||
-          s.url?.trim() ||
-          s.filename;
-        const formatBadge = FORMAT_LABEL[s.format] ?? s.format.toUpperCase();
-        const isPending = s.ingestedAt === null;
-        return (
-          <li key={s.id}>
-            <Link
-              href={`/sources/${s.id}`}
-              prefetch
-              className="-mx-2 flex flex-wrap items-baseline justify-between gap-2 rounded-md px-2 py-2.5 transition-colors hover:bg-accent/40 active:scale-[0.997]"
+    <div className="space-y-3">
+      {pendingCount > 0 ? (
+        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+          {pendingCount} source{pendingCount === 1 ? "" : "s"} pending — the
+          first ingest didn't complete. Click <strong>Retry</strong> (uses the
+          ingest model from Settings) or <strong>Delete</strong> to drop them.
+        </p>
+      ) : null}
+
+      {actionFlash ? (
+        <p className="rounded-md bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+          {actionFlash}
+        </p>
+      ) : null}
+      {error && sources !== null ? (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {error}
+        </p>
+      ) : null}
+
+      <ul className="divide-y divide-border">
+        {sorted.map((s) => {
+          const label =
+            s.title?.trim() ||
+            s.originalName?.trim() ||
+            s.url?.trim() ||
+            s.filename;
+          const formatBadge = FORMAT_LABEL[s.format] ?? s.format.toUpperCase();
+          const isPending = s.ingestedAt === null;
+          const isBusy = busyId === s.id;
+          return (
+            <li
+              key={s.id}
+              className="flex flex-wrap items-baseline justify-between gap-2 py-2.5"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{label}</p>
+                {/* Title area is a link to /sources/[id] — buttons sit
+                    outside the link so clicks don't bubble. */}
+                <Link
+                  href={`/sources/${s.id}`}
+                  prefetch
+                  className="block min-w-0 hover:text-primary"
+                >
+                  <p className="truncate text-sm font-medium">{label}</p>
+                </Link>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
                   <span className="font-mono">{formatBadge}</span>
                   {" · "}
@@ -127,21 +226,40 @@ export function SourcesList({ refreshNonce }: Props) {
                   {relativeDate(s.addedAt)}
                 </p>
               </div>
-              <div className="shrink-0 text-right text-[11px]">
+              <div className="flex shrink-0 items-center gap-2 text-[11px]">
                 {isPending ? (
-                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-amber-700 dark:text-amber-300">
-                    pending
-                  </span>
+                  <>
+                    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-amber-700 dark:text-amber-300">
+                      pending
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void onRetry(s)}
+                      disabled={busyId !== null}
+                    >
+                      {isBusy ? "Retrying…" : "Retry"}
+                    </Button>
+                  </>
                 ) : (
                   <span className="text-muted-foreground">
                     {s.pageCount} page{s.pageCount === 1 ? "" : "s"}
                   </span>
                 )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void onDelete(s)}
+                  disabled={busyId !== null}
+                  title="Remove from the list. Raw file goes to .llm-wiki/trash/raw/."
+                >
+                  {isBusy && !isPending ? "Removing…" : "Delete"}
+                </Button>
               </div>
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
