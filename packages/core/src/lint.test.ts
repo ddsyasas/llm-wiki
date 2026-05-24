@@ -8,9 +8,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { openInMemoryDb, type Db } from "./db";
 import { indexPageForSearch, upsertPage } from "./db-pages";
 import { removeBrokenLink } from "./editor";
-import { lintWiki } from "./lint";
+import { getLastLintSummary, lintWiki } from "./lint";
 import type { LintResponse } from "./schema";
-import { initWikiFolder, readPage, writePage } from "./wiki";
+import { appendLog, initWikiFolder, readPage, writePage } from "./wiki";
 
 function stubClient(responses: LintResponse[]): LlmClient {
   const queue = [...responses];
@@ -177,5 +177,56 @@ describe("removeBrokenLink", () => {
   it("throws when the page doesn't actually contain the broken link", async () => {
     await seed("a", "A", "no links at all");
     await expect(removeBrokenLink(wikiPath, db, "a", "bogus")).rejects.toThrow(/doesn't contain/);
+  });
+});
+
+describe("getLastLintSummary", () => {
+  it("returns null when log.md doesn't exist", async () => {
+    expect(await getLastLintSummary(wikiPath)).toBeNull();
+  });
+
+  it("returns null when log.md has no lint entries", async () => {
+    await appendLog(wikiPath, `## [2026-05-24 01:00] ingest | Some source (md)\n- created pages: foo`);
+    expect(await getLastLintSummary(wikiPath)).toBeNull();
+  });
+
+  it("parses the most recent lint heading and returns the count + health", async () => {
+    await appendLog(wikiPath, `## [2026-05-24 01:00] lint | 19 issues — needs-work\n- 9 high, 7 medium, 3 low across 10 pages`);
+    await appendLog(wikiPath, `## [2026-05-24 02:00] ingest | New source (md)\n- created pages: bar`);
+    await appendLog(wikiPath, `## [2026-05-24 03:00] lint | 4 issues — fair\n- 1 high, 2 medium, 1 low across 11 pages`);
+    const r = await getLastLintSummary(wikiPath);
+    expect(r).not.toBeNull();
+    expect(r?.totalIssues).toBe(4);
+    expect(r?.health).toBe("fair");
+    expect(r?.stamp).toBe("2026-05-24 03:00");
+  });
+
+  it("returns null health when the heading omits the health suffix", async () => {
+    await appendLog(wikiPath, `## [2026-05-24 04:00] lint | 0 issues`);
+    const r = await getLastLintSummary(wikiPath);
+    expect(r?.totalIssues).toBe(0);
+    expect(r?.health).toBeNull();
+  });
+});
+
+describe("lintWiki — log append + previousRun delta", () => {
+  it("appends a one-line lint summary to log.md after every run", async () => {
+    await seed("a", "A", "[[bogus]]");
+    const client = stubClient([noopLlmResponse]);
+    await lintWiki({ wikiPath, db, client, model: "stub/lint" });
+    const { readFile } = await import("node:fs/promises");
+    const log = await readFile(join(wikiPath, "log.md"), "utf8");
+    expect(log).toMatch(/## \[.+\] lint \| \d+ issue/);
+  });
+
+  it("returns previousRun on the second run, null on the first", async () => {
+    await seed("a", "A", "[[bogus]]");
+    const client1 = stubClient([noopLlmResponse]);
+    const first = await lintWiki({ wikiPath, db, client: client1, model: "stub/lint" });
+    expect(first.previousRun).toBeNull();
+    const client2 = stubClient([noopLlmResponse]);
+    const second = await lintWiki({ wikiPath, db, client: client2, model: "stub/lint" });
+    expect(second.previousRun).not.toBeNull();
+    expect(second.previousRun?.totalIssues).toBe(first.issues.length);
   });
 });

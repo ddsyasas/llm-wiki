@@ -31,6 +31,11 @@ type LintResult = {
   overallHealth: "excellent" | "good" | "fair" | "needs-work";
   truncated: boolean;
   totalPages: number;
+  previousRun: {
+    stamp: string;
+    totalIssues: number;
+    health: "excellent" | "good" | "fair" | "needs-work" | null;
+  } | null;
 };
 
 type LintSuccess = { ok: true; model: string; result: LintResult };
@@ -62,6 +67,25 @@ function brokenLinkSlug(description: string): string | null {
   // Local broken-link descriptions are formatted "<title> links to [[<slug>]], which doesn't exist".
   const m = description.match(/\[\[([a-z0-9-]+)\]\]/);
   return m?.[1] ?? null;
+}
+
+// "2026-05-24 02:30" → "2h ago" / "yesterday" / "May 22". UTC-ish from the
+// log stamp; close enough for human glance, not for billing.
+function relativeFromLogStamp(stamp: string): string {
+  // The stamp is "YYYY-MM-DD HH:MM" (no zone). Treat as UTC so we match what
+  // appendLog wrote.
+  const iso = stamp.replace(" ", "T") + ":00Z";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return stamp;
+  const diffMin = Math.floor((Date.now() - t) / 60_000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const hours = Math.floor(diffMin / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days}d ago`;
+  return stamp.slice(0, 10);
 }
 
 function missingPageSlug(description: string): string | null {
@@ -382,6 +406,45 @@ export default function LintPage() {
               </span>
             ) : null}
           </div>
+
+          {/* Delta vs last lint run — quick "is the wiki getting better?"
+              signal. Pulled from the previous "## [..] lint" line in log.md. */}
+          {result.previousRun ? (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>
+                Previous run {relativeFromLogStamp(result.previousRun.stamp)}:{" "}
+                <span className="text-foreground">
+                  {result.previousRun.totalIssues} issue
+                  {result.previousRun.totalIssues === 1 ? "" : "s"}
+                </span>
+              </span>
+              {(() => {
+                const delta = result.issues.length - result.previousRun.totalIssues;
+                if (delta === 0) return <span>· no change</span>;
+                const better = delta < 0;
+                return (
+                  <span
+                    className={
+                      better
+                        ? "text-emerald-700 dark:text-emerald-300"
+                        : "text-amber-700 dark:text-amber-300"
+                    }
+                  >
+                    · {better ? "−" : "+"}
+                    {Math.abs(delta)} {better ? "fewer" : "more"} now
+                  </span>
+                );
+              })()}
+              <span>· full history in {" "}
+                <code className="font-mono">log.md</code>
+              </span>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              First lint run on this wiki. Future runs will compare against this baseline
+              (recorded in <code className="font-mono">log.md</code>).
+            </p>
+          )}
 
           {/* Bulk actions: cheap, broadly-applicable fixes. Rebuild index is
               always safe (local, no LLM). Fix-all-broken-links shows a count

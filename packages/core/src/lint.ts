@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { callLLM, type LlmClient } from "@llm-wiki/llm";
 
 import type { Db } from "./db";
@@ -7,7 +10,7 @@ import { extractWikiLinks } from "./links";
 import { buildLintPrompt, type DeterministicFinding } from "./prompts/lint";
 import type { ExistingPageSnippet } from "./prompts/ingest";
 import { LintResponseSchema, type LintResponse } from "./schema";
-import { readIndex, readPage, readSchema } from "./wiki";
+import { appendLog, readIndex, readPage, readSchema, WIKI_PATHS } from "./wiki";
 
 // Cap how many pages we send to the LLM. With ~800 words per snippet, 60
 // pages fits comfortably inside a 200K-context model. Larger wikis fall
@@ -32,10 +35,20 @@ export type LintResultIssue = LintResponse["issues"][number] & {
   source: "local" | "llm";
 };
 
+/** Summary of the most-recent previous lint run, parsed from log.md. */
+export type PreviousLintSummary = {
+  /** Timestamp from the log heading, e.g. "2026-05-24 02:30". */
+  stamp: string;
+  totalIssues: number;
+  health: LintResponse["overallHealth"] | null;
+};
+
 export type LintResult = Omit<LintResponse, "issues"> & {
   issues: LintResultIssue[];
   truncated: boolean;
   totalPages: number;
+  /** The lint run immediately before this one, if any. Powers the "X → Y issues" delta in the UI. */
+  previousRun: PreviousLintSummary | null;
 };
 
 /**
@@ -44,6 +57,10 @@ export type LintResult = Omit<LintResponse, "issues"> & {
  */
 export async function lintWiki(opts: LintWikiOptions): Promise<LintResult> {
   opts.onProgress?.({ phase: "local", message: "Scanning for broken links and orphans..." });
+
+  // Capture the previous run BEFORE we append this one so the delta isn't
+  // self-referential.
+  const previousRun = await getLastLintSummary(opts.wikiPath);
 
   const allRows = listPageRows(opts.db);
   const allSlugs = new Set(allRows.map((r) => r.slug));
@@ -168,15 +185,73 @@ export async function lintWiki(opts: LintWikiOptions): Promise<LintResult> {
     overallHealth = result.data.overallHealth;
   }
 
+  const issues = [...localIssues, ...llmIssues];
+  const counts = {
+    high: issues.filter((i) => i.severity === "high").length,
+    medium: issues.filter((i) => i.severity === "medium").length,
+    low: issues.filter((i) => i.severity === "low").length,
+  };
+
+  // Append a one-line summary to log.md so the user has a timeline of
+  // wiki-health checks alongside ingest/edit events. Format matches the
+  // pattern in docs/03 and the existing ingest log entries.
+  const stamp = new Date().toISOString().replace("T", " ").slice(0, 16);
+  const head = `## [${stamp}] lint | ${issues.length} issue${issues.length === 1 ? "" : "s"} — ${overallHealth}`;
+  const detail = `- ${counts.high} high, ${counts.medium} medium, ${counts.low} low across ${snippets.length} page${snippets.length === 1 ? "" : "s"}`;
+  await appendLog(opts.wikiPath, `${head}\n${detail}`);
+
   opts.onProgress?.({ phase: "done" });
 
   return {
-    issues: [...localIssues, ...llmIssues],
+    issues,
     suggestedQuestions,
     overallHealth,
     truncated,
     totalPages: snippets.length,
+    previousRun,
   };
+}
+
+/**
+ * Reads log.md and returns the most recent lint summary, parsed from a
+ * heading line like `## [YYYY-MM-DD HH:MM] lint | N issues — health`.
+ * Returns null if log.md doesn't exist or has no lint entries yet.
+ *
+ * Exported so an upcoming "lint history" view (if it ever ships) can show
+ * a longer timeline; today only lintWiki itself calls it.
+ */
+export async function getLastLintSummary(
+  wikiPath: string,
+): Promise<PreviousLintSummary | null> {
+  const logPath = join(wikiPath, WIKI_PATHS.log);
+  let text: string;
+  try {
+    text = await readFile(logPath, "utf8");
+  } catch {
+    return null;
+  }
+  // Walk lines from the end backwards — most recent entry wins.
+  const lines = text.split(/\r?\n/);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i] ?? "";
+    const m = line.match(
+      /^## \[(.+?)\] lint \| (\d+) issues?\s*(?:—\s*([a-z-]+))?\s*$/i,
+    );
+    if (m) {
+      return {
+        stamp: m[1] ?? "",
+        totalIssues: parseInt(m[2] ?? "0", 10),
+        health: parseHealth(m[3]),
+      };
+    }
+  }
+  return null;
+}
+
+function parseHealth(s: string | undefined): LintResponse["overallHealth"] | null {
+  if (!s) return null;
+  if (s === "excellent" || s === "good" || s === "fair" || s === "needs-work") return s;
+  return null;
 }
 
 // ---- internals -----------------------------------------------------------
