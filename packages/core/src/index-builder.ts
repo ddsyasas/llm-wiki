@@ -99,11 +99,13 @@ function firstSentence(body: string, maxChars = 120): string {
   // Take everything up to the first . / ! / ? / newline.
   const m = cleaned.match(/^([\s\S]*?[.!?])(?:\s|$)/);
   let sentence = m ? m[1]! : cleaned.split(/\n/)[0] ?? "";
-  // Strip [[wikilink|display]] → display, [[wikilink]] → wikilink. Index lines
-  // shouldn't carry nested brackets — they render noisily and don't add info.
+  // Strip [[wikilink|display]] → display, [[wikilink]] → wikilink. The regex
+  // accepts ANY non-bracket content inside, not just kebab-case slugs, because
+  // LLM output sometimes contains stray brackets around free-form text
+  // (e.g. "[[Mathematician]]") that aren't valid slugs but still need cleanup.
   sentence = sentence
-    .replace(/\[\[([a-z0-9-]+)\|([^\]]+)\]\]/g, "$2")
-    .replace(/\[\[([a-z0-9-]+)\]\]/g, "$1")
+    .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, "$2")
+    .replace(/\[\[([^\]]+)\]\]/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
   if (sentence.length > maxChars) sentence = `${sentence.slice(0, maxChars - 1).trimEnd()}…`;
