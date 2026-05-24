@@ -185,12 +185,24 @@ export function WikisTab() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-medium">Wikis</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          One wiki per topic. The active wiki is what the whole app reads from
-          until you switch. Switching is two clicks — no restart needed.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-medium">Wikis</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            One wiki per topic. The active wiki is what the whole app reads from
+            until you switch. Switching is two clicks — no restart needed.
+          </p>
+        </div>
+        {active?.exists ? (
+          <a
+            href="/api/wikis/export"
+            download
+            className="shrink-0 rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:border-primary/40 hover:bg-accent"
+            title="Download a zip of the active wiki (markdown + raw sources + chats + schema + index + log). Skips .llm-wiki/ metadata."
+          >
+            ↓ Export active wiki
+          </a>
+        ) : null}
       </div>
 
       {flash ? (
