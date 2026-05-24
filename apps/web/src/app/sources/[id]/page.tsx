@@ -61,7 +61,7 @@ export default async function SourceDetailPage({
 }: {
   params: { id: string };
 }) {
-  await requireSetup();
+  await requireSetup("ingest");
   const ctx = await openWikiContext();
   try {
     const source = getSource(ctx.db, params.id);

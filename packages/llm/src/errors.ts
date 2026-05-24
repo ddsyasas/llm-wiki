@@ -18,8 +18,9 @@ export class ContextLengthError extends LlmError {
 
 export class UnknownModelError extends LlmError {
   readonly model: string;
-  constructor(model: string, cause?: unknown) {
-    super(`model not available on OpenRouter: ${model}`, cause);
+  constructor(model: string, cause?: unknown, provider?: string) {
+    const service = provider === "ollama" ? "Ollama" : "OpenRouter";
+    super(`model not available on ${service}: ${model}`, cause);
     this.name = "UnknownModelError";
     this.model = model;
   }
@@ -53,8 +54,9 @@ export class SchemaValidationError extends LlmError {
 
 export class RateLimitError extends LlmError {
   readonly retryAfterMs: number | null;
-  constructor(retryAfterMs: number | null, cause?: unknown) {
-    super("rate limited by OpenRouter", cause);
+  constructor(retryAfterMs: number | null, cause?: unknown, provider?: string) {
+    const service = provider === "ollama" ? "local server" : "OpenRouter";
+    super(`rate limited by ${service}`, cause);
     this.name = "RateLimitError";
     this.retryAfterMs = retryAfterMs;
   }

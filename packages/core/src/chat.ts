@@ -400,19 +400,35 @@ async function readChatModel(wikiPath: string, row: ChatRow): Promise<string> {
   // Per docs/07 the chat file frontmatter carries the model. Fall back to the
   // wiki's current query model — never a hardcoded slug, since providers
   // retire models and a stale literal here would silently break every chat.
+  let settings;
+  try {
+    settings = await loadWikiSettings(wikiPath);
+  } catch {
+    // fallback
+  }
+
   try {
     const raw = await readFile(chatPath(wikiPath, row.folder, row.filename), "utf8");
     const data = matter(raw).data as { model?: string };
-    if (typeof data.model === "string" && data.model.length > 0) return data.model;
+    if (typeof data.model === "string" && data.model.length > 0) {
+      const provider = settings?.defaultModels.chat.provider;
+      const isOllama = provider === "ollama";
+      const isORModel = data.model.includes("/");
+      if (isOllama && isORModel) {
+        // Skip OpenRouter model configuration from frontmatter when using Ollama
+      } else if (provider === "openrouter" && !isORModel) {
+        // Skip local Ollama model configuration from frontmatter when using OpenRouter
+      } else {
+        return data.model;
+      }
+    }
   } catch {
     // fall through
   }
-  try {
-    const settings = await loadWikiSettings(wikiPath);
-    return settings.defaultModels.chat;
-  } catch {
-    return DEFAULT_MODELS.chat;
+  if (settings) {
+    return settings.defaultModels.chat.model;
   }
+  return DEFAULT_MODELS.chat;
 }
 
 async function readSchemaOrDefault(wikiPath: string): Promise<string> {

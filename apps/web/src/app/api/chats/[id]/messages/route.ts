@@ -25,19 +25,19 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 
   const { key } = await getApiKey();
-  if (!key) {
-    return NextResponse.json(
-      { error: "OpenRouter API key not configured. Set one in Settings." },
-      { status: 400 },
-    );
-  }
-
   const ctx = await openWikiContext();
   try {
     if (!getChat(ctx.db, params.id)) {
       return NextResponse.json({ error: `chat not found: ${params.id}` }, { status: 404 });
     }
-    const client = createClient(key);
+    const provider = ctx.settings.defaultModels.chat.provider;
+    if (provider === "openrouter" && !key) {
+      return NextResponse.json(
+        { error: "OpenRouter API key not configured. Set one in Settings." },
+        { status: 400 },
+      );
+    }
+    const client = createClient(key || "", provider);
     const r = await sendChatMessage({
       wikiPath: ctx.wikiPath,
       db: ctx.db,
@@ -52,6 +52,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       user: r.user,
       assistant: r.assistant,
       modelUsed: r.modelUsed,
+      providerUsed: provider,
     });
   } catch (err) {
     const status =

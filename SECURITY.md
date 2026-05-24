@@ -19,7 +19,7 @@ When v2.0 ships, 1.1.x will continue to get security fixes for 6 months.
 Use one of these private channels:
 
 - **GitHub private vulnerability reporting** (preferred): [Open a security advisory](https://github.com/ddsyasas/llm-wiki/security/advisories/new). Only maintainers can see it.
-- **Email**: yasasdreamz@gmail.com — encrypt with PGP if you want, public key on request.
+- **Email**: yasas@idersolutions.com — encrypt with PGP if you want, public key on request.
 
 Include in your report:
 

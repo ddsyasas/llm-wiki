@@ -4,6 +4,7 @@ import {
   DEFAULT_WIKI_SETTINGS,
   loadWikiSettings,
   saveWikiSettings,
+  type ModelSlotConfig,
   type WikiSettings,
 } from "@llm-wiki/core";
 
@@ -19,7 +20,7 @@ export async function GET() {
 
 type PutBody = Partial<{
   topic: string;
-  defaultModels: Partial<WikiSettings["defaultModels"]>;
+  defaultModels: Partial<Record<keyof WikiSettings["defaultModels"], Partial<ModelSlotConfig>>>;
   autoLintAfterIngest: boolean;
   showCostEstimates: boolean;
   requireApprovalForIngest: boolean;
@@ -38,11 +39,11 @@ export async function PUT(req: Request) {
     version: 1,
     topic: typeof body.topic === "string" ? body.topic : current.topic,
     defaultModels: {
-      ingest: body.defaultModels?.ingest ?? current.defaultModels.ingest,
-      query: body.defaultModels?.query ?? current.defaultModels.query,
-      chat: body.defaultModels?.chat ?? current.defaultModels.chat,
-      lint: body.defaultModels?.lint ?? current.defaultModels.lint,
-      vision: body.defaultModels?.vision ?? current.defaultModels.vision,
+      ingest: { ...current.defaultModels.ingest, ...body.defaultModels?.ingest },
+      query:  { ...current.defaultModels.query,  ...body.defaultModels?.query  },
+      chat:   { ...current.defaultModels.chat,   ...body.defaultModels?.chat   },
+      lint:   { ...current.defaultModels.lint,   ...body.defaultModels?.lint   },
+      vision: { ...current.defaultModels.vision, ...body.defaultModels?.vision },
     },
     autoLintAfterIngest:
       typeof body.autoLintAfterIngest === "boolean"

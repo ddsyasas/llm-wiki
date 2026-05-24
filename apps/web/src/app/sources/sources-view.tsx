@@ -117,6 +117,11 @@ export function SourcesView() {
     setBusy(true);
     setResult(null);
     setError(null);
+    const sourceLabel = mode === "file" ? file?.name : (mode === "url" ? url : "pasted text");
+    console.log(
+      `%c[Ingest Send] Ingesting source: "${sourceLabel}" (${mode})`,
+      "color: #3b82f6; font-weight: bold;"
+    );
     try {
       let res: Response;
       if (mode === "file" && file) {
@@ -135,11 +140,19 @@ export function SourcesView() {
           body: JSON.stringify(body),
         });
       }
-      const json = (await res.json()) as IngestResult;
+      const json = (await res.json()) as IngestResult & { providerUsed?: string; modelUsed?: string };
       if (!res.ok || !("ok" in json) || json.ok !== true) {
         const msg = "error" in json ? json.error : `HTTP ${res.status}`;
         throw new Error(msg);
       }
+      console.log(
+        `%c[Ingest Success] Selected ${json.providerUsed || "unknown"} to ingest: "${sourceLabel}" -> Status: Success`,
+        "color: #10b981; font-weight: bold;"
+      );
+      console.log(
+        `%c[Ingest Success] Model used: ${json.model || json.modelUsed || "unknown"}`,
+        "color: #10b981;"
+      );
       setResult(json);
       // Don't clear file/url so the user can see what they ingested.
       setText("");
@@ -147,6 +160,9 @@ export function SourcesView() {
       // Re-fetch the sources list above so the new ingest shows up immediately.
       setRefreshNonce((n) => n + 1);
     } catch (err) {
+      console.error(
+        `[Ingest Failed] source: "${sourceLabel}" -> Status: Failed. Error: ${(err as Error).message}`
+      );
       setError((err as Error).message);
     } finally {
       setBusy(false);
@@ -528,8 +544,8 @@ function CostPreviewForSources({
   const isVision =
     mode === "file" && file !== null && /\.(pdf|png|jpg|jpeg|webp)$/i.test(file.name);
   const model = isVision
-    ? settings.settings.defaultModels.vision
-    : settings.settings.defaultModels.ingest;
+    ? settings.settings.defaultModels.vision.model
+    : settings.settings.defaultModels.ingest.model;
 
   // For files, we estimate by file size; PDFs/images ride as base64 in the
   // multimodal call, so the input token cost is roughly bytes/3 (base64 overhead).

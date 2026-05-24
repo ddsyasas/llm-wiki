@@ -208,13 +208,23 @@ describe("wiki settings", () => {
   it("merges partial settings file with defaults per model slot", async () => {
     await writeFile(
       wikiSettingsPath(wikiPath),
-      JSON.stringify({ defaultModels: { query: "openai/gpt-4o" } }),
+      JSON.stringify({ defaultModels: { query: { provider: "ollama", model: "mistral" } } }),
       "utf8",
     );
     const s = await loadWikiSettings(wikiPath);
-    expect(s.defaultModels.query).toBe("openai/gpt-4o");
-    expect(s.defaultModels.ingest).toBe(DEFAULT_WIKI_SETTINGS.defaultModels.ingest);
+    expect(s.defaultModels.query).toEqual({ provider: "ollama", model: "mistral" });
+    expect(s.defaultModels.ingest).toEqual(DEFAULT_WIKI_SETTINGS.defaultModels.ingest);
     expect(s.showCostEstimates).toBe(DEFAULT_WIKI_SETTINGS.showCostEstimates);
+  });
+
+  it("migrates legacy plain-string model slot to { provider: 'openrouter', model } shape", async () => {
+    await writeFile(
+      wikiSettingsPath(wikiPath),
+      JSON.stringify({ defaultModels: { ingest: "openai/gpt-4o-mini" } }),
+      "utf8",
+    );
+    const s = await loadWikiSettings(wikiPath);
+    expect(s.defaultModels.ingest).toEqual({ provider: "openrouter", model: "openai/gpt-4o-mini" });
   });
 
   it("writes to .llm-wiki/settings.json inside the wiki folder", async () => {
