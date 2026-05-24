@@ -10,6 +10,7 @@ import {
   categoryForType,
   parseIndexEntries,
   rebuildIndexFromPages,
+  refreshIndexEntryForSlug,
   renderIndex,
 } from "./index-builder";
 import type { PageType } from "./types";
@@ -150,6 +151,18 @@ describe("rebuildIndexFromPages", () => {
     expect(out).not.toContain("longer paragraph");
   });
 
+  it("noops on slugs that aren't in the DB", async () => {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(
+      join(wikiPath, WIKI_PATHS.index),
+      "# Wiki Index\n\n## Concepts\n- [[alpha]]: original\n",
+      "utf8",
+    );
+    await refreshIndexEntryForSlug(wikiPath, db, "nonexistent");
+    const out = await readFile(join(wikiPath, WIKI_PATHS.index), "utf8");
+    expect(out).toContain("[[alpha]]: original");
+  });
+
   it("strips [[wikilinks]] in generated summaries", async () => {
     await seed(
       "linker",
@@ -164,5 +177,52 @@ describe("rebuildIndexFromPages", () => {
     expect(linkerLine).toContain("[[linker]]"); // the slug itself is the link
     const afterColon = linkerLine.split(":").slice(1).join(":");
     expect(afterColon).not.toContain("[[");
+  });
+});
+
+describe("refreshIndexEntryForSlug", () => {
+  it("replaces a stale summary with a freshly-extracted one from the page body", async () => {
+    // Simulate the lov-grover bug: page body has been corrected to "1996"
+    // but index.md still reflects the old "1994" summary.
+    await seed(
+      "lov-grover",
+      "Lov Grover",
+      "Quantum computer scientist who developed [[grovers-algorithm]] in 1996, fundamental to early quantum work.",
+      "entity",
+    );
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(
+      join(wikiPath, WIKI_PATHS.index),
+      [
+        "# Wiki Index",
+        "",
+        "## Entities",
+        "- [[lov-grover]]: Quantum computer scientist who developed grovers-algorithm in 1994.",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    await refreshIndexEntryForSlug(wikiPath, db, "lov-grover");
+
+    const out = await readFile(join(wikiPath, WIKI_PATHS.index), "utf8");
+    expect(out).toContain("1996");
+    expect(out).not.toContain("1994");
+  });
+
+  it("adds an entry for a slug that wasn't in the index yet", async () => {
+    await seed("newcomer", "Newcomer", "A page that just appeared.", "concept");
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(
+      join(wikiPath, WIKI_PATHS.index),
+      "# Wiki Index\n\n## Concepts\n- [[existing]]: was here\n",
+      "utf8",
+    );
+
+    await refreshIndexEntryForSlug(wikiPath, db, "newcomer");
+
+    const out = await readFile(join(wikiPath, WIKI_PATHS.index), "utf8");
+    expect(out).toContain("[[newcomer]]");
+    expect(out).toContain("[[existing]]: was here"); // sibling preserved
   });
 });

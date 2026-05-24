@@ -4,6 +4,7 @@ import { join } from "node:path";
 import type { Db } from "./db";
 import { indexPageForSearch, upsertPage } from "./db-pages";
 import { upsertSyncState } from "./db-sync";
+import { refreshIndexEntryForSlug } from "./index-builder";
 import type { Page, PageType } from "./types";
 import { appendLog, readPage, WIKI_PATHS, writePage } from "./wiki";
 
@@ -91,6 +92,12 @@ export async function applyManualEdit(
 
   const stamp = new Date().toISOString().replace("T", " ").slice(0, 16);
   await appendLog(wikiPath, `## [${stamp}] edit | ${nextFrontmatter.title} (${slug})`);
+
+  // Keep index.md in sync with the page body. Otherwise the index summary
+  // can drift (e.g., lint kept flagging "page says X but index says Y"
+  // after fixes because the index summary was generated from pre-fix
+  // content).
+  await refreshIndexEntryForSlug(wikiPath, db, slug);
 
   return { slug, page: nextPage, backupPath };
 }
@@ -271,6 +278,10 @@ export async function createPage(
 
   const stamp = new Date().toISOString().replace("T", " ").slice(0, 16);
   await appendLog(wikiPath, `## [${stamp}] create | ${input.title} (${input.slug})`);
+
+  // Add this slug to index.md so the new page is visible from /wiki without
+  // waiting for the next ingest or rebuild.
+  await refreshIndexEntryForSlug(wikiPath, db, input.slug);
 
   return page;
 }

@@ -11,7 +11,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { Db } from "./db";
-import { listPageRows } from "./db-pages";
+import { getPage, listPageRows } from "./db-pages";
 import type { PageType } from "./types";
 import { readPage, WIKI_PATHS, writeIndex } from "./wiki";
 
@@ -177,4 +177,42 @@ export async function rebuildIndexFromPages(
 
   await writeIndex(wikiPath, renderIndex(next));
   return { totalPages: pageRows.length, added, removed };
+}
+
+/**
+ * Re-extracts the index entry for a single slug from the current page body
+ * on disk. Use this after any page edit so index.md doesn't drift out of
+ * sync with the underlying file. (Previously lint kept flagging "page X
+ * says A but index entry for X says B" after a successful page fix because
+ * the index summary was generated when the page still said B.)
+ *
+ * Safe to call on a slug that isn't in the DB or has no page file — it
+ * just no-ops in those cases.
+ */
+export async function refreshIndexEntryForSlug(
+  wikiPath: string,
+  db: Db,
+  slug: string,
+): Promise<void> {
+  const pageRow = getPage(db, slug);
+  if (!pageRow) return;
+  let page;
+  try {
+    page = await readPage(wikiPath, slug);
+  } catch {
+    return;
+  }
+  const summary = firstSentence(page.content);
+  const category = categoryForType(pageRow.type);
+
+  const indexPath = join(wikiPath, WIKI_PATHS.index);
+  let existingText = "";
+  try {
+    existingText = await readFile(indexPath, "utf8");
+  } catch {
+    existingText = "";
+  }
+  const entries = parseIndexEntries(existingText);
+  entries.set(slug, { category, summary });
+  await writeIndex(wikiPath, renderIndex(entries));
 }
