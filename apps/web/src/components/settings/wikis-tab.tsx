@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { SCHEMA_TEMPLATES, type SchemaTemplateId } from "@llm-wiki/core";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -45,6 +47,7 @@ export function WikisTab() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newTopic, setNewTopic] = useState("");
   const [newPath, setNewPath] = useState("");
+  const [newTemplate, setNewTemplate] = useState<SchemaTemplateId>("blank");
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -113,12 +116,13 @@ export function WikisTab() {
     }
     const ok = await doAction(
       "create",
-      { type: "create", path, topic },
-      `Created wiki at ${path}`,
+      { type: "create", path, topic, templateId: newTemplate },
+      `Created wiki at ${path}${newTemplate !== "blank" ? ` from "${newTemplate}" template` : ""}`,
     );
     if (ok) {
       setNewTopic("");
       setNewPath("");
+      setNewTemplate("blank");
       setCreateOpen(false);
     }
   }
@@ -295,6 +299,28 @@ export function WikisTab() {
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 Tilde (<code className="font-mono">~</code>) gets expanded to your home directory.
+              </p>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium" htmlFor="new-template">
+                Schema template
+              </label>
+              <select
+                id="new-template"
+                value={newTemplate}
+                onChange={(e) => setNewTemplate(e.target.value as SchemaTemplateId)}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {SCHEMA_TEMPLATES.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {SCHEMA_TEMPLATES.find((t) => t.id === newTemplate)?.description}{" "}
+                Pre-fills <code className="font-mono">CLAUDE.md</code> — edit any time in
+                Settings → Schema.
               </p>
             </div>
             <div className="flex gap-2">

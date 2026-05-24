@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import { stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
@@ -11,7 +12,11 @@ import {
   removeRecentWiki,
   saveWikiSettings,
   setActiveWiki,
+  getSchemaTemplate,
+  SCHEMA_TEMPLATES,
+  WIKI_PATHS,
   DEFAULT_WIKI_SETTINGS,
+  type SchemaTemplateId,
 } from "@llm-wiki/core";
 
 export const dynamic = "force-dynamic";
@@ -57,7 +62,13 @@ export async function GET() {
 }
 
 type SwitchBody = { type: "switch"; path: string };
-type CreateBody = { type: "create"; path: string; topic: string };
+type CreateBody = {
+  type: "create";
+  path: string;
+  topic: string;
+  /** Optional schema template id — defaults to "blank" if omitted. */
+  templateId?: SchemaTemplateId;
+};
 type RemoveBody = { type: "remove"; path: string };
 type Body = SwitchBody | CreateBody | RemoveBody;
 
@@ -145,6 +156,24 @@ async function handleCreate(body: CreateBody): Promise<Response> {
   // + .gitignore. Idempotent so re-creating an existing wiki is fine.
   await initWikiFolder(path);
 
+  // If the user picked a non-blank schema template, overwrite the freshly
+  // created CLAUDE.md with the template body. Skip when templateId is
+  // missing or "blank" — the default already wrote the blank version.
+  if (body.templateId && body.templateId !== "blank") {
+    const known = SCHEMA_TEMPLATES.find((t) => t.id === body.templateId);
+    if (known) {
+      const schemaPath = join(path, WIKI_PATHS.schema);
+      const template = getSchemaTemplate(body.templateId);
+      // Inject the topic into the template's "## Topic" section so the user
+      // doesn't see a redundant placeholder right after picking one.
+      const populated = template.body.replace(
+        /## Topic\n\n\([^)]*\)/,
+        `## Topic\n\n${topic}`,
+      );
+      await writeFile(schemaPath, populated, "utf8");
+    }
+  }
+
   // Stamp the topic into per-wiki settings so the LLM has scope from
   // operation one.
   const existing = await loadWikiSettings(path);
@@ -156,7 +185,12 @@ async function handleCreate(body: CreateBody): Promise<Response> {
 
   await setActiveWiki(path);
 
-  return NextResponse.json({ ok: true, active: path, topic });
+  return NextResponse.json({
+    ok: true,
+    active: path,
+    topic,
+    template: body.templateId ?? "blank",
+  });
 }
 
 async function handleRemove(body: RemoveBody): Promise<Response> {
