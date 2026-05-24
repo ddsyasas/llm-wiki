@@ -27,19 +27,15 @@ Things that complete the V1 promise. Roughly ordered by impact-per-effort.
 
 ### Quick wins (≤ 1 hour each)
 
-- **Active-wiki indicator on small screens.** Header chip is `hidden sm:block`; mobile users have no quick-switch affordance. Either show it in the hamburger menu or add a separate compact variant.
-- **"Replay welcome tour" button** in Settings → About. The 4-step wizard only fires once; some users want to re-watch it. Single button that POSTs a flag-clear and navigates to `/`.
-- **Footer "active wiki" hint.** Tiny text "Currently editing: <topic>" in the footer alongside the version. Belt-and-suspenders to the header chip.
-- **Cmd+K** — add "Toggle theme", "Open active wiki folder in editor" actions.
+*All four V1.x quick wins shipped 2026-05-24 — see dev-log section P (P1–P4). Next items here once new ones surface.*
 
 ### Medium (1–3 hours each)
 
-- **Per-page diff view when LLM updates a page** (P1 #11 from docs/04). Backups already exist at `.llm-wiki/page-history/`; just need a `/wiki/<slug>/history` route + diff renderer (use a diff library like `diff` or write a simple line-diff).
-- **Approval gate for ingestion** (P1 #12). Today ingest is auto-apply. Add a "review changes before applying" mode toggle in Settings → General. When on, ingest returns the planned changes as a preview; user clicks Apply to commit.
-- **Export wiki to zip** (P1 #13). Stream a `.zip` of `<wikiPath>/{CLAUDE.md, index.md, log.md, raw/, wiki/, chats/}` via a new `GET /api/wikis/<id>/export` route. Skips `.llm-wiki/` (regenerable).
-- **Onboarding gate on non-home routes.** Direct-bookmark to `/wiki` with no API key currently fails loud at the API. Middleware that redirects to `/` when key/topic missing.
-- **Wiki templates on Create.** Pre-fill `CLAUDE.md` from Research / Legal / Clinical / Project / Personal templates. Library of starter schemas committed to the repo.
-- **Quick switcher in command palette: "Search across all wikis"** — currently FTS5 is scoped to the active wiki. Cross-wiki search would need a separate query path that iterates registered wikis.
+*All six V1.x medium items shipped 2026-05-24 (dev-log section P): per-page diff view (P1 #11), approval gate (P1 #12), export to zip (P1 #13), setup gate via page-level helper, wiki templates, cross-wiki search in Cmd+K.*
+
+**Carryovers** still on the medium list:
+
+- **Convert client-page-only routes to server-wrapped views** for full setup-gate coverage. Today `requireSetup()` runs in `/wiki`, `/wiki/[slug]`, `/sources/[id]`, `/chats`, `/chats/[id]`, `/log`, `/graph`. Missed routes (`/sources`, `/query`, `/lint`, `/schema`) are "use client" components and still fail loud at the API layer with a no-key error instead of a redirect. Convert each to a server wrapper + client view to close the gap.
 
 ### Bigger (3+ hours each)
 
