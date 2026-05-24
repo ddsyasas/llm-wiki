@@ -252,16 +252,25 @@ export function WikisTab() {
             until you switch. Switching is two clicks — no restart needed.
           </p>
         </div>
-        {active?.exists ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <a
-            href="/api/wikis/export"
-            download
-            className="shrink-0 rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:border-primary/40 hover:bg-accent"
-            title="Download a zip of the active wiki (markdown + raw sources + chats + schema + index + log). Skips .llm-wiki/ metadata."
+            href="/dashboard"
+            className="rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:border-primary/40 hover:bg-accent"
+            title="Per-wiki page / source / chat counts + cumulative LLM spend across every wiki, sorted by recency."
           >
-            ↓ Export active wiki
+            ↗ Health dashboard
           </a>
-        ) : null}
+          {active?.exists ? (
+            <a
+              href="/api/wikis/export"
+              download
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:border-primary/40 hover:bg-accent"
+              title="Download a zip of the active wiki (markdown + raw sources + chats + schema + index + log). Skips .llm-wiki/ metadata."
+            >
+              ↓ Export active wiki
+            </a>
+          ) : null}
+        </div>
       </div>
 
       {flash ? (

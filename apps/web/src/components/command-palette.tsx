@@ -63,6 +63,7 @@ const STATIC_NAV_ACTIONS: Action[] = [
   { type: "navigate", id: "go-chats", label: "Chats", hint: "start or open a chat", group: "Go to", href: "/chats" },
   { type: "navigate", id: "go-lint", label: "Lint", hint: "wiki health check", group: "Go to", href: "/lint" },
   { type: "navigate", id: "go-log", label: "Log", hint: "wiki timeline", group: "Go to", href: "/log" },
+  { type: "navigate", id: "go-dashboard", label: "Dashboard", hint: "per-wiki stats + cumulative spend", group: "Go to", href: "/dashboard" },
   { type: "navigate", id: "go-schema", label: "Schema editor", hint: "edit CLAUDE.md", group: "Go to", href: "/schema" },
   { type: "navigate", id: "go-settings", label: "Settings", hint: "models, theme, API key", group: "Go to", href: "/settings" },
   { type: "navigate", id: "manage-wikis", label: "Manage wikis…", hint: "create, switch, remove", group: "Wikis", href: "/settings?tab=wikis" },
