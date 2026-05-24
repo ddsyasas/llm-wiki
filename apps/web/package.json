@@ -19,7 +19,9 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "cli": "node ./bin/llm-wiki.mjs"
+    "cli": "node ./bin/llm-wiki.mjs",
+    "build:publish": "pnpm build && node ./scripts/build-publish-tarball.mjs",
+    "pack:publish": "pnpm build:publish && cd dist-publish && npm pack"
   },
   "dependencies": {
     "@llm-wiki/core": "workspace:*",

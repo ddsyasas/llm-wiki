@@ -68,7 +68,6 @@ function linkEndpointId(end: unknown): string {
 export function VaultGraph({ data, initialSelectedId }: Props) {
   // Loose ref typing — the library's generic ref type is awkward and we only
   // use it for the cameraPosition method.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fgRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -145,7 +144,6 @@ export function VaultGraph({ data, initialSelectedId }: Props) {
 
   // Fly the camera to a node — distance scales with the node's position so
   // small/dense graphs and sparse ones both center nicely.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function flyTo(node: any) {
     const distance = 110;
     const dist = Math.hypot(node.x ?? 1, node.y ?? 1, node.z ?? 1) || 1;
@@ -169,7 +167,6 @@ export function VaultGraph({ data, initialSelectedId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSelectedId]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function handleNodeClick(node: any) {
     flyTo(node);
     setSelectedId(node.id);

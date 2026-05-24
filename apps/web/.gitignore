@@ -5,4 +5,6 @@ next-env.d.ts
 
 # Build
 dist/
+dist-publish/
 *.tsbuildinfo
+
