@@ -177,7 +177,8 @@ export default async function WikiIndexPage() {
                   <Link
                     key={p.slug}
                     href={`/wiki/${p.slug}`}
-                    className="group flex flex-col rounded-lg border border-border/70 bg-card p-5 transition-colors hover:border-primary/50 hover:bg-accent/30"
+                    prefetch
+                    className="group flex flex-col rounded-lg border border-border/70 bg-card p-5 transition-all duration-100 hover:border-primary/50 hover:bg-accent/30 active:scale-[0.99] active:bg-accent/40"
                   >
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">

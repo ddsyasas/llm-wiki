@@ -149,7 +149,7 @@ function StatTile({
   return (
     <Link
       href={href}
-      className="group rounded-lg border border-border/70 bg-card px-4 py-3 transition-colors hover:border-primary/40 hover:bg-accent/40"
+      className="group rounded-lg border border-border/70 bg-card px-4 py-3 transition-all duration-100 hover:border-primary/40 hover:bg-accent/40 active:scale-[0.99]"
     >
       <p className="text-caption uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="mt-1 font-display text-h2 font-semibold tabular-nums">{value}</p>
@@ -175,7 +175,7 @@ function ActionCard({
     <Link
       href={href}
       className={
-        "group flex flex-col rounded-lg border p-5 transition-colors " +
+        "group flex flex-col rounded-lg border p-5 transition-all duration-100 active:scale-[0.99] " +
         (primary
           ? "border-primary/40 bg-primary/[0.04] hover:border-primary/60 hover:bg-primary/[0.07]"
           : "border-border/70 bg-card hover:border-border")
