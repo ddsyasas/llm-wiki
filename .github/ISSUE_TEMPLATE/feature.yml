@@ -1,0 +1,77 @@
+name: 💡 Feature request
+description: Suggest something that would make LLM Wiki better
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. Before filing, please check:
+
+        - **[CONTRIBUTING.md](https://github.com/ddsyasas/llm-wiki/blob/main/CONTRIBUTING.md)** — has a prioritized list of "what we need." Your idea might already be on the roadmap.
+        - **[docs/14-roadmap.md](https://github.com/ddsyasas/llm-wiki/blob/main/docs/14-roadmap.md)** — V1.x / V2 / V3 plans.
+        - **[docs/01-vision.md](https://github.com/ddsyasas/llm-wiki/blob/main/docs/01-vision.md)** — design contract. If your idea contradicts the non-goals there, it's probably not a fit.
+
+        For "what if we did X" discussions that don't have a concrete proposal, prefer [GitHub Discussions](https://github.com/ddsyasas/llm-wiki/discussions) over an issue.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem you're trying to solve
+      description: |
+        What's the user pain point? Describe the situation, not the feature.
+
+        Bad: "Add a button to do X."
+        Good: "When my wiki has 200+ pages, scrolling the sidebar to find a specific page takes 30 seconds. There's no fast way to jump to one."
+      placeholder: "I'm trying to ___ but currently ___ which makes it hard to ___."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Your proposed solution
+      description: How would you solve it? Even rough sketches help.
+      placeholder: |
+        Example: "Add a fuzzy-search input at the top of the sidebar that filters page titles as you type (debounced 200ms). On Enter, jump to the top match."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: What else could solve the same problem? Why is your proposal better?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Which roadmap tier do you think this fits?
+      description: See [docs/14-roadmap.md](https://github.com/ddsyasas/llm-wiki/blob/main/docs/14-roadmap.md) for tier definitions.
+      options:
+        - V1.x — polish / fix-rough-edges within the existing app
+        - V2 — material expansion (new platform, new architecture, new big feature)
+        - V3 — different category (MCP, plugins, cloud)
+        - Not sure — let the maintainers decide
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: willing-to-contribute
+    attributes:
+      label: Are you willing to help build this?
+      description: Honest answer welcome either way. "I just want it" is fine; "I'll send a PR" is great.
+      options:
+        - label: I'd be willing to send a PR for this myself (with guidance if needed)
+        - label: I can help test it on my platform once someone builds it
+        - label: I'm just suggesting; I can't contribute code right now
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Mockups, links to similar features in other tools, edge cases you've thought about.
+    validations:
+      required: false

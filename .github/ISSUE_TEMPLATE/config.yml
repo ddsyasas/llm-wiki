@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/ddsyasas/llm-wiki/discussions
+    about: For open-ended questions, ideas, or "what if we did X" conversations that don't fit a bug report or feature request.
+  - name: 🔒 Security vulnerability
+    url: https://github.com/ddsyasas/llm-wiki/security/advisories/new
+    about: Don't open a public issue for security problems. Use private vulnerability reporting instead — only maintainers see it.
+  - name: 📖 Read the docs first
+    url: https://github.com/ddsyasas/llm-wiki/blob/main/CONTRIBUTING.md
+    about: CONTRIBUTING.md has a prioritized list of "what we need" plus links to the roadmap and design docs.

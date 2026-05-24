@@ -1,0 +1,100 @@
+name: 🐛 Bug report
+description: Something doesn't work as expected — broken feature, error, unexpected output
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. The more specific you can be, the faster we can fix it.
+
+        Before filing, please check:
+        - [Open issues](https://github.com/ddsyasas/llm-wiki/issues?q=is%3Aissue) — maybe someone already reported it
+        - [Closed issues](https://github.com/ddsyasas/llm-wiki/issues?q=is%3Aissue+is%3Aclosed) — maybe it's already fixed in a newer version
+        - The [Troubleshooting section](https://github.com/ddsyasas/llm-wiki#llm-wiki-command-not-found-after-install) of the README
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug in plain language. What did you expect, what actually happened?
+      placeholder: |
+        Example: "When I click the Export wiki button in Settings → Wikis, the download starts but the file is empty (0 bytes). I expected a .zip with my wiki contents."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal sequence to trigger the bug. The more precise, the better.
+      placeholder: |
+        1. `llm-wiki start ~/my-wiki`
+        2. Open http://localhost:3737/settings
+        3. Click "Wikis" tab
+        4. Click "↓ Export active wiki"
+        5. Observe: download starts but file is 0 bytes
+    validations:
+      required: true
+
+  - type: input
+    id: llm-wiki-version
+    attributes:
+      label: LLM Wiki version
+      description: Output of `llm-wiki version`
+      placeholder: "1.1.1"
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node version
+      description: Output of `node --version`
+      placeholder: "v20.18.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux — Ubuntu / Debian
+        - Linux — Fedora / RHEL
+        - Linux — Arch
+        - Linux — other
+        - Windows 11
+        - Windows 10
+        - WSL (Ubuntu on Windows)
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor-output
+    attributes:
+      label: Output of `llm-wiki doctor`
+      description: Paste the full output. Redact your API key if it appears.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / error messages
+      description: Anything from the terminal or browser console that looks related.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, hypothesis about the cause, workarounds you've tried — anything you think helps.
+    validations:
+      required: false

@@ -454,13 +454,21 @@ Hard rules from the design contract: **TypeScript everywhere** (no Python sideca
 
 ## Contributing
 
-PRs welcome. Before opening one:
+The product looks "done" because it ships features and works end-to-end — but a lot of meaningful work remains, and there's a prioritized list of "what we actually need" in **[CONTRIBUTING.md](CONTRIBUTING.md)**. Start there.
 
-1. Read [`CLAUDE.md`](CLAUDE.md) at the repo root — the do/don't list.
-2. Skim [`docs/01-vision.md`](docs/01-vision.md) for the design contract — V1 scope is deliberately small.
-3. Check [`docs/dev-log.md`](docs/dev-log.md) "Open questions for future sessions" — that's the work-needed list.
-4. Run the tests: `pnpm -r --filter @llm-wiki/core test --run`
-5. Typecheck: `pnpm -r exec tsc --noEmit`
+Other community files:
+
+- 📋 [**CONTRIBUTING.md**](CONTRIBUTING.md) — prioritized task list (Quick wins / Medium / Big), what we don't want, dev setup, PR conventions
+- 🤝 [**CODE_OF_CONDUCT.md**](CODE_OF_CONDUCT.md) — Contributor Covenant 2.1, summarized
+- 🔒 [**SECURITY.md**](SECURITY.md) — security policy, how to report vulnerabilities privately
+- 🐛 [**Open issues**](https://github.com/ddsyasas/llm-wiki/issues) — pick something tagged `good-first-issue` to start
+- 💬 [**GitHub Discussions**](https://github.com/ddsyasas/llm-wiki/discussions) — for "what if we did X" conversations
+
+First-time contributor? Quickest path:
+
+1. Read [`CLAUDE.md`](CLAUDE.md) (project do/don't list, 5 min)
+2. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) (prioritized work list, 10 min)
+3. Pick a "Quick win" item, open an issue to claim it, send a PR.
 
 ---
 
