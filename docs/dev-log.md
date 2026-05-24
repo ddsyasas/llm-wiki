@@ -360,6 +360,26 @@ Closes the user's "don't we lose data?" concern with UI. Every wiki page already
 
 Sources list rows on `/sources` were also made into `Link`s to `/sources/[id]` (previously inert div rows).
 
+### K. Multi-wiki switcher — adds `docs/13-multi-wiki.md` + Settings → Wikis tab
+
+User flagged that the app could only hold one wiki at a time. Real limitation — a physicist might want "Quantum computing" but also a separate "Machine learning research" wiki, and the current per-folder workflow required restarting the dev server with a different env var. Discussed four approaches (env-var swap, CLI port juggling, in-app switcher, full URL namespacing); user picked the in-app switcher (option C). Full design in **`docs/13-multi-wiki.md`**.
+
+**Core change**: `resolveWikiPath()` in `apps/web/src/lib/server-wiki.ts` now checks env → global config `activeWiki` → default, in that order. Sync read of `~/.llm-wiki/config.json` because it runs in server-component render paths and the file is tiny + OS-cached. Every existing API route inherits the new behavior transparently — no per-route changes needed.
+
+**Config additions** in `packages/core/src/config.ts`: new `activeWiki?: string` field on `GlobalConfig`, new `setActiveWiki(path)` + `removeRecentWiki(path)` helpers. The latter clears `activeWiki` when the active wiki itself is removed, so resolveWikiPath cleanly falls back to the default. 6 new config-test cases (12 → 18 passing).
+
+**API**: new `apps/web/src/app/api/wikis/route.ts` — `GET` lists recents with topic + on-disk-exists check enriched server-side; `POST` is discriminated by `type: "switch" | "create" | "remove"`. Tilde expansion + `resolve()` normalize user-pasted paths. Switch requires the path to exist (no auto-create on plain switch); create runs `initWikiFolder` + stamps the topic into per-wiki settings.
+
+**UI**: new `WikisTab` slots into the Settings tabs strip between General and Models. Active wiki rendered at the top with a primary-color border + "active" chip; other recents listed below with Switch + Remove. Inline create form (collapsed by default) auto-fills the folder path from the topic via slugify (`~/llm-wiki-<slug>`). After every successful mutation, `router.refresh()` re-renders every server component so the new wiki shows up app-wide without a hard reload.
+
+**Decisions worth flagging:**
+- The env var (`LLM_WIKI_PATH`) still wins over the global config when set — explicit override for CI, scripting, advanced CLI use. Most users will leave it unset and the picker becomes canonical.
+- Remove action is config-only — never touches the on-disk wiki folder. Data safety > convenience.
+- One wiki active per app instance. To browse two truly side-by-side, run two dev servers on different ports (no V1 work needed for that path; documented in Help → Multiple wikis).
+- True URL-namespaced multi-tenancy (`/w/<id>/...`) is V2 — would let multiple wikis be visible in different browser tabs simultaneously. Additive on top of this switcher when it becomes worth doing.
+
+About + Help pages updated with multi-wiki sections. Help TOC gets a "Multiple wikis — switching + creating" entry near the top.
+
 ### J. v1.0 release — README rewrite, version bump, GitHub release
 
 After the graph view shipped, the project crossed the "this is genuinely a v1 product" threshold. Closed out the release prep:

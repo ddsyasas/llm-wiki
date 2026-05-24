@@ -15,6 +15,13 @@ export type GlobalConfig = {
   version: 1;
   /** Present only when keychain is unavailable. See secrets.ts. */
   openrouterKey?: string;
+  /**
+   * The wiki folder the app is currently pointing at. Written by the
+   * Settings → Wikis picker. Consulted by apps/web's resolveWikiPath()
+   * after env-var override and before the fallback default. Absent on
+   * first run.
+   */
+  activeWiki?: string;
   recentWikis: string[];
   uiTheme: UiTheme;
 };
@@ -46,6 +53,9 @@ function parseGlobalConfig(raw: unknown): GlobalConfig {
 
   if (typeof data["openrouterKey"] === "string" && data["openrouterKey"].length > 0) {
     out.openrouterKey = data["openrouterKey"];
+  }
+  if (typeof data["activeWiki"] === "string" && data["activeWiki"].length > 0) {
+    out.activeWiki = data["activeWiki"];
   }
   if (Array.isArray(data["recentWikis"])) {
     out.recentWikis = data["recentWikis"].filter((v): v is string => typeof v === "string");
@@ -92,6 +102,46 @@ export async function addRecentWiki(wikiPath: string): Promise<GlobalConfig> {
   const current = await loadGlobalConfig();
   const filtered = current.recentWikis.filter((p) => p !== wikiPath);
   const next: GlobalConfig = { ...current, recentWikis: [wikiPath, ...filtered].slice(0, 10) };
+  await saveGlobalConfig(next);
+  return next;
+}
+
+/**
+ * Marks `wikiPath` as the active wiki for the app. The next call to
+ * resolveWikiPath() (which reads this on every request) picks it up, so
+ * the whole UI re-points to the new wiki without a server restart.
+ *
+ * Also adds the path to `recentWikis` so it shows up in the picker.
+ */
+export async function setActiveWiki(wikiPath: string): Promise<GlobalConfig> {
+  const current = await loadGlobalConfig();
+  const filtered = current.recentWikis.filter((p) => p !== wikiPath);
+  const next: GlobalConfig = {
+    ...current,
+    activeWiki: wikiPath,
+    recentWikis: [wikiPath, ...filtered].slice(0, 10),
+  };
+  await saveGlobalConfig(next);
+  return next;
+}
+
+/**
+ * Drops a path from `recentWikis`. If it was also the active wiki, the
+ * active field is cleared so resolveWikiPath() falls back to the default.
+ * Does NOT touch the on-disk wiki folder — pure config edit.
+ */
+export async function removeRecentWiki(wikiPath: string): Promise<GlobalConfig> {
+  const current = await loadGlobalConfig();
+  const next: GlobalConfig = {
+    ...current,
+    recentWikis: current.recentWikis.filter((p) => p !== wikiPath),
+  };
+  if (current.activeWiki === wikiPath) {
+    const { activeWiki: _drop, ...rest } = next;
+    void _drop;
+    await saveGlobalConfig({ ...rest, version: 1 });
+    return { ...rest, version: 1 };
+  }
   await saveGlobalConfig(next);
   return next;
 }

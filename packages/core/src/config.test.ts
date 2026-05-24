@@ -11,8 +11,10 @@ import {
   globalConfigPath,
   loadGlobalConfig,
   loadWikiSettings,
+  removeRecentWiki,
   saveGlobalConfig,
   saveWikiSettings,
+  setActiveWiki,
   wikiSettingsPath,
 } from "./config";
 import { initWikiFolder } from "./wiki";
@@ -99,6 +101,52 @@ describe("addRecentWiki", () => {
     }
     expect(cfg.recentWikis).toHaveLength(10);
     expect(cfg.recentWikis[0]).toBe("/wiki-11");
+  });
+});
+
+describe("setActiveWiki", () => {
+  it("writes activeWiki + adds the path to recents", async () => {
+    const cfg = await setActiveWiki("/wiki-physics");
+    expect(cfg.activeWiki).toBe("/wiki-physics");
+    expect(cfg.recentWikis[0]).toBe("/wiki-physics");
+  });
+
+  it("moves an existing recent to the front when re-activated", async () => {
+    await setActiveWiki("/wiki-a");
+    await setActiveWiki("/wiki-b");
+    const cfg = await setActiveWiki("/wiki-a");
+    expect(cfg.activeWiki).toBe("/wiki-a");
+    expect(cfg.recentWikis).toEqual(["/wiki-a", "/wiki-b"]);
+  });
+
+  it("persists across loads", async () => {
+    await setActiveWiki("/wiki-x");
+    const loaded = await loadGlobalConfig();
+    expect(loaded.activeWiki).toBe("/wiki-x");
+  });
+});
+
+describe("removeRecentWiki", () => {
+  it("drops the entry from recents and leaves others alone", async () => {
+    await addRecentWiki("/a");
+    await addRecentWiki("/b");
+    await addRecentWiki("/c");
+    const cfg = await removeRecentWiki("/b");
+    expect(cfg.recentWikis).toEqual(["/c", "/a"]);
+  });
+
+  it("clears activeWiki when removing the currently-active wiki", async () => {
+    await setActiveWiki("/wiki-active");
+    const cfg = await removeRecentWiki("/wiki-active");
+    expect(cfg.activeWiki).toBeUndefined();
+    expect(cfg.recentWikis).not.toContain("/wiki-active");
+  });
+
+  it("preserves activeWiki when removing a different recent", async () => {
+    await setActiveWiki("/wiki-active");
+    await addRecentWiki("/other");
+    const cfg = await removeRecentWiki("/other");
+    expect(cfg.activeWiki).toBe("/wiki-active");
   });
 });
 

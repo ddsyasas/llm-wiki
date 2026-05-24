@@ -98,6 +98,24 @@ export default function AboutPage() {
         </p>
       </Section>
 
+      <Section
+        eyebrow="One wiki, or several"
+        title="A wiki per topic — switch with one click"
+      >
+        <p>
+          A wiki is meant to focus on one topic — the schema you set on first
+          run keeps the LLM on scope. For separate topics (say{" "}
+          <em>Physics</em>, <em>ML research</em>, and a{" "}
+          <em>Personal knowledge base</em>) you keep separate wiki folders and
+          switch between them in{" "}
+          <Link href="/settings" className="text-primary underline underline-offset-2">
+            Settings → Wikis
+          </Link>
+          . Switching re-points the whole app on the next request — no restart,
+          no port juggling. Each wiki is its own folder you fully own.
+        </p>
+      </Section>
+
       <Section eyebrow="Who it's for" title="If any of these describe you">
         <ul className="space-y-2">
           {AUDIENCE.map((row) => (

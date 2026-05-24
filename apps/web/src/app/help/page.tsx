@@ -84,6 +84,50 @@ export default function HelpPage() {
         </ul>
       </Section>
 
+      <Section id="wikis" eyebrow="Multiple wikis" title="Holding more than one wiki">
+        <p>
+          A wiki is meant to focus on one topic (the schema you set on first run
+          tells the LLM what scope it should stay inside). For separate topics —
+          say <em>Physics</em>, <em>Machine learning research</em>, and a{" "}
+          <em>Personal knowledge base</em> — you keep separate wiki folders and
+          switch between them.
+        </p>
+        <p>
+          Open{" "}
+          <Link
+            href="/settings"
+            className="text-primary underline underline-offset-2"
+          >
+            Settings → Wikis
+          </Link>
+          . You'll see your currently-active wiki at the top and any others
+          you've created or visited. Two things you can do:
+        </p>
+        <ul className="space-y-1">
+          <li>
+            <strong>Switch</strong> — click Switch on a row. The whole app
+            re-points to that wiki on the next request. No restart, no port
+            change. Your other wiki stays exactly where it is on disk.
+          </li>
+          <li>
+            <strong>Create new wiki</strong> — give it a topic + folder path,
+            click Create + switch. The folder is created, schema initialized,
+            you land on the dashboard ready to add sources.
+          </li>
+        </ul>
+        <p>
+          The active wiki is per-app-install (not per-browser-tab). If you want
+          to browse two wikis truly side-by-side, run two dev servers on
+          different ports — one terminal with <code>LLM_WIKI_PATH=~/wiki-a pnpm dev</code>{" "}
+          and another with <code>LLM_WIKI_PATH=~/wiki-b pnpm dev</code>.
+        </p>
+        <p>
+          Removing a wiki from the picker only edits the config — the folder +
+          files stay on disk. If you really want to delete a wiki, remove the
+          folder yourself (<code>rm -rf ~/wiki-foo</code>).
+        </p>
+      </Section>
+
       <Section
         id="setup"
         eyebrow="First-run"
@@ -550,6 +594,7 @@ function Trouble({ symptom, fix }: { symptom: string; fix: string }) {
 
 const TOC: Array<{ id: string; label: string }> = [
   { id: "overview", label: "Mental model — three layers, three operations" },
+  { id: "wikis", label: "Multiple wikis — switching + creating" },
   { id: "setup", label: "First-run: topic + API key" },
   { id: "sources", label: "Sources — getting content in" },
   { id: "wiki", label: "The wiki — browsing your pages" },
