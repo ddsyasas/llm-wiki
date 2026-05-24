@@ -151,17 +151,31 @@ export default function LintPage() {
   // Lint history — loaded on mount + re-fetched after every successful run
   // so the "Recent runs" panel reflects the just-appended log entry.
   const [history, setHistory] = useState<LintHistoryEntry[] | null>(null);
+  const [logPath, setLogPath] = useState<string | null>(null);
+  const [pathCopied, setPathCopied] = useState(false);
 
   const refreshHistory = useCallback(async () => {
     try {
       const res = await fetch("/api/lint/history?limit=10", { cache: "no-store" });
       if (!res.ok) return;
-      const data = (await res.json()) as { history: LintHistoryEntry[] };
+      const data = (await res.json()) as { history: LintHistoryEntry[]; wikiPath?: string };
       setHistory(data.history);
+      if (data.wikiPath) setLogPath(`${data.wikiPath}/log.md`);
     } catch {
       // non-fatal — the panel just stays empty
     }
   }, []);
+
+  async function copyLogPath() {
+    if (!logPath) return;
+    try {
+      await navigator.clipboard.writeText(logPath);
+      setPathCopied(true);
+      setTimeout(() => setPathCopied(false), 1500);
+    } catch {
+      // clipboard API can be blocked; ignore silently
+    }
+  }
 
   useEffect(() => {
     void refreshHistory();
@@ -423,9 +437,8 @@ export default function LintPage() {
           {history.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No lint runs yet. Click <strong>Run lint</strong> to record the first one — the
-              count + health rating gets appended to{" "}
-              <code className="font-mono">log.md</code> so you can track wiki health over
-              time.
+              count + health rating gets appended to <code className="font-mono">log.md</code>{" "}
+              so you can track wiki health over time.
             </p>
           ) : (
             <ul className="space-y-1.5 text-sm">
@@ -473,6 +486,23 @@ export default function LintPage() {
               })}
             </ul>
           )}
+          {logPath ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+              <span>Full history at</span>
+              <code className="font-mono break-all text-foreground/80">{logPath}</code>
+              <button
+                type="button"
+                onClick={copyLogPath}
+                className="rounded border border-border bg-background px-1.5 py-0.5 hover:bg-accent"
+                title="Copy path to clipboard"
+              >
+                {pathCopied ? "copied" : "copy"}
+              </button>
+              <span className="text-muted-foreground/70">
+                · open in Obsidian, VS Code, or <code className="font-mono">cat</code> it
+              </span>
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -527,14 +557,10 @@ export default function LintPage() {
                   </span>
                 );
               })()}
-              <span>· full history in {" "}
-                <code className="font-mono">log.md</code>
-              </span>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">
-              First lint run on this wiki. Future runs will compare against this baseline
-              (recorded in <code className="font-mono">log.md</code>).
+              First lint run on this wiki. Future runs will compare against this baseline.
             </p>
           )}
 
