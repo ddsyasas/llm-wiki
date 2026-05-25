@@ -44,12 +44,7 @@ export async function POST(req: Request) {
   const contentType = req.headers.get("content-type") ?? "";
 
   const { key } = await getApiKey();
-  if (!key) {
-    return NextResponse.json(
-      { error: "OpenRouter API key not configured. Set one in Settings." },
-      { status: 400 },
-    );
-  }
+  const apiKey = key || "";
 
   try {
     if (contentType.startsWith("multipart/form-data")) {
@@ -86,8 +81,16 @@ async function handleText(
   apiKey: string,
 ): Promise<Response> {
   const ctx = await openWikiContext();
-  const client = createClient(apiKey);
-  const model = modelOverride ?? ctx.settings.defaultModels.ingest;
+  const provider = ctx.settings.defaultModels.ingest.provider;
+  if (provider === "openrouter" && !apiKey) {
+    ctx.db.close();
+    return NextResponse.json(
+      { error: "OpenRouter API key not configured. Set one in Settings." },
+      { status: 400 },
+    );
+  }
+  const client = createClient(apiKey, provider);
+  const model = modelOverride ?? ctx.settings.defaultModels.ingest.model;
   const dryRun = ctx.settings.requireApprovalForIngest;
   try {
     const result = await ingestPastedText({
@@ -106,6 +109,7 @@ async function handleText(
       model,
       response: result.response,
       kind: dryRun ? "preview" : "applied",
+      providerUsed: provider,
     });
   } finally {
     ctx.db.close();
@@ -131,8 +135,16 @@ async function handleUrl(
   const title = titleOverride?.trim() || extracted.title;
 
   const ctx = await openWikiContext();
-  const client = createClient(apiKey);
-  const model = modelOverride ?? ctx.settings.defaultModels.ingest;
+  const provider = ctx.settings.defaultModels.ingest.provider;
+  if (provider === "openrouter" && !apiKey) {
+    ctx.db.close();
+    return NextResponse.json(
+      { error: "OpenRouter API key not configured. Set one in Settings." },
+      { status: 400 },
+    );
+  }
+  const client = createClient(apiKey, provider);
+  const model = modelOverride ?? ctx.settings.defaultModels.ingest.model;
   const dryRun = ctx.settings.requireApprovalForIngest;
   try {
     const saved = await saveRawSource({
@@ -161,6 +173,7 @@ async function handleUrl(
       model,
       kind: dryRun ? "preview" : "applied",
       response,
+      providerUsed: provider,
     });
   } finally {
     ctx.db.close();
@@ -195,9 +208,19 @@ async function handleFileUpload(req: Request, apiKey: string): Promise<Response>
   if ("title" in extracted) extracted.title = title;
 
   const ctx = await openWikiContext();
-  const client = createClient(apiKey);
-  const visionModel = modelOverride ?? ctx.settings.defaultModels.vision;
-  const textModel = modelOverride ?? ctx.settings.defaultModels.ingest;
+  const provider = extracted.kind === "vision"
+    ? ctx.settings.defaultModels.vision.provider
+    : ctx.settings.defaultModels.ingest.provider;
+  if (provider === "openrouter" && !apiKey) {
+    ctx.db.close();
+    return NextResponse.json(
+      { error: "OpenRouter API key not configured. Set one in Settings." },
+      { status: 400 },
+    );
+  }
+  const client = createClient(apiKey, provider);
+  const visionModel = modelOverride ?? ctx.settings.defaultModels.vision.model;
+  const textModel = modelOverride ?? ctx.settings.defaultModels.ingest.model;
   const dryRun = ctx.settings.requireApprovalForIngest;
 
   try {
@@ -245,6 +268,7 @@ async function handleFileUpload(req: Request, apiKey: string): Promise<Response>
       model: modelUsed,
       response,
       kind: dryRun ? "preview" : "applied",
+      providerUsed: provider,
     });
   } finally {
     ctx.db.close();
@@ -295,6 +319,7 @@ function ingestSuccess(args: {
   model: string;
   response: IngestResponse;
   kind: "applied" | "preview";
+  providerUsed?: string;
 }) {
   return NextResponse.json({
     ok: true,
@@ -303,6 +328,7 @@ function ingestSuccess(args: {
     sourceId: args.sourceId,
     rawFilename: args.rawFilename,
     model: args.model,
+    providerUsed: args.providerUsed,
     // Short-form response (always returned) — drives the user-facing
     // summary UI. When kind === "preview", the client also reads
     // `fullResponse` below so it can re-send the proposal to

@@ -90,21 +90,36 @@ export function ChatView({ chatId, initialChat, knownSlugs, folders }: Props) {
     setChat((prev) => ({ ...prev, messages: [...prev.messages, optimisticUser] }));
     const sent = input;
     setInput("");
+    console.log(`%c[Chat Send] User message: "${sent}"`, "color: #3b82f6; font-weight: bold;");
     try {
       const res = await fetch(`/api/chats/${chatId}/messages`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ message: sent }),
       });
-      const json = (await res.json()) as { ok?: true; assistant?: ChatMessage; error?: string };
+      const json = (await res.json()) as {
+        ok?: true;
+        assistant?: ChatMessage;
+        error?: string;
+        providerUsed?: string;
+        modelUsed?: string;
+      };
       if (!res.ok || !json.ok || !json.assistant) {
         throw new Error(json.error ?? `HTTP ${res.status}`);
       }
+      console.log(
+        `%c[Chat Success] Selected ${json.providerUsed || "unknown"} to chat: "${sent}" -> Status: Success`,
+        "color: #10b981; font-weight: bold;",
+      );
+      console.log(`%c[Chat Success] Model used: ${json.modelUsed || "unknown"}`, "color: #10b981;");
       // Re-read the chat so we get the canonical message list with server-side
       // timestamps + row metadata.
       await refreshChat();
       router.refresh(); // bumps the sidebar
     } catch (err) {
+      console.error(
+        `[Chat Failed] message: "${sent}" -> Status: Failed. Error: ${(err as Error).message}`,
+      );
       setSendError((err as Error).message);
       // Roll back the optimistic user message so the user can retry.
       setChat((prev) => ({ ...prev, messages: prev.messages.slice(0, -1) }));

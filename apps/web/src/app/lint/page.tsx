@@ -8,6 +8,6 @@ export const dynamic = "force-dynamic";
 // the client view and fail loud at /api/lint with a no-key error instead
 // of redirecting to onboarding.
 export default async function LintPage() {
-  await requireSetup();
+  await requireSetup("lint");
   return <LintView />;
 }

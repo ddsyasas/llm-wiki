@@ -158,14 +158,15 @@ async function handleCreateStubPage(
   }
 
   const { key } = await getApiKey();
-  if (!key) {
+  const provider = ctx.settings.defaultModels.ingest.provider;
+  if (provider === "openrouter" && !key) {
     return NextResponse.json(
       { error: "OpenRouter API key not configured. Set one in Settings." },
       { status: 400 },
     );
   }
-  const client = createClient(key);
-  const model = ctx.settings.defaultModels.ingest;
+  const client = createClient(key || "", provider);
+  const model = ctx.settings.defaultModels.ingest.model;
 
   // Gather the existing pages that reference the missing slug — gives the
   // LLM concrete context so the stub fits the wiki's voice.
@@ -213,14 +214,15 @@ async function handleApplySuggestedFix(
     );
   }
   const { key } = await getApiKey();
-  if (!key) {
+  const provider = ctx.settings.defaultModels.lint.provider;
+  if (provider === "openrouter" && !key) {
     return NextResponse.json(
       { error: "OpenRouter API key not configured. Set one in Settings." },
       { status: 400 },
     );
   }
-  const client = createClient(key);
-  const model = ctx.settings.defaultModels.lint;
+  const client = createClient(key || "", provider);
+  const model = ctx.settings.defaultModels.lint.model;
 
   try {
     const result = await applyLintSuggestedFix({

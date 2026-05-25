@@ -38,15 +38,18 @@ export async function POST(
   }
 
   const { key } = await getApiKey();
-  if (!key) {
-    return NextResponse.json(
-      { error: "OpenRouter API key not configured. Set one in Settings." },
-      { status: 400 },
-    );
-  }
 
   const ctx = await openWikiContext();
   try {
+    const provider = ctx.settings.defaultModels.ingest.provider;
+    if (provider === "openrouter" && !key) {
+      ctx.db.close();
+      return NextResponse.json(
+        { error: "OpenRouter API key not configured. Set one in Settings." },
+        { status: 400 },
+      );
+    }
+
     const source = getSource(ctx.db, params.id);
     if (!source) {
       return NextResponse.json(
@@ -69,8 +72,8 @@ export async function POST(
       );
     }
 
-    const client = createClient(key);
-    const model = body.modelOverride ?? ctx.settings.defaultModels.ingest;
+    const client = createClient(key || "", provider);
+    const model = body.modelOverride ?? ctx.settings.defaultModels.ingest.model;
     const title = source.title?.trim() || source.original_name || source.filename;
 
     let response: IngestResponse;
@@ -106,6 +109,8 @@ export async function POST(
       ok: true,
       sourceId: source.id,
       model,
+      modelUsed: model,
+      providerUsed: provider,
       response: {
         summary: response.summary,
         newPages: response.newPages.map((p) => ({

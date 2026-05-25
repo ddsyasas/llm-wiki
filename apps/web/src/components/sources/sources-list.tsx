@@ -89,6 +89,11 @@ export function SourcesList({ refreshNonce }: Props) {
     setBusyId(s.id);
     setActionFlash(null);
     setError(null);
+    const sourceLabel = s.title?.trim() || s.filename;
+    console.log(
+      `%c[Ingest Retry Send] Retrying ingestion for source: "${sourceLabel}"`,
+      "color: #3b82f6; font-weight: bold;"
+    );
     try {
       const res = await fetch(`/api/sources/${s.id}/retry`, {
         method: "POST",
@@ -98,12 +103,22 @@ export function SourcesList({ refreshNonce }: Props) {
       const json = (await res.json()) as {
         ok?: boolean;
         error?: string;
+        providerUsed?: string;
+        modelUsed?: string;
         response?: {
           newPages: Array<{ slug: string; title: string }>;
           pageUpdates: Array<{ slug: string }>;
         };
       };
       if (!res.ok || !json.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      console.log(
+        `%c[Ingest Retry Success] Selected ${json.providerUsed || "unknown"} to ingest: "${sourceLabel}" -> Status: Success`,
+        "color: #10b981; font-weight: bold;"
+      );
+      console.log(
+        `%c[Ingest Retry Success] Model used: ${json.modelUsed || "unknown"}`,
+        "color: #10b981;"
+      );
       const newN = json.response?.newPages.length ?? 0;
       const updN = json.response?.pageUpdates.length ?? 0;
       setActionFlash(
@@ -111,6 +126,9 @@ export function SourcesList({ refreshNonce }: Props) {
       );
       await fetchSources();
     } catch (err) {
+      console.error(
+        `[Ingest Retry Failed] source: "${sourceLabel}" -> Status: Failed. Error: ${(err as Error).message}`
+      );
       setError((err as Error).message);
     } finally {
       setBusyId(null);

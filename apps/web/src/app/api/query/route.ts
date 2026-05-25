@@ -25,16 +25,16 @@ export async function POST(req: Request) {
   }
 
   const { key } = await getApiKey();
-  if (!key) {
+  const ctx = await openWikiContext();
+  const provider = ctx.settings.defaultModels.query.provider;
+  if (provider === "openrouter" && !key) {
     return NextResponse.json(
       { error: "OpenRouter API key not configured. Set one in Settings." },
       { status: 400 },
     );
   }
-
-  const ctx = await openWikiContext();
-  const client = createClient(key);
-  const model = body.model ?? ctx.settings.defaultModels.query;
+  const client = createClient(key || "", provider);
+  const model = body.model ?? ctx.settings.defaultModels.query.model;
 
   try {
     const response = await queryWiki({

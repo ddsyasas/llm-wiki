@@ -14,7 +14,11 @@ import { openWikiContext, resolveWikiPath } from "@/lib/server-wiki";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: { needsKey?: string };
+}) {
   const ctx = await openWikiContext();
   let pageCount = 0;
   let sourceCount = 0;
@@ -46,7 +50,7 @@ export default async function HomePage() {
     loadGlobalConfig(),
   ]);
   const needsTopic = topic.trim().length === 0;
-  const needsKey = apiKeyStatus.key === null;
+  const needsKey = searchParams.needsKey === "1";
   // `onboardingCompletedAt` absent means either (a) brand-new install or
   // (b) the user just clicked Settings → About → "Replay welcome tour",
   // which clears the flag. In both cases we want the 4-step wizard, even

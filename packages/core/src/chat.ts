@@ -409,7 +409,7 @@ async function readChatModel(wikiPath: string, row: ChatRow): Promise<string> {
   }
   try {
     const settings = await loadWikiSettings(wikiPath);
-    return settings.defaultModels.chat;
+    return settings.defaultModels.chat.model;
   } catch {
     return DEFAULT_MODELS.chat;
   }
