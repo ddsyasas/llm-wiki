@@ -1,8 +1,24 @@
-# LLM Wiki
+<p align="center">
+  <img src="apps/web/public/logo-hero.svg" alt="LLM Wiki" width="600">
+</p>
 
-> **A personal Wikipedia an LLM maintains for you.** Drop in articles, papers, notes, PDFs, or URLs — an agent compiles them into a cross-linked markdown wiki you fully own. Knowledge compounds: each new source makes every page richer, not just one new page longer.
+<h1 align="center">LLM Wiki</h1>
 
-Open source · Local-first · Bring-your-own-key · MIT · v1.1.1
+<p align="center">
+  <strong>A personal Wikipedia an LLM maintains for you.</strong><br>
+  Drop in articles, papers, notes, PDFs, or URLs — an agent compiles them into a cross-linked markdown wiki you fully own. Knowledge compounds: each new source makes every page richer, not just one new page longer.
+</p>
+
+<p align="center">
+  Open source · Local-first · Bring-your-own-key · MIT · v1.1.1
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@syasas/llm-wiki"><img src="https://img.shields.io/npm/v/@syasas/llm-wiki?color=991b1b&label=npm" alt="npm version"></a>
+  <a href="https://github.com/ddsyasas/llm-wiki/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
+  <a href="https://github.com/ddsyasas/llm-wiki/releases/latest"><img src="https://img.shields.io/github/v/release/ddsyasas/llm-wiki?color=991b1b" alt="latest release"></a>
+  <a href="https://github.com/ddsyasas/llm-wiki/blob/main/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome"></a>
+</p>
 
 This is a from-scratch implementation of [Andrej Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f), released April 2026.
 
