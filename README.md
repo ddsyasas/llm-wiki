@@ -459,6 +459,7 @@ The product looks "done" because it ships features and works end-to-end — but 
 Other community files:
 
 - 📋 [**CONTRIBUTING.md**](CONTRIBUTING.md) — prioritized task list (Quick wins / Medium / Big), what we don't want, dev setup, PR conventions
+- 🚶 [**docs/contributor-walkthrough.md**](docs/contributor-walkthrough.md) — never sent a pull request before? Step-by-step walkthrough of the fork → clone → branch → commit → push → PR flow with exact commands
 - 🤝 [**CODE_OF_CONDUCT.md**](CODE_OF_CONDUCT.md) — Contributor Covenant 2.1, summarized
 - 🔒 [**SECURITY.md**](SECURITY.md) — security policy, how to report vulnerabilities privately
 - 🐛 [**Open issues**](https://github.com/ddsyasas/llm-wiki/issues) — pick something tagged `good-first-issue` to start
@@ -466,9 +467,10 @@ Other community files:
 
 First-time contributor? Quickest path:
 
-1. Read [`CLAUDE.md`](CLAUDE.md) (project do/don't list, 5 min)
-2. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) (prioritized work list, 10 min)
-3. Pick a "Quick win" item, open an issue to claim it, send a PR.
+1. Read [`docs/contributor-walkthrough.md`](docs/contributor-walkthrough.md) if you've never done open source before (skip if you have)
+2. Read [`CLAUDE.md`](CLAUDE.md) (project do/don't list, 5 min)
+3. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) (prioritized work list, 10 min)
+4. Pick a "Quick win" item, open an issue to claim it, send a PR.
 
 ---
 

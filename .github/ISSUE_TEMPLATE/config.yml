@@ -6,6 +6,9 @@ contact_links:
   - name: 🔒 Security vulnerability
     url: https://github.com/ddsyasas/llm-wiki/security/advisories/new
     about: Don't open a public issue for security problems. Use private vulnerability reporting instead — only maintainers see it.
+  - name: 🚶 Never sent a pull request before?
+    url: https://github.com/ddsyasas/llm-wiki/blob/main/docs/contributor-walkthrough.md
+    about: Step-by-step walkthrough of the fork → branch → commit → push → PR flow with exact commands. Read this before you start coding.
   - name: 📖 Read the docs first
     url: https://github.com/ddsyasas/llm-wiki/blob/main/CONTRIBUTING.md
     about: CONTRIBUTING.md has a prioritized list of "what we need" plus links to the roadmap and design docs.

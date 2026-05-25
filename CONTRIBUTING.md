@@ -2,7 +2,9 @@
 
 Thanks for considering a contribution. This file exists because the app looks "done" — it ships features, has tests, is on npm — but a lot of meaningful work remains, and it's not obvious from the outside what would actually help. Below is a clear "what we need and where this is going" so you can pick something worth your time.
 
-> If you only read one other file: [`docs/01-vision.md`](docs/01-vision.md) explains *what this is and isn't*, and [`docs/14-roadmap.md`](docs/14-roadmap.md) has the full open-work list this file summarizes.
+> **Never sent a pull request before?** Read **[docs/contributor-walkthrough.md](docs/contributor-walkthrough.md)** first — it walks through fork / clone / branch / commit / push / PR step by step with exact commands. Come back here once you've got that workflow down.
+
+> If you only read one other file beyond this one: [`docs/01-vision.md`](docs/01-vision.md) explains *what this is and isn't*, and [`docs/14-roadmap.md`](docs/14-roadmap.md) has the full open-work list this file summarizes.
 
 ---
 
