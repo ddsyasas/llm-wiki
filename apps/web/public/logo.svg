@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LLM Wiki — horizontal wordmark
+  Mirrors the in-app header (apps/web/src/components/app-header.tsx).
+  [[ mark in JetBrains Mono / primary red, wordmark in Fraunces serif.
+  Designed at 16px base; scales infinitely as SVG.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 280 64"
+     width="280" height="64"
+     role="img"
+     aria-label="LLM Wiki">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=JetBrains+Mono:wght@500&amp;display=swap');
+      .mark   { font: 500 28px "JetBrains Mono", Menlo, monospace; fill: #991b1b; }
+      .word   { font: 600 36px Fraunces, Georgia, serif; fill: #171717; letter-spacing: -0.02em; }
+      @media (prefers-color-scheme: dark) {
+        .mark { fill: #f87171; }
+        .word { fill: #fafaf9; }
+      }
+    </style>
+  </defs>
+  <g transform="translate(12, 44)">
+    <text class="mark" x="0" y="0">[[</text>
+    <text class="word" x="38" y="0">LLM Wiki</text>
+  </g>
+</svg>
