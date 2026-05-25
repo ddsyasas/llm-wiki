@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LLM Wiki favicon — just the [[ mark, square.
+  JetBrains Mono in primary red, no background.
+  Renders crisp at 16x16, 32x32, 64x64, any size browsers ask for.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 64 64"
+     width="64" height="64"
+     role="img"
+     aria-label="LLM Wiki">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&amp;display=swap');
+      .mark { font: 700 56px "JetBrains Mono", Menlo, monospace; fill: #991b1b; }
+      @media (prefers-color-scheme: dark) {
+        .mark { fill: #f87171; }
+      }
+    </style>
+  </defs>
+  <text class="mark" x="6" y="50">[[</text>
+</svg>
