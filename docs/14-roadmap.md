@@ -2,7 +2,9 @@
 
 **The single forward-looking view: what's left to do, sorted by priority.** Consolidated from "open questions" in `docs/dev-log.md`, "deferred" items in `docs/04-features-v1.md`, "future enhancements" in `docs/12-graph-view.md` / `docs/13-multi-wiki.md`, and known blockers across the codebase.
 
-Last updated: **2026-05-24** (post-R sprint: v1.1.1 published to npm as `@syasas/llm-wiki`).
+Last updated: **2026-05-26** (post-U sprint: community / brand / cloud bridge — see dev-log section U for the narrative).
+
+Project website: **[llmwiki.cc](https://llmwiki.cc)**.
 
 > If you're picking this project up cold, read `README.md` → `docs/01-vision.md` → this file → `docs/dev-log.md` in that order. You'll be operational in about 30 minutes.
 
@@ -10,14 +12,26 @@ Last updated: **2026-05-24** (post-R sprint: v1.1.1 published to npm as `@syasas
 
 ## Status at a glance
 
-- ✅ **v1.1.1 published to npm** as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki) — cross-platform, verified on macOS / Linux / Windows. [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest) mirror the tarball for direct download.
+### Product
+- ✅ **v1.1.1 published to npm** as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki) — cross-platform, verified on macOS / Linux / Windows
 - ✅ All P0 + all P1 features shipped end-to-end
 - ✅ 1 of 7 P2 features shipped early (multi-wiki); 6 still V2/V3
-- ✅ V1.x sprint complete (10 items in section P + 4 in section Q + 1 in section R)
+- ✅ V1.x sprint complete across sections P + Q + R
 - ✅ Test suite: ~158 core + 25 llm + 11 ingestion ≈ **194 passing** (1 known chokidar flake)
-- ✅ **Production build works** — `next build` standalone bundle serves every route (dev-log Q)
-- ✅ **Cross-platform install path works** — `npm install -g <tarball>` succeeds on macOS / Ubuntu (incl. WSL) / Windows; native deps install per-platform (dev-log R)
-- ✅ **Published to npm** as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki) — `npm install -g @syasas/llm-wiki` works
+- ✅ Production build + cross-platform install via npm both verified
+
+### Community + brand (dev-log U)
+- ✅ **Contributor infrastructure** in place — CONTRIBUTING.md (prioritized work list), CODE_OF_CONDUCT.md, SECURITY.md, issue templates, PR template, `docs/contributor-walkthrough.md` for first-time contributors
+- ✅ **9 screenshots** at `docs/screenshots/` + arranged narratively in README
+- ✅ **Brand assets** — SVG logo variants (`apps/web/public/logo*.svg`) + `docs/branding.md` design guide; README leads with hero banner + status badges
+- ✅ **Privacy posture** clean — git commits use noreply, contact email is business address, personal Gmails not on any public surface
+- 🟡 **First external PR** (#1 from @savindugeethma — Ollama support) — in iteration; changes requested twice, awaiting Round 3
+
+### Cloud bridge (dev-log U4)
+- ✅ **Marketing site live** at [llmwiki.cc](https://llmwiki.cc) — separate private repo (`github.com/ddsyasas/llmwiki-cloud`), Phase 2 of the cloud plan
+- ✅ OSS repo links out to llmwiki.cc (GitHub Website field, README badges, install section, in-app `/about`)
+- ⚪ **Phase 1 of cloud plan still pending** — rename + publish `@syasas/llm-wiki-{core,llm,ingestion}` workspace packages so the cloud repo can import them. ~30 min of work, blocks the eventual hosted product (Phase 4) but does not block anything else
+- ⚪ Phase 3 (waitlist demand validation) and Phase 4 (build hosted product) are downstream — both gated by signups from llmwiki.cc
 
 ---
 

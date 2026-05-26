@@ -656,6 +656,78 @@ Long-term alternative for non-interactive publishes (CI/CD or just skipping Touc
 
 ---
 
+## Sprint U — 2026-05-25/26: post-publish maturation (community + brand + cloud bridge)
+
+With v1.1.1 live on npm and cross-platform-verified, the work shifted from "make the product ship" to "make it look like a real open-source project worth contributing to and using." Three threads, in roughly the order they happened:
+
+### U1. Repo screenshots + contributor infrastructure (commits `38b1773` → `dca49ee` → `26d9f64`)
+
+The repo at v1.1.0 was technically complete but visually mute and structurally uninviting — no screenshots, no CONTRIBUTING, no Code of Conduct, no SECURITY policy, no issue templates. Anyone landing on the GitHub page couldn't tell what the app looked like or how/where they could help. Three commits closed that gap:
+
+- **9 screenshots added** at `docs/screenshots/` (home, wiki landing, graph, graph-node-panel, chat, schema editor, settings general, settings costs, wiki switcher) + a README "Screenshots" section that arranges them in a narrative flow (hero → wiki layer → operations → settings + multi-wiki). Filenames are kebab-case + numbered for sort order. Source files (in `ss/` folder with macOS-format timestamps containing U+202F narrow-no-break-space) stay gitignored.
+
+- **Full contributor infrastructure** in one commit: CONTRIBUTING.md (3 tiers of prioritized "what we need" — Quick wins / Medium / Big — 15 concrete items pulled from the roadmap, plus a "what we don't want" section addressing telemetry, framework swaps, AI-driveby PRs), CODE_OF_CONDUCT.md (Contributor Covenant 2.1 summarized in plain language with a link to the canonical text — avoids reproducing the explicit harassment examples that trip content filters), SECURITY.md (supported-versions table, private vuln reporting via GitHub Security Advisories, response SLAs, known security-relevant design choices), `.github/ISSUE_TEMPLATE/{bug,feature,config}.yml` (structured forms that disable blank issues + route Discussions/security to the right surfaces), and `.github/PULL_REQUEST_TEMPLATE.md` (what/why/how-tested/screenshots/type/compat/checklist).
+
+- **Contributor walkthrough** added at `docs/contributor-walkthrough.md` (465 lines) — step-by-step "you've never sent a PR before" guide covering fork → clone → branch → commit → push → PR with exact commands at each step, plus a "common stumbles" section (committed to main by accident, tests fail on PR but pass locally, merge conflicts, wrong commit email). Linked from CONTRIBUTING.md's top callout, README's "Contributing" section, and `.github/ISSUE_TEMPLATE/config.yml`.
+
+- **Privacy cleanup pass**: contributor docs had a personal Gmail (`yasasdreamz@gmail.com`) as the contact channel. Swapped to business email (`yasas@idersolutions.com`) across CODE_OF_CONDUCT.md, CONTRIBUTING.md, SECURITY.md. Plus a separate ddsyasas@gmail.com leak in git author config of every commit was masked via GitHub's "Keep my email addresses private" + "Block command line pushes that expose my email" toggles + a local-then-global git config swap to the GitHub noreply (`106056808+ddsyasas@users.noreply.github.com`). End state: noreply for commits, business email for contact, personal Gmails invisible on any public surface.
+
+### U2. Brand identity — logos + README banner (commits `efdf1a7` → `3ed9fff`)
+
+The `[[ LLM Wiki` wordmark only existed as inline text+CSS in the running app. No SVG, no PNG, nothing usable for README hero / social cards / favicon variants. Three SVG variants shipped at `apps/web/public/`:
+
+- `logo.svg` — horizontal wordmark (280×64), matches the in-app header layout
+- `logo-hero.svg` — stacked variant with tagline (800×400) for README hero + GitHub social preview + npm card. Includes `@media (prefers-color-scheme: dark)` so it auto-swaps colors based on viewer theme
+- `favicon.svg` — just the `[[` mark, square 64×64. Next.js picks this up automatically
+
+All three use Fraunces (display) + JetBrains Mono (mono) with Georgia/Menlo fallbacks for environments where Google Fonts can't load. Documented in `docs/branding.md` — design rationale, color tokens (light/dark), font sources, three options for SVG→PNG conversion (online, ImageMagick CLI, headless browser), how to set the GitHub social preview, in-app usage snippet.
+
+README leads with the hero logo banner now (`<img src="apps/web/public/logo-hero.svg" width="600">` centered above the H1) + a row of 4 status badges (npm version / MIT / latest release / PRs welcome). Standard polished-OSS-repo header style — React, Vue, Next.js itself all use this pattern.
+
+### U3. First real-user contribution + review (PR #1 from @savindugeethma)
+
+Two days after the contributor infrastructure landed, the first external PR arrived: "feat: implement dynamic ollama provider and model slot structure" by Savindu Geethma. Picked from CONTRIBUTING.md's Medium item #7 (Ollama UI support) — confirming the prioritized work list actually drives contribution.
+
+PR went through two rounds of review:
+- **Round 1**: PR description claimed a `WikiSettings` refactor in `packages/core` but the actual diff touched 21 files in `apps/web/` and zero files in `packages/`. Result: 40+ TypeScript errors (`Property 'provider' does not exist on type 'string'`) because the cloud-side refactor expected `packages/core` to expose a new `ModelSlotConfig` type that didn't exist. Requested changes with a clear breakdown: missing core changes, no Ollama routing in `packages/llm/src/client.ts`, no backward-compat migration, no tests, no docs update.
+- **Round 2**: Contributor pushed an updated commit (force-pushed amend, single commit overwriting the previous one). Good news: `packages/core` + `packages/llm` changes now present, typecheck errors dropped from 40+ to 3. Bad news: the force-push from an outdated base branch wiped out unrelated work from `main` — specifically `docs/contributor-walkthrough.md` (deleted entirely, -465 lines) plus pieces of README.md, CONTRIBUTING.md, `.github/ISSUE_TEMPLATE/config.yml`, and `package.json`. Plus a `pnpm-workspace.yaml` change (pnpm 10 migration) bundled in scope unrelated to the feature. Requested changes again: rebase on current `main` to restore the deleted files, fix the 3 remaining typecheck errors, pull the pnpm migration into a separate PR.
+
+Currently awaiting Round 3. Worth flagging as a learning moment: the PR template asks contributors to confirm typecheck passes before submission, but trust-but-verify — pull the branch and run `pnpm -r exec tsc --noEmit` yourself before approving anything.
+
+### U4. llmwiki.cc — the cloud bridge (commit `aee4a22`)
+
+The OSS project now has a matching commercial / marketing presence. **[llmwiki.cc](https://llmwiki.cc)** is a separate private repo (`github.com/ddsyasas/llmwiki-cloud`) with a Phase-2 marketing site (hero + 3 operations + gap analysis + waitlist form). The strategy is documented in detail in the cloud repo's `docs/STRATEGY.md` (which lives there, not here — it's business strategy).
+
+The two repos are connected via npm packages, not git:
+- This OSS repo publishes `@syasas/llm-wiki-{core,llm,ingestion}` to npm (rename + publish step still pending — Phase 1 of the cloud plan)
+- The cloud repo will eventually import them like any other npm dependency
+- OSS updates flow to cloud via Renovate auto-PRs — zero code copying, zero git syncing
+- Marketing site shares brand (logos, fonts, colors) with the in-app design
+
+Four touchpoints reference llmwiki.cc from this OSS repo:
+- GitHub repo's Website field (set via `gh repo edit --homepage`)
+- README badges row (new `site • llmwiki.cc` chip alongside npm/license/release/PRs)
+- README install section restructured to "Three paths" with hosted at top
+- In-app `/about` page footer line
+
+Future npm publishes will set the package's `homepage` field to llmwiki.cc (currently still points at GitHub README on already-published 1.1.1). Done in the publish script — picks up next publish.
+
+The character of the OSS project stays unchanged: local-first, BYOK, MIT, no telemetry. The hosted version is a complement, not a re-pitch. Deliberately did NOT touch `docs/01-vision.md`, `docs/04-features-v1.md`, in-app `/help`, in-app `/developers` — those serve audiences that came here specifically for the local-first promise.
+
+### Where the project is right now (end of sprint U)
+
+| Surface | Status |
+|---|---|
+| Code | v1.1.1 on npm, cross-platform verified |
+| Repo | Public, polished (hero + badges + screenshots + contributor infra) |
+| Tests | 194 passing (158 core + 25 llm + 11 ingestion, 1 known chokidar flake) |
+| First external contribution | PR #1 in review (Round 2 sent back, awaiting Round 3) |
+| Marketing site | llmwiki.cc live (Phase 2 of cloud plan shipped) |
+| Hosted product | Not built yet (Phase 4, gated by waitlist demand signal) |
+| Privacy posture | Noreply commits, business email for contact, no personal Gmails public |
+
+---
+
 ## Open questions for future sessions
 
 > **Note:** The work-needed list has been consolidated into [`docs/14-roadmap.md`](14-roadmap.md). The questions below are *design / architecture* questions that don't translate cleanly into a roadmap entry — when in doubt, prefer the roadmap.
