@@ -7,7 +7,7 @@ import { loadWikiSettings } from "@llm-wiki/core";
 
 import { resolveWikiPath } from "@/lib/server-wiki";
 
-export const APP_VERSION = "1.2.1";
+export const APP_VERSION = "1.2.2";
 
 // Active-wiki hint reads the active wiki's topic server-side so it's
 // rendered before paint — no flash, no client-side fetch. Best-effort:
