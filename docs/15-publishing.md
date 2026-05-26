@@ -205,33 +205,47 @@ The npm account is on `auth-and-writes` 2FA (every publish needs a
 second factor). Four ways to satisfy it, ranked by ergonomics:
 
 1. **Browser-based approval (recommended for human-driven releases).**
-   Run `npm publish --access public` with no `--otp`. npm prints:
+   On npm CLI 9+, `npm publish` no longer auto-launches the browser
+   flow when there's no token; it just bails with `ENEEDAUTH`. Run
+   `npm login` first to refresh the session, *then* publish:
    ```
-   Authenticate your account at:
-   https://www.npmjs.com/auth/cli/<uuid>
-   Press ENTER to open in the browser...
+   npm login                          # prints: "Login at: https://..."
+                                      #         "Press ENTER to open in the browser..."
+                                      # → press Enter, approve on npmjs.com,
+                                      #   terminal prints "Logged in on..."
+   npm publish --access public        # uses the fresh token
    ```
-   Hit Enter → browser opens → approve → CLI continues automatically.
-   No code to copy. Requires an interactive terminal — won't work in CI
-   or backgrounded shells.
+   The publish step then prints `Authenticate your account at: https://www.npmjs.com/auth/cli/<uuid>`
+   for the per-publish 2FA approval — press Enter, approve again,
+   CLI continues, `+ @syasas/llm-wiki@X.Y.Z` lands. Two browser
+   round-trips total (session login + per-publish 2FA).
+   Web logins expire silently between releases — if `npm whoami`
+   returns `401 Unauthorized`, the token is stale; `npm logout`
+   then re-login.
 2. **TOTP from authenticator app.** Pass `--otp=<6-digit-code>` from
    Google Authenticator / 1Password / Authy. Codes rotate every 30s so
    build + pack first, then grab the code, then publish immediately.
+   Still requires being logged in (`npm whoami` succeeds).
 3. **Recovery code.** When 2FA was first enabled, npm gave 10 one-time
    recovery codes. Pass any unused one as `--otp=<code>`. Each works
    exactly once — once consumed, regenerate the set on
    `npmjs.com → Account → Two-factor Authentication`. Useful when you
-   don't have the authenticator app at hand.
+   don't have the authenticator app at hand. Also requires being
+   logged in.
 4. **Granular access token.** Create one on
    `npmjs.com → Account → Access Tokens` with publish rights scoped to
    `@syasas/llm-wiki`. Tokens bypass 2FA and live in
    `~/.npmrc` as `//registry.npmjs.org/:_authToken=<token>`. Use this
    path for CI-driven publishes — never for ad-hoc human ones, since a
-   leaked token is harder to detect than a stolen 30s OTP.
+   leaked token is harder to detect than a stolen 30s OTP. Tokens
+   don't expire silently the way web sessions do.
 
-A note on `npm login`: classic password login is deprecated. Use
-`npm login --auth-type=web` — it opens a browser and authenticates via
-the npmjs.com session, same as the browser-based publish approval.
+**Common gotcha — 404 on PUT.** If `npm publish` errors with
+`404 Not Found - PUT https://registry.npmjs.org/@syasas%2fllm-wiki`,
+the registry is hiding "you're not authenticated" behind a 404 (so
+attackers can't probe for package names). Run `npm whoami`; if it
+returns `401`, your session expired — `npm logout`, then `npm login`,
+then re-publish.
 
 ---
 
@@ -326,6 +340,7 @@ just-published version until the next start after refresh.
 
 | Version | Date | Type | Highlights |
 |---|---|---|---|
+| v1.2.3 | 2026-05-27 | patch | Free OpenRouter models in Settings dropdown + first-run wizard nudge |
 | v1.2.2 | 2026-05-26 | patch | CLI update notifier on `llm-wiki start` |
 | v1.2.1 | 2026-05-26 | patch | Fix typing crash on Sources/Query + PDF ingest via OpenRouter |
 | v1.2.0 | 2026-05-26 | minor | Local models (Ollama) support |
