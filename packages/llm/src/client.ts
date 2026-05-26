@@ -22,9 +22,6 @@ export function createClient(apiKey: string, provider?: "openrouter" | "ollama")
     return new OpenAI({
       apiKey: "ollama",
       baseURL,
-      defaultHeaders: {
-        "Bypass-Tunnel-Reminder": "true",
-      },
     });
   }
 
@@ -330,7 +327,7 @@ function mapSdkError(err: unknown, model: string, baseURL?: string): LlmError {
     headers?: Record<string, string>;
   };
 
-  const isOllama = baseURL && (baseURL.includes("localhost") || baseURL.includes("11434") || baseURL.includes("loca.lt"));
+  const isOllama = baseURL && (baseURL.includes("localhost") || baseURL.includes("11434"));
   const provider = isOllama ? "ollama" : "openrouter";
   const msg = (e.message ?? String(err)).toLowerCase();
 
@@ -353,8 +350,7 @@ function mapSdkError(err: unknown, model: string, baseURL?: string): LlmError {
   }
 
   if (e.status && e.status >= 500) {
-    const isOllama = baseURL && (baseURL.includes("localhost") || baseURL.includes("11434") || baseURL.includes("loca.lt"));
-    const serviceName = isOllama ? "Ollama / LocalTunnel" : "OpenRouter";
+    const serviceName = isOllama ? "Ollama" : "OpenRouter";
     return new NetworkError(`server error from ${serviceName} (${e.status})`, err);
   }
 
