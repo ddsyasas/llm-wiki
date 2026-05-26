@@ -2,18 +2,24 @@
 
 import { useEffect, useState } from "react";
 
+export type ModelSlot = {
+  provider: string;
+  model: string;
+};
+
 export type WikiSettingsPayload = {
   settings: {
     topic: string;
     defaultModels: {
-      ingest: string;
-      query: string;
-      chat: string;
-      lint: string;
-      vision: string;
+      ingest: ModelSlot;
+      query: ModelSlot;
+      chat: ModelSlot;
+      lint: ModelSlot;
+      vision: ModelSlot;
     };
     autoLintAfterIngest: boolean;
     showCostEstimates: boolean;
+    requireApprovalForIngest: boolean;
   };
   wikiPath: string;
 };

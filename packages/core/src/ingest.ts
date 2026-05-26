@@ -190,17 +190,29 @@ export async function ingestVisionSource(
     message: `Calling ${opts.model} with attached ${opts.source.format} (${Math.round(opts.source.sizeBytes / 1024)} KB)…`,
   });
 
+  // PDFs ride as `type: "file"` per OpenRouter's contract — their server
+  // runs PDF parsing and passes the extracted content to the provider. Images
+  // stay as `image_url`. Sending a PDF as `image_url` causes upstream
+  // providers (Anthropic in particular) to return a generic "Provider
+  // returned error" with no `choices` in the response.
+  const isPdf = opts.source.mediaType === "application/pdf";
+  const dataUrl = `data:${opts.source.mediaType};base64,${opts.source.base64}`;
+  const attachmentPart: UserContentPart = isPdf
+    ? {
+        type: "file",
+        file: {
+          filename: `${opts.source.title || "document"}.pdf`,
+          file_data: dataUrl,
+        },
+      }
+    : { type: "image_url", image_url: { url: dataUrl } };
+
   const userParts: UserContentPart[] = [
     {
       type: "text",
       text: `New source: "${opts.source.title}" (format: ${opts.source.format}, ${Math.round(opts.source.sizeBytes / 1024)} KB).\n\nRead the attached file carefully and produce the JSON response per the schema.`,
     },
-    {
-      type: "image_url",
-      image_url: {
-        url: `data:${opts.source.mediaType};base64,${opts.source.base64}`,
-      },
-    },
+    attachmentPart,
   ];
 
   const result = await callLLM({

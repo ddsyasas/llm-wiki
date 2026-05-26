@@ -40,12 +40,18 @@ export function createClient(apiKey: string, provider?: "openrouter" | "ollama")
 
 /**
  * Multimodal user content part. Matches OpenAI/OpenRouter content-block shape
- * so we can pass it through unchanged. `image_url` is also how PDFs ride
- * along (data URL with `application/pdf`) per OpenRouter's Anthropic mapping.
+ * so we can pass it through unchanged.
+ *
+ * - `image_url` is for images (PNG, JPEG, WebP) as data URLs.
+ * - `file` is OpenRouter's PDF contract — `file_data` is a data URL with
+ *   `application/pdf`. OpenRouter's server runs OCR/extraction itself and
+ *   passes the result to the provider. Sending PDFs via `image_url` returns
+ *   a generic "Provider returned error" from the upstream model.
  */
 export type UserContentPart =
   | { type: "text"; text: string }
-  | { type: "image_url"; image_url: { url: string } };
+  | { type: "image_url"; image_url: { url: string } }
+  | { type: "file"; file: { filename: string; file_data: string } };
 
 export type CallLlmOptions<T> = {
   client: LlmClient;
@@ -209,6 +215,28 @@ async function attemptOnce<T>(
     throw mapSdkError(err, opts.model);
   }
 
+  // OpenRouter sometimes returns 200 OK with an error body (no `choices`,
+  // a top-level `error` field instead) — typically when an upstream provider
+  // rejects the request. The OpenAI SDK doesn't surface this as an exception,
+  // so guard the access and translate to a real error including any provider
+  // metadata OpenRouter passes through.
+  const respWithError = response as unknown as {
+    error?: {
+      message?: string;
+      code?: string | number;
+      metadata?: { raw?: string; provider_name?: string };
+    };
+  };
+  if (!response.choices || response.choices.length === 0) {
+    const apiErr = respWithError.error;
+    const base = apiErr?.message ?? "no choices in response";
+    const meta = apiErr?.metadata;
+    const extras: string[] = [];
+    if (meta?.provider_name) extras.push(`provider=${meta.provider_name}`);
+    if (meta?.raw) extras.push(`raw=${meta.raw.slice(0, 400)}`);
+    const detail = extras.length > 0 ? `${base} (${extras.join(", ")})` : base;
+    throw new LlmError(`provider returned no completion: ${detail}`);
+  }
   const choice = response.choices[0];
   const raw = choice?.message?.content ?? "";
   if (!raw.trim()) {
