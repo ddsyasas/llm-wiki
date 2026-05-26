@@ -76,7 +76,7 @@ After a few weeks of feeding it sources, you have a navigable, cited, deliberate
 
 ---
 
-## What's in v1.1
+## What's in v1.2
 
 ### The three operations (Karpathy's pattern)
 
@@ -97,7 +97,8 @@ After a few weeks of feeding it sources, you have a navigable, cited, deliberate
 
 ### Quality / safety
 
-- **First-run gate** — A real wizard collects the wiki topic + OpenRouter key before letting you wander. No silent failures on first ingest.
+- **First-run gate** — A real wizard collects the wiki topic + an LLM provider (OpenRouter API key OR a local Ollama install — see below) before letting you wander. No silent failures on first ingest.
+- **Local models support (Ollama)** *(new in v1.2)* — first-class per-slot provider option in Settings → Models. Run any operation (ingest / query / chat / lint / vision) against a model on your own machine instead of OpenRouter. Free per query after the one-time model download, fully private (data never leaves your laptop). Dedicated `/local-models` setup guide in-app covers install + a hardware-requirements table mapping common models (llama3, mistral, phi3, llava, mixtral, llama3:70b, etc.) to RAM / disk / expected tokens-per-sec on Apple Silicon and CPU-only.
 - **Page-history backups** — Every page edit (manual or LLM-driven) backs up the prior version to `.llm-wiki/page-history/`.
 - **Cost transparency** — Estimated cost shown before every LLM operation; running cumulative tally in Settings → Costs.
 - **Source lineage** — Every wiki page lists which raw sources it was compiled from; every source lists which wiki pages it contributed to. Bidirectional graph traversal.
@@ -105,7 +106,7 @@ After a few weeks of feeding it sources, you have a navigable, cited, deliberate
 
 ### Settings
 
-Five model slots tunable per-operation: `ingest` / `query` / `chat` / `lint` / `vision`. Curated dropdowns + custom-slug field for anything OpenRouter supports. Light / dark / auto theme. OpenRouter key stored in OS keychain when available.
+Five model slots tunable per-operation: `ingest` / `query` / `chat` / `lint` / `vision`. **Per-slot provider picker** *(new in v1.2)*: choose **OpenRouter** (cloud, BYOK, pay-as-you-go) or **Ollama (Local)** (your own machine, free) per slot — mix and match. Curated model dropdowns for each provider plus a custom-slug field for anything else. If any slot uses Ollama, a heads-up banner appears with a link to the `/local-models` setup guide. Light / dark / auto theme. OpenRouter key stored in OS keychain when available.
 
 ---
 
@@ -156,17 +157,19 @@ pnpm install
 pnpm dev
 ```
 
-Open `http://localhost:3000` → the first-run wizard collects your wiki topic + OpenRouter key → you're in.
+Open `http://localhost:3000` → the first-run wizard collects your wiki topic + an LLM provider (OpenRouter API key, or set up a local [Ollama](https://ollama.com) install if you'd rather run models on your own machine) → you're in.
 
 ### Prerequisites
 
 | Tool | Minimum | How to get it |
 |---|---|---|
 | **Node.js** | 20.x | [nodejs.org](https://nodejs.org) or `nvm install 20` (recommended) |
-| **OpenRouter key** | — | [openrouter.ai/keys](https://openrouter.ai/keys) — pay-as-you-go, ~$5 lasts most users 2-4 weeks at default models |
+| **LLM provider** | one of: | Pick **either** an OpenRouter key OR a local Ollama install (or both — mix per-slot) |
+| ↳ OpenRouter (cloud) | — | [openrouter.ai/keys](https://openrouter.ai/keys) — pay-as-you-go, ~$5 lasts most users 2-4 weeks at default models. Best quality (frontier Claude / GPT / Gemini). |
+| ↳ Ollama (local) | — | [ollama.com/download](https://ollama.com/download) + `ollama pull llama3` (or similar). Free per query, runs on your machine. See in-app `/local-models` page for full install + hardware requirements per model. |
 | **pnpm** *(source path only)* | 8.x | `npm install -g pnpm` |
 
-Check with `node --version` before you start.
+Check with `node --version` before you start. **At least one LLM provider is required** — without either an OpenRouter key or a running Ollama, ingest / query / chat / lint all fail. If you only use Ollama, no OpenRouter key is needed.
 
 ### `llm-wiki: command not found` after install
 
@@ -328,7 +331,7 @@ llm-wiki version    # verify the new version landed
 
 If you have a `llm-wiki start` server already running, stop it first with `Ctrl+C` — npm can't replace a binary that's executing. After the install completes, `llm-wiki start` again to pick up the new code.
 
-**Your wiki data is safe across upgrades.** The on-disk format (markdown + SQLite metadata) is stable within v1.x — your folder, schema, pages, chats, history, and OpenRouter key all carry over. Database migrations (when any ship) run automatically on the next server start; no manual step.
+**Your wiki data is safe across upgrades.** The on-disk format (markdown + SQLite metadata) is stable within v1.x — your folder, schema, pages, chats, history, OpenRouter key, and per-slot provider selections (OpenRouter or Ollama) all carry over. Database migrations (when any ship) run automatically on the next server start; no manual step. The v1.1.x → v1.2.0 settings-shape change (each model slot went from `string` to `{ provider, model }`) is handled by a backward-compat parser — your existing config keeps working unchanged.
 
 **If you installed from source** (git clone path, for contributors):
 
@@ -354,6 +357,8 @@ Replace `v1.2.0` / `1.2.0` with whichever version is current on the [releases pa
 ```bash
 llm-wiki version    # should print the new version
 llm-wiki doctor     # confirm install + OpenRouter still healthy
+                    # (doctor only probes OpenRouter — if you use Ollama,
+                    #  verify it separately with: curl http://localhost:11434/api/version)
 ```
 
 If `llm-wiki version` still prints the old number after upgrading, try opening a new terminal window — sometimes (especially on Windows) the shell needs to re-resolve the PATH after `npm install -g` replaces the binary.
@@ -390,6 +395,8 @@ rm -rf ~/llm-wiki-default
 
 If you used the OS keychain for your API key (the default), also delete the `llm-wiki` / `openrouter-api-key` entry from Keychain Access (macOS) / GNOME Keyring (Linux) / Credential Manager (Windows).
 
+If you used Ollama and want to free disk space, also remove the downloaded models: `ollama list` to see them, `ollama rm <name>` per model, or uninstall Ollama itself (`brew uninstall ollama` on macOS) to remove everything in `~/.ollama/`.
+
 Your wiki folder is plain markdown — keep it, open in Obsidian / VS Code / vim, sync with git or iCloud, archive it. The app leaving doesn't take your knowledge with it.
 
 ### Recovery / common gotchas
@@ -416,7 +423,7 @@ For the **design contract** + execution history, see `/docs` in this repo:
 | [`02-architecture.md`](docs/02-architecture.md) | Stack, repo layout, distribution |
 | [`03-data-model.md`](docs/03-data-model.md) | On-disk structure + SQLite schema |
 | [`04-features-v1.md`](docs/04-features-v1.md) | Exact V1 feature scope (with shipped/deferred status) |
-| [`05-llm-integration.md`](docs/05-llm-integration.md) | OpenRouter, prompts, JSON contracts |
+| [`05-llm-integration.md`](docs/05-llm-integration.md) | OpenRouter + Ollama integration, prompts, JSON contracts |
 | [`06-ingest-pipeline.md`](docs/06-ingest-pipeline.md) | How sources become wiki pages |
 | [`07-chat-threads.md`](docs/07-chat-threads.md) | Chat feature spec |
 | [`08-ui-design.md`](docs/08-ui-design.md) | Design language and key screens |
@@ -461,7 +468,7 @@ The full V1.x sprint (14 items across sections P + Q + R — mobile sidebar, dif
 | Framework | Next.js 14 (App Router) |
 | UI | React, Tailwind, shadcn-style primitives, Fraunces / Crimson Pro / Inter / JetBrains Mono |
 | Storage | Plain markdown + SQLite (`better-sqlite3`) for metadata, FTS5 for search |
-| LLM | OpenRouter via `openai` npm SDK (BYOK) |
+| LLM | OpenRouter (cloud, BYOK) and/or local Ollama — both via the `openai` npm SDK against their OpenAI-compatible endpoints |
 | Schema validation | `zod` |
 | Frontmatter | `gray-matter` |
 | File watch | `chokidar` |
