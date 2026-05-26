@@ -20,6 +20,13 @@ export type ModelChoice = {
   notes: string;
   /** Whether this model can read images / PDFs. */
   vision: boolean;
+  /**
+   * True for OpenRouter `:free` routes. Users still need an OpenRouter
+   * account + key, but per-call cost is zero. Free tier has stricter
+   * rate limits and routes may retain prompts for provider training —
+   * the Settings banner warns about both when any slot uses one.
+   */
+  free?: boolean;
 };
 
 // Curated dropdown options for the Settings → Models tab. Order matters —
@@ -78,6 +85,38 @@ export const SUGGESTED_MODELS: ReadonlyArray<ModelChoice> = [
     notes: "Open weights. No vision.",
     vision: false,
   },
+  // OpenRouter free tier. Per-call cost: $0. Picks chosen for the wiki's
+  // JSON-strict workload — smaller free models often fail schema validation.
+  // Caveats (rate limits, privacy) surface as a Settings banner when any
+  // slot uses one of these.
+  {
+    id: "meta-llama/llama-3.3-70b-instruct:free",
+    label: "Llama 3.3 70B (free)",
+    notes: "FREE · proven JSON, 131K ctx. Good for ingest / lint.",
+    vision: false,
+    free: true,
+  },
+  {
+    id: "nvidia/nemotron-3-super-120b-a12b:free",
+    label: "Nemotron Super 120B (free)",
+    notes: "FREE · 1M ctx, biggest free model. Good for query / chat.",
+    vision: false,
+    free: true,
+  },
+  {
+    id: "deepseek/deepseek-v4-flash:free",
+    label: "DeepSeek V4 Flash (free)",
+    notes: "FREE · fast reasoning, 1M ctx. Good for query / chat.",
+    vision: false,
+    free: true,
+  },
+  {
+    id: "google/gemma-4-31b-it:free",
+    label: "Gemma 4 31B (free)",
+    notes: "FREE · vision-capable, 262K ctx. Good for vision slot.",
+    vision: true,
+    free: true,
+  },
 ];
 
 export type ModelPricing = {
@@ -120,6 +159,12 @@ const PRICING: Record<string, ModelPricing> = {
   "google/gemini-2.5-flash": { inputPerMillion: 0.3, outputPerMillion: 2.5 },
   // Open weights
   "meta-llama/llama-3.3-70b-instruct": { inputPerMillion: 0.1, outputPerMillion: 0.3 },
+  // OpenRouter free tier — zero per-call cost. Rate limits + privacy
+  // caveats are user-facing, not billing-facing.
+  "meta-llama/llama-3.3-70b-instruct:free": { inputPerMillion: 0, outputPerMillion: 0 },
+  "nvidia/nemotron-3-super-120b-a12b:free": { inputPerMillion: 0, outputPerMillion: 0 },
+  "deepseek/deepseek-v4-flash:free": { inputPerMillion: 0, outputPerMillion: 0 },
+  "google/gemma-4-31b-it:free": { inputPerMillion: 0, outputPerMillion: 0 },
 };
 
 /**

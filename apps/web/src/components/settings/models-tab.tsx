@@ -24,6 +24,8 @@ type ModelChoice = {
   label: string;
   notes: string;
   vision: boolean;
+  /** OpenRouter `:free` route. Drives the free-tier banner + dropdown sorting. */
+  free?: boolean;
 };
 
 const SUGGESTED: ReadonlyArray<ModelChoice> = [
@@ -69,6 +71,36 @@ const SUGGESTED: ReadonlyArray<ModelChoice> = [
     label: "Llama 3.3 70B",
     notes: "Open weights, no vision",
     vision: false,
+  },
+  // OpenRouter free tier. Picks bias toward larger models — smaller free
+  // models tend to fail the wiki's JSON schema. Banner explains the tradeoffs.
+  {
+    id: "meta-llama/llama-3.3-70b-instruct:free",
+    label: "Llama 3.3 70B (free)",
+    notes: "FREE · proven JSON · ingest/lint",
+    vision: false,
+    free: true,
+  },
+  {
+    id: "nvidia/nemotron-3-super-120b-a12b:free",
+    label: "Nemotron Super 120B (free)",
+    notes: "FREE · 1M ctx · query/chat",
+    vision: false,
+    free: true,
+  },
+  {
+    id: "deepseek/deepseek-v4-flash:free",
+    label: "DeepSeek V4 Flash (free)",
+    notes: "FREE · fast reasoning · query/chat",
+    vision: false,
+    free: true,
+  },
+  {
+    id: "google/gemma-4-31b-it:free",
+    label: "Gemma 4 31B (free)",
+    notes: "FREE · vision-capable",
+    vision: true,
+    free: true,
   },
 ];
 
@@ -222,6 +254,20 @@ export function ModelsTab() {
     [original],
   );
 
+  // Free-tier banner trigger: any saved slot whose model slug is an
+  // OpenRouter `:free` route. Distinct concern from Ollama (rate limits +
+  // data-retention vs. local-install), distinct banner. Reads the *saved*
+  // shape, not the draft, so editing doesn't make the banner flicker.
+  const freeSlots = useMemo(
+    () =>
+      original
+        ? SLOTS.filter(
+            (s) => original[s].provider === "openrouter" && original[s].model.endsWith(":free"),
+          )
+        : [],
+    [original],
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -248,6 +294,52 @@ export function ModelsTab() {
           for local inference.
         </p>
       </div>
+
+      {/* Free-tier banner — visible when one or more slots use an
+          OpenRouter `:free` model. Surfaces the rate-limit + data-retention
+          tradeoffs the user implicitly opted into. Same amber palette as
+          the Ollama banner since both are "you made a non-default choice
+          with operational caveats". */}
+      {freeSlots.length > 0 ? (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/[0.06] px-4 py-3 text-sm">
+          <p className="font-medium text-amber-900 dark:text-amber-200">
+            Free models in use: {freeSlots.join(", ")}{" "}
+            {freeSlots.length === 1 ? "(1 slot)" : `(${freeSlots.length} slots)`}
+          </p>
+          <p className="mt-1 text-amber-900/80 dark:text-amber-200/80">
+            OpenRouter&apos;s free routes are zero-cost per call but come with
+            two tradeoffs to know about:
+          </p>
+          <ul className="ml-4 mt-1 list-disc space-y-0.5 text-amber-900/80 dark:text-amber-200/80">
+            <li>
+              <strong>Rate limits.</strong> ~20 requests/min and ~50/day on a
+              fresh account. Adding ${"≥"}10 of OpenRouter credit raises the
+              daily cap to ~1000 — even though you&apos;re using free models,
+              the deposit unlocks higher throughput.
+            </li>
+            <li>
+              <strong>Data retention.</strong> Some free routes pass through
+              providers that retain prompts for training. Don&apos;t put
+              anything secret through a <code>:free</code> route. Paid
+              Anthropic / OpenAI routes don&apos;t share data.
+            </li>
+            <li>
+              <strong>JSON reliability.</strong> The wiki&apos;s ingest /
+              query / lint flows require strict JSON. If you hit a{" "}
+              <em>schema validation failed</em> error, the free model is
+              the likely cause — switch that slot to a paid model.
+            </li>
+          </ul>
+          <a
+            href="https://openrouter.ai/docs/api-reference/limits"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-block text-amber-900 underline underline-offset-2 hover:text-amber-700 dark:text-amber-200 dark:hover:text-amber-100"
+          >
+            OpenRouter rate-limit docs →
+          </a>
+        </div>
+      ) : null}
 
       {/* Ollama setup banner — visible when one or more slots already use
           Ollama. Static link to /local-models with install + hardware guidance.

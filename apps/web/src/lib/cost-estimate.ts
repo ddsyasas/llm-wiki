@@ -15,6 +15,12 @@ const PRICING: Record<string, ModelPricing> = {
   "google/gemini-2.5-pro": { inputPerMillion: 1.25, outputPerMillion: 10.0 },
   "google/gemini-2.5-flash": { inputPerMillion: 0.3, outputPerMillion: 2.5 },
   "meta-llama/llama-3.3-70b-instruct": { inputPerMillion: 0.1, outputPerMillion: 0.3 },
+  // OpenRouter free-tier routes — zero per-call cost. Rate limits / privacy
+  // tradeoffs are surfaced as a banner in Settings, not in cost preview.
+  "meta-llama/llama-3.3-70b-instruct:free": { inputPerMillion: 0, outputPerMillion: 0 },
+  "nvidia/nemotron-3-super-120b-a12b:free": { inputPerMillion: 0, outputPerMillion: 0 },
+  "deepseek/deepseek-v4-flash:free": { inputPerMillion: 0, outputPerMillion: 0 },
+  "google/gemma-4-31b-it:free": { inputPerMillion: 0, outputPerMillion: 0 },
 };
 
 export function getPricing(model: string): ModelPricing | null {
