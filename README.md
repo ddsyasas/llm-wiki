@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  Open source · Local-first · Bring-your-own-key · MIT · v1.2.0
+  Open source · Local-first · Bring-your-own-key · MIT · v1.2.2
 </p>
 
 <p align="center">
@@ -77,6 +77,10 @@ After a few weeks of feeding it sources, you have a navigable, cited, deliberate
 ---
 
 ## What's in v1.2
+
+> **Recent patches:**
+> - **v1.2.2** *(2026-05-26)* — CLI now prints an update-available banner on `llm-wiki start` when a newer version is on npm. Cached on disk, refreshed in the background, silenced by `NO_UPDATE_NOTIFIER=1` or `--quiet`. ([release](https://github.com/ddsyasas/llm-wiki/releases/tag/v1.2.2))
+> - **v1.2.1** *(2026-05-26)* — fixes two regressions from the v1.2.0 Ollama refactor: the Sources/Query pages crashed the moment text was typed/pasted, and PDF ingest failed with `Cannot read properties of undefined (reading '0')`. PDFs now ride OpenRouter's `type: "file"` contract; settings types match runtime. ([release](https://github.com/ddsyasas/llm-wiki/releases/tag/v1.2.1) · [known-issues thread](https://github.com/ddsyasas/llm-wiki/issues/3))
 
 ### The three operations (Karpathy's pattern)
 
@@ -146,7 +150,7 @@ llm-wiki start
 
 That's it — no git clone, no monorepo, ~30 second install. The CLI auto-initializes your wiki folder, picks a free port (3737 by default), and opens the browser. Verified on **macOS / Linux (incl. WSL) / Windows**.
 
-Package on npm: [npmjs.com/package/@syasas/llm-wiki](https://www.npmjs.com/package/@syasas/llm-wiki). Release notes + tarball mirror: [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest). If npm is unavailable for some reason, you can install directly from the GitHub tarball: `npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.2.0/syasas-llm-wiki-1.2.0.tgz`.
+Package on npm: [npmjs.com/package/@syasas/llm-wiki](https://www.npmjs.com/package/@syasas/llm-wiki). Release notes + tarball mirror: [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest). If npm is unavailable for some reason, you can install directly from the GitHub tarball: `npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.2.2/syasas-llm-wiki-1.2.2.tgz`.
 
 ### From source — for development or contributing
 
@@ -297,7 +301,7 @@ The CLI defaults to port **3737** (vs. `pnpm dev`'s 3000) and auto-picks the nex
 ```
 $ llm-wiki doctor
 Checking installation...
-  ✓ llm-wiki version: 1.2.0
+  ✓ llm-wiki version: 1.2.2
   ✓ Node version: v20.11.0
   ✓ Platform: darwin arm64
 
@@ -327,9 +331,11 @@ npm install -g @syasas/llm-wiki@latest
 llm-wiki version    # verify the new version landed
 ```
 
-`@latest` pulls whatever the newest published version is. To upgrade to a specific version: `npm install -g @syasas/llm-wiki@1.2.0`.
+`@latest` pulls whatever the newest published version is. To upgrade to a specific version: `npm install -g @syasas/llm-wiki@1.2.2`.
 
 If you have a `llm-wiki start` server already running, stop it first with `Ctrl+C` — npm can't replace a binary that's executing. After the install completes, `llm-wiki start` again to pick up the new code.
+
+**Auto-discovery (v1.2.2+).** Once you're on v1.2.2 or newer, `llm-wiki start` checks npm for newer releases in the background and prints a yellow `Update available: X.Y.Z → A.B.C` banner above the server logs when one ships. Cached on disk (~24h) so it never slows startup. Silence with `NO_UPDATE_NOTIFIER=1` or `--quiet`. Useful so you find out about patch releases without having to check the repo manually.
 
 **Your wiki data is safe across upgrades.** The on-disk format (markdown + SQLite metadata) is stable within v1.x — your folder, schema, pages, chats, history, OpenRouter key, and per-slot provider selections (OpenRouter or Ollama) all carry over. Database migrations (when any ship) run automatically on the next server start; no manual step. The v1.1.x → v1.2.0 settings-shape change (each model slot went from `string` to `{ provider, model }`) is handled by a backward-compat parser — your existing config keeps working unchanged.
 
@@ -347,10 +353,10 @@ Then re-run `pnpm dev` (or however you start it). Same data-safety guarantees ap
 
 ```bash
 # Get the latest release URL from https://github.com/ddsyasas/llm-wiki/releases/latest
-npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.2.0/syasas-llm-wiki-1.2.0.tgz
+npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.2.2/syasas-llm-wiki-1.2.2.tgz
 ```
 
-Replace `v1.2.0` / `1.2.0` with whichever version is current on the [releases page](https://github.com/ddsyasas/llm-wiki/releases/latest).
+Replace `v1.2.2` / `1.2.2` with whichever version is current on the [releases page](https://github.com/ddsyasas/llm-wiki/releases/latest).
 
 **Verifying the upgrade**:
 
@@ -370,12 +376,14 @@ Want to package the app as a standalone npm tarball you can host yourself (or pu
 ```bash
 pnpm --filter @llm-wiki/web build:publish    # produces apps/web/dist-publish/
 cd apps/web/dist-publish
-npm pack                                      # 29MB tarball, fully self-contained
+npm pack                                      # ~28MB tarball, fully self-contained
 # or:
 npm publish --access public                   # ship it to npm
 ```
 
 The published artifact is a single package with one runtime dep (`open`, for browser auto-launch). Everything else — Next, React, native deps, workspace packages — is inlined into the standalone bundle. The bin field exposes the `llm-wiki` CLI verbatim.
+
+**Cutting an official release** of `@syasas/llm-wiki` (version bump → commit → tag → GitHub release → npm publish, including the npm 2FA paths and common pitfalls): see [`docs/15-publishing.md`](docs/15-publishing.md). That's the maintainer's full checklist — most contributors don't need it.
 
 ### Uninstalling
 
@@ -433,18 +441,19 @@ For the **design contract** + execution history, see `/docs` in this repo:
 | [`12-graph-view.md`](docs/12-graph-view.md) | 3D graph view design + decisions (v1.0 addition) |
 | [`13-multi-wiki.md`](docs/13-multi-wiki.md) | Multi-wiki switcher: in-app picker, header chip, Cmd+K integration |
 | [`14-roadmap.md`](docs/14-roadmap.md) | **What's remaining.** V1.x quick wins + V2/V3 ideas + known issues, consolidated from every other doc's "deferred" list. |
+| [`15-publishing.md`](docs/15-publishing.md) | Maintainer's release checklist: version bump, build, GitHub release, npm publish, 2FA paths, common pitfalls. |
 | [`dev-log.md`](docs/dev-log.md) | **Execution history.** What was built + why, dated entries. Read with `14-roadmap.md` as the matched pair (history vs. future). |
 | [`dev-setup.md`](docs/dev-setup.md) | Run / stop / recover / troubleshoot |
 
 ---
 
-## Project status (v1.2.0)
+## Project status (v1.2.2)
 
 **All P0 features shipped.** All three Karpathy operations (ingest / query / lint) wired end-to-end with cost previews, error recovery, and one-click fixes. Chats, schema editor, settings, log timeline, source-lineage UI, and the 3D graph view all live.
 
 **Test suite**: ~158 core + 25 llm + 11 ingestion ≈ **194 passing tests**. (One chokidar live-watch test is a known flake.)
 
-**Cross-platform install**: verified end-to-end on macOS / Linux / Windows. v1.2.0 ships as a single 28MB tarball; native deps (`better-sqlite3`, `keytar`) install fresh per-platform via npm.
+**Cross-platform install**: verified end-to-end on macOS / Linux / Windows. v1.2.2 ships as a single ~28MB tarball; native deps (`better-sqlite3`, `keytar`) install fresh per-platform via npm.
 
 **Distribution**: published on npm as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki). `npm install -g @syasas/llm-wiki` is the canonical install. [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest) mirror the same tarball for direct download.
 
