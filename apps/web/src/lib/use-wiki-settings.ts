@@ -2,17 +2,15 @@
 
 import { useEffect, useState } from "react";
 
-export type ModelSlotConfig = { provider: "openrouter" | "ollama"; model: string };
-
 export type WikiSettingsPayload = {
   settings: {
     topic: string;
     defaultModels: {
-      ingest: ModelSlotConfig;
-      query: ModelSlotConfig;
-      chat: ModelSlotConfig;
-      lint: ModelSlotConfig;
-      vision: ModelSlotConfig;
+      ingest: string;
+      query: string;
+      chat: string;
+      lint: string;
+      vision: string;
     };
     autoLintAfterIngest: boolean;
     showCostEstimates: boolean;

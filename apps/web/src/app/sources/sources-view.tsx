@@ -544,8 +544,8 @@ function CostPreviewForSources({
   const isVision =
     mode === "file" && file !== null && /\.(pdf|png|jpg|jpeg|webp)$/i.test(file.name);
   const model = isVision
-    ? settings.settings.defaultModels.vision.model
-    : settings.settings.defaultModels.ingest.model;
+    ? settings.settings.defaultModels.vision
+    : settings.settings.defaultModels.ingest;
 
   // For files, we estimate by file size; PDFs/images ride as base64 in the
   // multimodal call, so the input token cost is roughly bytes/3 (base64 overhead).

@@ -155,7 +155,7 @@ export function QueryView() {
         {settings?.settings.showCostEstimates && question.trim() ? (
           <CostPreview
             text={question}
-            model={settings.settings.defaultModels.query.model}
+            model={settings.settings.defaultModels.query}
             contextOverhead={6000}
             expectedOutputTokens={600}
           />
