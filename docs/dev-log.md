@@ -728,6 +728,79 @@ The character of the OSS project stays unchanged: local-first, BYOK, MIT, no tel
 
 ---
 
+## Sprint V — 2026-05-26: Ollama support shipped, post-merge UX, v1.2.0 release
+
+The Ollama PR (#2 from @savindugeethma) merged. Then a real user (the maintainer himself) hit the failure mode the PR didn't prevent: selecting Ollama in Settings without realizing Ollama itself has to be installed and running locally first, getting a generic "Connection error" with no in-app indication of what to do. Sprint V closes that gap and ships the feature as v1.2.0 — first minor version bump since the V1.x line started.
+
+### V1. PR #2 merged (commit `35149a3`)
+
+Round 2 of PR #2 passed all 4 verification checks from the prdocs playbook:
+
+- `git diff main -- apps/web/src/app/about/page.tsx` empty (branch caught up with main after rebase)
+- `git diff main -- packages/llm/src/client.ts | grep -E "loca.lt|Bypass-Tunnel"` empty (LocalTunnel-specific code removed)
+- `pnpm -r exec tsc --noEmit` exit 0
+- All test suites pass (159 + 25 + 11 = 195) with 1 new test for the legacy-string-shape migration
+
+Bonus: the contributor also updated `docs/05-llm-integration.md` with an Ollama section, which was on the post-merge nice-to-have list. Squash-merged via `gh pr merge 2 --squash --delete-branch`. PR #1 closed pointing at #2.
+
+What landed in main (28 files, +464/-172):
+- `packages/core/src/config.ts` — new `ModelProvider` + `ModelSlotConfig` types; `WikiSettings.defaultModels[slot]` shape goes from `string` to `{ provider, model }`; `parseWikiSettings` includes a backward-compat handler that wraps legacy plain-string slot values in `{ provider: "openrouter", model: raw }` so existing user configs auto-upgrade
+- `packages/llm/src/client.ts` — `createClient(apiKey, provider?)` routes to `http://localhost:11434/v1` (or `OLLAMA_BASE_URL` env var) when provider is `"ollama"`; `mapSdkError` now takes baseURL and uses it to label errors as Ollama vs OpenRouter
+- Eight `apps/web/src/app/api/` routes updated to read `model.provider` + `model.model` from the new shape
+- `apps/web/src/components/settings/models-tab.tsx` — Provider dropdown (OpenRouter / Ollama (Local)) per slot + 10 suggested Ollama models (llama3, mistral, phi3, llava, etc.)
+
+Worth recording for future PR reviews: the 4-round process (PR#1 R1 → PR#1 R2 → PR#2 R1 → PR#2 R2) worked. Contributor accepted feedback directly across rounds, switched from force-pushed amends to separate commits when asked, dropped unrelated scope (pnpm-workspace.yaml migration) when called out, and removed LocalTunnel-specific code without arguing. Healthy signal.
+
+### V2. Post-merge UX gap discovered + fixed (commit `6ce8b1c`)
+
+Right after merge, opened the app and tried the new feature. Set the chat slot to Ollama, sent a message, got "Connection error" because Ollama wasn't installed. The failure mode was generic enough that a less-technical user would have no idea what to do — no in-app hint that Ollama needs separate installation, no link to setup docs, just a connection error from somewhere deep in the OpenAI SDK.
+
+Three surfaces added in one commit (4 files, +633/-7):
+
+- **Amber banner in Settings → Models** (`models-tab.tsx`) — renders when one or more slots currently use Ollama (reads from `original` saved state, not draft). Lists which slots are affected ("ingest, chat") and links to the setup guide. Color is amber not red — it's a "heads-up" not "you broke something."
+
+- **New `/local-models` page** (`apps/web/src/app/local-models/page.tsx`) — ~500-line standalone setup guide. 8 TOC sections: when-to-use (local vs cloud trade-offs), install (macOS / Linux / Windows commands), pull a model, **hardware requirements table** covering 9 models with disk / RAM (min + recommended) / Apple-Silicon tokens-per-sec / CPU-only tokens-per-sec / "best for" columns, connect-to-LLM-Wiki walkthrough, custom OLLAMA_BASE_URL for tunneled/networked setups, troubleshooting (the 6 errors users actually hit including the "Connection error" that triggered this whole sprint), external resources.
+
+- **Cross-references** so users find /local-models from the right places — TOC entry + Settings-Models bullet in `/help` linking inline, plus a brief mention in `/developers` "Swapping LLM providers" section clarifying that Ollama is first-class via the provider field.
+
+The hardware table is the key piece for non-technical users: a quick picker tells someone with an old 8 GB laptop to start with `phi3`, someone with Apple Silicon 16 GB to use `llama3`, someone with a Mac Studio 64 GB unified to try `llama3:70b`. Numbers are rough order-of-magnitude (tokens/sec ±50%) but enough to set expectations before the user downloads a 40 GB model their machine can't actually run.
+
+### V3. Release v1.2.0 (this commit)
+
+First minor version bump since 1.1.0 went out. Justified by the new feature surface (Ollama as a provider + the UX scaffolding around it). Following the established release workflow (see sprint S for the publish gotchas):
+
+1. Bump `apps/web/package.json` 1.1.1 → 1.2.0
+2. Bump `apps/web/src/components/footer.tsx` APP_VERSION to match
+3. `pnpm install` to pick up the version change in the lockfile
+4. `pnpm --filter @llm-wiki/web build` to rebuild standalone
+5. `node apps/web/scripts/build-publish-tarball.mjs` to assemble `apps/web/dist-publish/`
+6. `npm pack` inside `dist-publish/` to produce `syasas-llm-wiki-1.2.0.tgz`
+7. Smoke test by installing the tarball into a clean `/tmp` folder + running `llm-wiki version`
+8. `gh release create v1.2.0 ...` with the tarball as the only asset
+9. User-triggered `npm publish --access public` — passkey 2FA prompts for Touch ID
+
+What users get on `npm install -g @syasas/llm-wiki@latest`:
+- All of v1.1.1 (still works)
+- Plus Ollama support via Settings → Models → Provider dropdown
+- Plus the amber banner if any slot is configured for Ollama
+- Plus `/local-models` setup guide with full install + hardware info
+- Plus `/help` and `/developers` cross-references to the setup guide
+
+Wiki on-disk format unchanged within v1.x, so existing v1.0/v1.1 users upgrade with zero migration friction. The `defaultModels` shape change is the only thing that touches stored data, and the parser handles old shape transparently.
+
+### Where the project is right now (end of sprint V)
+
+| Surface | Status |
+|---|---|
+| OSS npm | v1.2.0 published |
+| First external contribution | ✅ merged (PR #2 from @savindugeethma) |
+| Ollama support | Live with full UX scaffolding around it |
+| Marketing site llmwiki.cc | Live (Phase 2 of cloud plan) |
+| Hosted product | Not built; pending demand validation (Phase 3 of cloud plan) |
+| Tests | 195 passing |
+
+---
+
 ## Open questions for future sessions
 
 > **Note:** The work-needed list has been consolidated into [`docs/14-roadmap.md`](14-roadmap.md). The questions below are *design / architecture* questions that don't translate cleanly into a roadmap entry — when in doubt, prefer the roadmap.

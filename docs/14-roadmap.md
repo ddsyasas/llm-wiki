@@ -2,7 +2,7 @@
 
 **The single forward-looking view: what's left to do, sorted by priority.** Consolidated from "open questions" in `docs/dev-log.md`, "deferred" items in `docs/04-features-v1.md`, "future enhancements" in `docs/12-graph-view.md` / `docs/13-multi-wiki.md`, and known blockers across the codebase.
 
-Last updated: **2026-05-26** (post-U sprint: community / brand / cloud bridge — see dev-log section U for the narrative).
+Last updated: **2026-05-26** (post-V sprint: v1.2.0 released — Ollama support shipped with UX scaffolding; see dev-log section V).
 
 Project website: **[llmwiki.cc](https://llmwiki.cc)**.
 
@@ -13,19 +13,20 @@ Project website: **[llmwiki.cc](https://llmwiki.cc)**.
 ## Status at a glance
 
 ### Product
-- ✅ **v1.1.1 published to npm** as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki) — cross-platform, verified on macOS / Linux / Windows
+- ✅ **v1.2.0 published to npm** as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki) — cross-platform, verified on macOS / Linux / Windows
 - ✅ All P0 + all P1 features shipped end-to-end
 - ✅ 1 of 7 P2 features shipped early (multi-wiki); 6 still V2/V3
-- ✅ V1.x sprint complete across sections P + Q + R
-- ✅ Test suite: ~158 core + 25 llm + 11 ingestion ≈ **194 passing** (1 known chokidar flake)
+- ✅ V1.x sprint complete across sections P + Q + R + V
+- ✅ Test suite: ~159 core + 25 llm + 11 ingestion ≈ **195 passing** (1 known chokidar flake)
 - ✅ Production build + cross-platform install via npm both verified
+- ✅ **Local model support (Ollama)** — first-class provider option in Settings → Models, with amber Settings banner + dedicated `/local-models` setup guide covering install + per-model hardware requirements (dev-log V, was Medium item #7 in CONTRIBUTING.md)
 
 ### Community + brand (dev-log U)
 - ✅ **Contributor infrastructure** in place — CONTRIBUTING.md (prioritized work list), CODE_OF_CONDUCT.md, SECURITY.md, issue templates, PR template, `docs/contributor-walkthrough.md` for first-time contributors
 - ✅ **9 screenshots** at `docs/screenshots/` + arranged narratively in README
 - ✅ **Brand assets** — SVG logo variants (`apps/web/public/logo*.svg`) + `docs/branding.md` design guide; README leads with hero banner + status badges
 - ✅ **Privacy posture** clean — git commits use noreply, contact email is business address, personal Gmails not on any public surface
-- 🟡 **First external PR** (#1 from @savindugeethma — Ollama support) — in iteration; changes requested twice, awaiting Round 3
+- ✅ **First external PR merged** (#2 from @savindugeethma — Ollama support) — 4-round review across PRs #1 and #2, squash-merged 2026-05-26 as commit `35149a3`. Released as part of v1.2.0.
 
 ### Cloud bridge (dev-log U4)
 - ✅ **Marketing site live** at [llmwiki.cc](https://llmwiki.cc) — separate private repo (`github.com/ddsyasas/llmwiki-cloud`), Phase 2 of the cloud plan

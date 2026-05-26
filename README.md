@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  Open source · Local-first · Bring-your-own-key · MIT · v1.1.1
+  Open source · Local-first · Bring-your-own-key · MIT · v1.2.0
 </p>
 
 <p align="center">
@@ -145,7 +145,7 @@ llm-wiki start
 
 That's it — no git clone, no monorepo, ~30 second install. The CLI auto-initializes your wiki folder, picks a free port (3737 by default), and opens the browser. Verified on **macOS / Linux (incl. WSL) / Windows**.
 
-Package on npm: [npmjs.com/package/@syasas/llm-wiki](https://www.npmjs.com/package/@syasas/llm-wiki). Release notes + tarball mirror: [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest). If npm is unavailable for some reason, you can install directly from the GitHub tarball: `npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.1/syasas-llm-wiki-1.1.1.tgz`.
+Package on npm: [npmjs.com/package/@syasas/llm-wiki](https://www.npmjs.com/package/@syasas/llm-wiki). Release notes + tarball mirror: [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest). If npm is unavailable for some reason, you can install directly from the GitHub tarball: `npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.2.0/syasas-llm-wiki-1.2.0.tgz`.
 
 ### From source — for development or contributing
 
@@ -294,7 +294,7 @@ The CLI defaults to port **3737** (vs. `pnpm dev`'s 3000) and auto-picks the nex
 ```
 $ llm-wiki doctor
 Checking installation...
-  ✓ llm-wiki version: 1.1.1
+  ✓ llm-wiki version: 1.2.0
   ✓ Node version: v20.11.0
   ✓ Platform: darwin arm64
 
@@ -324,7 +324,7 @@ npm install -g @syasas/llm-wiki@latest
 llm-wiki version    # verify the new version landed
 ```
 
-`@latest` pulls whatever the newest published version is. To upgrade to a specific version: `npm install -g @syasas/llm-wiki@1.1.1`.
+`@latest` pulls whatever the newest published version is. To upgrade to a specific version: `npm install -g @syasas/llm-wiki@1.2.0`.
 
 If you have a `llm-wiki start` server already running, stop it first with `Ctrl+C` — npm can't replace a binary that's executing. After the install completes, `llm-wiki start` again to pick up the new code.
 
@@ -344,10 +344,10 @@ Then re-run `pnpm dev` (or however you start it). Same data-safety guarantees ap
 
 ```bash
 # Get the latest release URL from https://github.com/ddsyasas/llm-wiki/releases/latest
-npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.1.1/syasas-llm-wiki-1.1.1.tgz
+npm install -g https://github.com/ddsyasas/llm-wiki/releases/download/v1.2.0/syasas-llm-wiki-1.2.0.tgz
 ```
 
-Replace `v1.1.1` / `1.1.1` with whichever version is current on the [releases page](https://github.com/ddsyasas/llm-wiki/releases/latest).
+Replace `v1.2.0` / `1.2.0` with whichever version is current on the [releases page](https://github.com/ddsyasas/llm-wiki/releases/latest).
 
 **Verifying the upgrade**:
 
@@ -431,13 +431,13 @@ For the **design contract** + execution history, see `/docs` in this repo:
 
 ---
 
-## Project status (v1.1.1)
+## Project status (v1.2.0)
 
 **All P0 features shipped.** All three Karpathy operations (ingest / query / lint) wired end-to-end with cost previews, error recovery, and one-click fixes. Chats, schema editor, settings, log timeline, source-lineage UI, and the 3D graph view all live.
 
 **Test suite**: ~158 core + 25 llm + 11 ingestion ≈ **194 passing tests**. (One chokidar live-watch test is a known flake.)
 
-**Cross-platform install**: verified end-to-end on macOS / Linux / Windows. v1.1.1 ships as a single 28MB tarball; native deps (`better-sqlite3`, `keytar`) install fresh per-platform via npm.
+**Cross-platform install**: verified end-to-end on macOS / Linux / Windows. v1.2.0 ships as a single 28MB tarball; native deps (`better-sqlite3`, `keytar`) install fresh per-platform via npm.
 
 **Distribution**: published on npm as [`@syasas/llm-wiki`](https://www.npmjs.com/package/@syasas/llm-wiki). `npm install -g @syasas/llm-wiki` is the canonical install. [GitHub Releases](https://github.com/ddsyasas/llm-wiki/releases/latest) mirror the same tarball for direct download.
 

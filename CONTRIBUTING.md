@@ -46,7 +46,7 @@ These need a bit more context but each is bounded.
 
 6. **Persistent camera state on `/graph`.** Remember the last camera position when navigating away and returning. Store in URL hash or localStorage; restore on mount. The 3D graph code is in `apps/web/src/components/graph/vault-graph.tsx`.
 
-7. **Local-model UI support (Ollama).** The LLM client already works against any OpenAI-compatible base URL. Add a "Provider" picker in Settings → Models with sensible defaults per provider (OpenRouter / Anthropic direct / OpenAI direct / Ollama at `http://localhost:11434/v1`). Wire it through so each operation slot can pick its provider independently.
+7. ~~**Local-model UI support (Ollama).**~~ ✅ **Shipped in v1.2.0** by [@savindugeethma](https://github.com/savindugeethma) in [PR #2](https://github.com/ddsyasas/llm-wiki/pull/2). Provider picker (OpenRouter / Ollama) per slot in Settings → Models. Setup guide + per-model hardware requirements at the in-app `/local-models` page.
 
 8. **Scheduled lint runs.** Cron-style: "Run lint nightly, append result to `log.md`." Either an in-process scheduler (when `llm-wiki start` is running) or a CLI subcommand (`llm-wiki lint --report-to-log`). Discuss approach in an issue first.
 
