@@ -36,6 +36,19 @@ export function Onboarding(props: Props) {
 
 // ---- the welcome wizard -------------------------------------------------
 
+// Curated free-model defaults the wizard writes when the user opts in.
+// Mirrors the picks shipped in v1.2.3's Settings → Models dropdown. Each
+// slot is biased toward the largest free model that reliably produces
+// strict JSON. Centralizing here so future updates (model rotates out of
+// the free tier, better option ships) live in one place.
+const FREE_MODEL_DEFAULTS = {
+  ingest: { provider: "openrouter" as const, model: "meta-llama/llama-3.3-70b-instruct:free" },
+  query:  { provider: "openrouter" as const, model: "nvidia/nemotron-3-super-120b-a12b:free" },
+  chat:   { provider: "openrouter" as const, model: "nvidia/nemotron-3-super-120b-a12b:free" },
+  lint:   { provider: "openrouter" as const, model: "meta-llama/llama-3.3-70b-instruct:free" },
+  vision: { provider: "openrouter" as const, model: "google/gemma-4-31b-it:free" },
+};
+
 function FirstRunWizard(props: Props) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("welcome");
@@ -46,6 +59,9 @@ function FirstRunWizard(props: Props) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<"ok" | "fail" | null>(null);
   const [testMessage, setTestMessage] = useState<string | null>(null);
+  // User's free-models opt-in toggle on the key step. Drives whether the
+  // wizard writes FREE_MODEL_DEFAULTS to /api/settings alongside the key.
+  const [useFreeModels, setUseFreeModels] = useState(false);
 
   function goTo(next: Step) {
     setError(null);
@@ -76,6 +92,21 @@ function FirstRunWizard(props: Props) {
         if (!res.ok) {
           const j = (await res.json().catch(() => ({}))) as { error?: string };
           throw new Error(j.error ?? `key save failed: HTTP ${res.status}`);
+        }
+      }
+      // Free-models opt-in: write the curated defaults to settings.json.
+      // PUT /api/settings merges partial slot configs into existing ones,
+      // so this leaves any other settings field (topic, approval gate,
+      // theme, etc.) untouched.
+      if (useFreeModels) {
+        const res = await fetch("/api/settings", {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ defaultModels: FREE_MODEL_DEFAULTS }),
+        });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(j.error ?? `models save failed: HTTP ${res.status}`);
         }
       }
       return true;
@@ -201,6 +232,8 @@ function FirstRunWizard(props: Props) {
           // already on disk (we just don't surface it here for security).
           // Let them advance without re-typing it.
           alreadyHasKey={!props.needsKey}
+          useFreeModels={useFreeModels}
+          setUseFreeModels={setUseFreeModels}
           onBack={() => goTo("topic")}
           onNext={onAdvanceFromKey}
           onSkip={onSkip}
@@ -351,6 +384,8 @@ function KeyStep({
   testMessage,
   busy,
   error,
+  useFreeModels,
+  setUseFreeModels,
 }: {
   apiKey: string;
   setApiKey: (v: string) => void;
@@ -364,6 +399,8 @@ function KeyStep({
   testMessage: string | null;
   busy: boolean;
   error: string | null;
+  useFreeModels: boolean;
+  setUseFreeModels: (v: boolean) => void;
 }) {
   // Replay flow: a key is already on disk; let the user advance with the
   // input empty. New-install flow: require a non-empty key.
@@ -423,6 +460,53 @@ function KeyStep({
         <code className="font-mono">~/.llm-wiki/config.json</code> (chmod 600).
         Never committed to git.
       </p>
+
+      {/* Free-models opt-in. One toggle button that sets sensible defaults
+          across all five slots. The OpenRouter account/key above is still
+          required — what changes is the per-call cost (zero). Caveats
+          (rate limits, data retention) surface as a Settings banner once
+          the user lands inside the app. */}
+      <div className="mt-6 rounded-md border border-border bg-muted/30 px-4 py-3 text-sm">
+        <p className="font-medium text-foreground">
+          Prefer zero per-call cost? Use free OpenRouter models.
+        </p>
+        <p className="mt-1 text-muted-foreground">
+          You still need the key above (OpenRouter accounts are free; only
+          credit is optional). With one click we&apos;ll set these defaults
+          across all five operations:
+        </p>
+        <ul className="mt-2 space-y-0.5 text-muted-foreground">
+          <li>
+            <span className="font-mono text-xs">ingest / lint</span> · Llama
+            3.3 70B (free)
+          </li>
+          <li>
+            <span className="font-mono text-xs">query / chat</span> ·
+            Nemotron Super 120B (free)
+          </li>
+          <li>
+            <span className="font-mono text-xs">vision</span> · Gemma 4 31B
+            (free)
+          </li>
+        </ul>
+        <p className="mt-2 text-caption text-muted-foreground">
+          Rate-limited (~20/min, ~50/day) and the data may be retained by
+          some providers for training — a banner explaining this appears
+          in Settings → Models. Change any default later from there.
+        </p>
+        <Button
+          variant={useFreeModels ? "default" : "outline"}
+          size="sm"
+          onClick={() => setUseFreeModels(!useFreeModels)}
+          disabled={busy}
+          className="mt-3"
+        >
+          {useFreeModels
+            ? "✓ Free models will be used (click to undo)"
+            : "Use free models by default"}
+        </Button>
+      </div>
+
       {error ? (
         <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
