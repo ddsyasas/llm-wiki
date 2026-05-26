@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -212,6 +213,15 @@ export function ModelsTab() {
     [models, original],
   );
 
+  // Show the Ollama setup banner if ANY slot is currently configured to use
+  // Ollama (saved state, not draft). Without local Ollama running, those slot
+  // operations all fail with a generic "Connection error" — the banner makes
+  // the requirement obvious before the user finds out the painful way.
+  const ollamaSlots = useMemo(
+    () => (original ? SLOTS.filter((s) => original[s].provider === "ollama") : []),
+    [original],
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -238,6 +248,32 @@ export function ModelsTab() {
           for local inference.
         </p>
       </div>
+
+      {/* Ollama setup banner — visible when one or more slots already use
+          Ollama. Static link to /local-models with install + hardware guidance.
+          Not gated on Ollama actually being reachable (would need a server-
+          side ping every render); just a "did you set this up?" reminder. */}
+      {ollamaSlots.length > 0 ? (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/[0.06] px-4 py-3 text-sm">
+          <p className="font-medium text-amber-900 dark:text-amber-200">
+            ⚙ Ollama selected for {ollamaSlots.length === 1 ? "1 slot" : `${ollamaSlots.length} slots`}
+            {ollamaSlots.length > 0 ? ` (${ollamaSlots.join(", ")})` : ""}
+          </p>
+          <p className="mt-1 text-amber-900/80 dark:text-amber-200/80">
+            Ollama runs locally on your machine — it must be installed and
+            running before these operations will work, otherwise they fail
+            with a generic <em>Connection error</em>. See the setup guide for
+            install steps, model recommendations, and hardware requirements per
+            model.
+          </p>
+          <Link
+            href="/local-models"
+            className="mt-2 inline-block text-amber-900 underline underline-offset-2 hover:text-amber-700 dark:text-amber-200 dark:hover:text-amber-100"
+          >
+            Open Ollama setup guide →
+          </Link>
+        </div>
+      ) : null}
 
       {error ? (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>

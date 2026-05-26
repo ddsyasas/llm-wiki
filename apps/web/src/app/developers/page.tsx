@@ -287,12 +287,21 @@ export default function DevelopersPage() {
             against any OpenAI-compatible endpoint.
           </li>
           <li>
-            <strong>Ollama / local model</strong> — point{" "}
-            <code>baseURL</code> at{" "}
-            <code>http://localhost:11434/v1</code> and pick a model slug
-            Ollama knows. Beware: many local models struggle with strict
-            JSON output; defensive parsing helps but won't save badly
-            misformed responses.
+            <strong>Ollama / local model</strong> — first-class supported via
+            the <code>provider</code> field on each model slot in{" "}
+            <code>WikiSettings.defaultModels</code>. <code>createClient(apiKey, "ollama")</code>
+            {" "}routes to <code>http://localhost:11434/v1</code> (or the{" "}
+            <code>OLLAMA_BASE_URL</code> env var if set). User-facing setup
+            instructions and per-model hardware requirements live at the in-app{" "}
+            <Link
+              href="/local-models"
+              className="text-primary underline underline-offset-2"
+            >
+              Local models setup guide
+            </Link>
+            . Beware: many local models struggle with strict JSON output;
+            defensive parsing helps but won&apos;t save badly misformed
+            responses.
           </li>
           <li>
             <strong>Per-operation override</strong> — every operation

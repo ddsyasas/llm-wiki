@@ -424,7 +424,11 @@ export default function HelpPage() {
             <strong>General</strong> — wiki topic, theme (light / dark / auto).
           </li>
           <li>
-            <strong>Models</strong> — pick a provider (OpenRouter or local Ollama) and a model for each operation (ingest, query, chat, lint, vision). You can mix and match cloud models and local inference! Dropdowns of curated choices plus a custom-slug field for anything else are supported.
+            <strong>Models</strong> — pick a provider (OpenRouter or local Ollama) and a model for each operation (ingest, query, chat, lint, vision). You can mix and match cloud models and local inference. Dropdowns of curated choices plus a custom-slug field for anything else. If you pick Ollama anywhere, see the{" "}
+            <Link href="/local-models" className="text-primary underline underline-offset-2">
+              local models setup guide
+            </Link>{" "}
+            for installation + hardware requirements per model — Ollama needs to be running locally before those slots will work.
           </li>
           <li>
             <strong>API</strong> — OpenRouter key. Test before saving; mask
@@ -441,6 +445,37 @@ export default function HelpPage() {
         <p>
           Rule of thumb: cheap-fast model for ingest (you'll run it a lot),
           smarter model for query / lint / chat (user-facing answers).
+        </p>
+      </Section>
+
+      <Section
+        id="local-models"
+        eyebrow="Want to run models locally?"
+        title="Local models (Ollama) — separate setup guide"
+      >
+        <p>
+          Ollama lets you run LLMs on your own machine for free (after the
+          one-time model download), keeping all your data local. LLM Wiki
+          supports it as a per-slot provider in Settings → Models.
+        </p>
+        <p>
+          Because Ollama itself needs to be installed + running before LLM Wiki
+          can talk to it, plus picking the right model depends heavily on what
+          hardware you have, the full setup lives on its own page:
+        </p>
+        <p>
+          <Link
+            href="/local-models"
+            className="text-primary underline underline-offset-2"
+          >
+            → Open the Ollama setup guide
+          </Link>
+        </p>
+        <p>
+          Covers: install steps for macOS / Linux / Windows, pulling models, a
+          hardware-requirements table showing RAM / disk / speed per model on
+          common machines, a quick picker for which model to start with based on
+          your specs, and troubleshooting common errors.
         </p>
       </Section>
 
@@ -704,6 +739,7 @@ const TOC: Array<{ id: string; label: string }> = [
   { id: "dashboard", label: "Dashboard — stats across every wiki" },
   { id: "schema", label: "Schema — editing CLAUDE.md" },
   { id: "settings", label: "Settings — models, costs, key" },
+  { id: "local-models", label: "Local models (Ollama) — separate setup guide" },
   { id: "disk", label: "Where everything lives on disk" },
   { id: "updating", label: "Updating to a new version" },
   { id: "troubleshooting", label: "Troubleshooting" },
