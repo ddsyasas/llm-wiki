@@ -176,15 +176,31 @@ export async function removeRecentWiki(wikiPath: string): Promise<GlobalConfig> 
 // ---- Per-wiki settings (<wikiPath>/.llm-wiki/settings.json) ---------------
 // Lives inside the wiki folder. Safe to commit alongside the wiki.
 
+/** Which inference provider backs a model slot. */
+export type ModelProvider = "openrouter" | "ollama";
+
+const VALID_PROVIDERS: ModelProvider[] = ["openrouter", "ollama"];
+
+/**
+ * Configuration for a single operation slot.
+ * `model` is a provider-specific model slug:
+ *   - OpenRouter: e.g. "anthropic/claude-haiku-4.5"
+ *   - Ollama:     e.g. "llama3", "mistral"
+ */
+export type ModelSlotConfig = {
+  provider: ModelProvider;
+  model: string;
+};
+
 export type WikiSettings = {
   version: 1;
   topic: string;
   defaultModels: {
-    ingest: string;
-    query: string;
-    chat: string;
-    lint: string;
-    vision: string;
+    ingest: ModelSlotConfig;
+    query: ModelSlotConfig;
+    chat: ModelSlotConfig;
+    lint: ModelSlotConfig;
+    vision: ModelSlotConfig;
   };
   autoLintAfterIngest: boolean;
   showCostEstimates: boolean;
@@ -197,6 +213,11 @@ export type WikiSettings = {
   requireApprovalForIngest: boolean;
 };
 
+/** Helper to build a slot config with an explicit provider. */
+function slotConfig(model: string, provider: ModelProvider = "openrouter"): ModelSlotConfig {
+  return { provider, model };
+}
+
 export const DEFAULT_WIKI_SETTINGS: WikiSettings = {
   version: 1,
   topic: "",
@@ -204,11 +225,11 @@ export const DEFAULT_WIKI_SETTINGS: WikiSettings = {
     // Slugs follow OpenRouter conventions and the Claude 4.x family (current
     // as of 2026-05). If you bump these, also update
     // packages/llm/src/models.ts DEFAULT_MODELS to match.
-    ingest: "anthropic/claude-haiku-4.5",
-    query: "anthropic/claude-sonnet-4.6",
-    chat: "anthropic/claude-sonnet-4.6",
-    lint: "anthropic/claude-sonnet-4.6",
-    vision: "anthropic/claude-sonnet-4.6",
+    ingest: slotConfig("anthropic/claude-haiku-4.5"),
+    query: slotConfig("anthropic/claude-sonnet-4.6"),
+    chat: slotConfig("anthropic/claude-sonnet-4.6"),
+    lint: slotConfig("anthropic/claude-sonnet-4.6"),
+    vision: slotConfig("anthropic/claude-sonnet-4.6"),
   },
   autoLintAfterIngest: false,
   showCostEstimates: true,
@@ -243,8 +264,22 @@ function parseWikiSettings(raw: unknown): WikiSettings {
   if (typeof models === "object" && models !== null) {
     const m = models as Record<string, unknown>;
     for (const slot of ["ingest", "query", "chat", "lint", "vision"] as const) {
-      if (typeof m[slot] === "string" && m[slot].length > 0) {
-        out.defaultModels[slot] = m[slot] as string;
+      const raw = m[slot];
+      if (typeof raw === "string" && raw.length > 0) {
+        // Backward-compat: old format stored a plain model string.
+        // Migrate to the new { provider, model } shape, defaulting to openrouter.
+        out.defaultModels[slot] = { provider: "openrouter", model: raw };
+      } else if (typeof raw === "object" && raw !== null) {
+        const entry = raw as Record<string, unknown>;
+        const model = typeof entry["model"] === "string" && entry["model"].length > 0
+          ? entry["model"]
+          : out.defaultModels[slot].model;
+        const rawProvider = entry["provider"];
+        const provider: ModelProvider =
+          typeof rawProvider === "string" && VALID_PROVIDERS.includes(rawProvider as ModelProvider)
+            ? (rawProvider as ModelProvider)
+            : "openrouter";
+        out.defaultModels[slot] = { provider, model };
       }
     }
   }

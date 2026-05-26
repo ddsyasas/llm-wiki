@@ -1,14 +1,17 @@
 # 05 LLM Integration
 
-## Provider: OpenRouter
+## Providers: OpenRouter and local Ollama
 
-We use [OpenRouter](https://openrouter.ai) as the single API provider. Reasons:
-
-- One API key gives access to Claude, GPT, Gemini, Llama, Mistral, Qwen, and more
-- Single OpenAI-compatible API surface (use the `openai` npm SDK)
-- Pay-as-you-go, no minimums, no contracts
-- Users get model choice without code changes
-- They can switch providers later (direct Anthropic, OpenAI, Ollama) by changing the base URL
+We support two API providers:
+1. **OpenRouter**: The default cloud provider.
+   - One API key gives access to Claude, GPT, Gemini, Llama, Mistral, Qwen, and more
+   - Single OpenAI-compatible API surface (use the `openai` npm SDK)
+   - Pay-as-you-go, no minimums, no contracts
+   - Users get model choice without code changes
+2. **Ollama**: A local-first inference provider.
+   - Run open weights models (like `llama3`, `mistral`, `gemma2`, `phi3`) entirely on your own hardware for free and with complete privacy
+   - Supports local connections (`http://localhost:11434`) as well as remote instances via LocalTunnel/VPS
+   - Easily swappable per-module in settings
 
 ## Client setup
 
@@ -17,7 +20,19 @@ In `packages/llm/src/client.ts`:
 ```typescript
 import OpenAI from "openai";
 
-export function createClient(apiKey: string) {
+export function createClient(apiKey: string, provider?: "openrouter" | "ollama") {
+  if (provider === "ollama") {
+    const rawBaseUrl = process.env["OLLAMA_BASE_URL"] || "http://localhost:11434";
+    const baseURL = rawBaseUrl.endsWith("/v1") ? rawBaseUrl : `${rawBaseUrl.replace(/\/$/, "")}/v1`;
+    return new OpenAI({
+      apiKey: "ollama",
+      baseURL,
+      defaultHeaders: {
+        "Bypass-Tunnel-Reminder": "true", // Bypass LocalTunnel landing page if configured via tunnel
+      },
+    });
+  }
+
   return new OpenAI({
     apiKey,
     baseURL: "https://openrouter.ai/api/v1",

@@ -15,7 +15,16 @@ export type LlmClient = OpenAI;
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
-export function createClient(apiKey: string): LlmClient {
+export function createClient(apiKey: string, provider?: "openrouter" | "ollama"): LlmClient {
+  if (provider === "ollama") {
+    const rawBaseUrl = process.env["OLLAMA_BASE_URL"] || "http://localhost:11434";
+    const baseURL = rawBaseUrl.endsWith("/v1") ? rawBaseUrl : `${rawBaseUrl.replace(/\/$/, "")}/v1`;
+    return new OpenAI({
+      apiKey: "ollama",
+      baseURL,
+    });
+  }
+
   if (!apiKey) throw new Error("createClient: apiKey is required");
   return new OpenAI({
     apiKey,
@@ -280,7 +289,7 @@ export async function chatComplete(opts: ChatCompleteOptions): Promise<ChatCompl
         },
       };
     } catch (err) {
-      const mapped = mapSdkError(err, opts.model);
+      const mapped = mapSdkError(err, opts.model, opts.client.baseURL);
       lastError = mapped;
 
       if (mapped instanceof ContextLengthError || mapped instanceof UnknownModelError) {
@@ -304,7 +313,7 @@ export async function chatComplete(opts: ChatCompleteOptions): Promise<ChatCompl
 // Maps OpenAI SDK errors into our typed surface so callers never need to
 // reach into the SDK's error shape. Anything we don't recognize bubbles up
 // as a generic LlmError to keep error handling exhaustive.
-function mapSdkError(err: unknown, model: string): LlmError {
+function mapSdkError(err: unknown, model: string, baseURL?: string): LlmError {
   if (err instanceof LlmError) return err;
 
   // The OpenAI SDK throws APIError subclasses with status, message, type,
@@ -318,11 +327,13 @@ function mapSdkError(err: unknown, model: string): LlmError {
     headers?: Record<string, string>;
   };
 
+  const isOllama = baseURL && (baseURL.includes("localhost") || baseURL.includes("11434"));
+  const provider = isOllama ? "ollama" : "openrouter";
   const msg = (e.message ?? String(err)).toLowerCase();
 
   if (e.status === 429) {
     const retryAfter = parseRetryAfter(e.headers?.["retry-after"]);
-    return new RateLimitError(retryAfter, err);
+    return new RateLimitError(retryAfter, err, provider);
   }
 
   if (msg.includes("context length") || msg.includes("maximum context") || msg.includes("too long")) {
@@ -335,11 +346,12 @@ function mapSdkError(err: unknown, model: string): LlmError {
     msg.includes("not available") ||
     msg.includes("unknown model")
   ) {
-    return new UnknownModelError(model, err);
+    return new UnknownModelError(model, err, provider);
   }
 
   if (e.status && e.status >= 500) {
-    return new NetworkError(`server error from OpenRouter (${e.status})`, err);
+    const serviceName = isOllama ? "Ollama" : "OpenRouter";
+    return new NetworkError(`server error from ${serviceName} (${e.status})`, err);
   }
 
   if (

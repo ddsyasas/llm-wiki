@@ -155,8 +155,11 @@ export default function HelpPage() {
               openrouter.ai/keys
             </a>{" "}
             — pay-as-you-go, one key gives access to Claude, GPT, Gemini,
-            Llama, more. We never see it; it goes into your OS keychain when
-            possible, otherwise a chmod-600 file in <code>~/.llm-wiki/</code>.
+            Llama, more. Stored safely on your machine.
+            <br />
+            <span className="text-xs text-muted-foreground">
+              Note: If you plan to use local Ollama for all models, you do not need an OpenRouter key! You can skip this key setup step during onboarding and configure Ollama in Settings.
+            </span>
           </li>
         </ol>
         <p>
@@ -421,13 +424,11 @@ export default function HelpPage() {
             <strong>General</strong> — wiki topic, theme (light / dark / auto).
           </li>
           <li>
-            <strong>Models</strong> — pick a model for each operation (ingest,
-            query, chat, lint, vision). Dropdowns of curated choices plus a
-            custom-slug field for anything else OpenRouter supports.
+            <strong>Models</strong> — pick a provider (OpenRouter or local Ollama) and a model for each operation (ingest, query, chat, lint, vision). You can mix and match cloud models and local inference! Dropdowns of curated choices plus a custom-slug field for anything else are supported.
           </li>
           <li>
             <strong>API</strong> — OpenRouter key. Test before saving; mask
-            after.
+            after. (Not needed if you only use local Ollama!).
           </li>
           <li>
             <strong>Costs</strong> — running tally of input/output tokens per
@@ -561,8 +562,12 @@ llm-wiki start       # back up and running`}
       >
         <ul className="space-y-3">
           <Trouble
-            symptom="“OpenRouter API key not configured”"
-            fix="Open Settings → API and paste a key from openrouter.ai/keys."
+            symptom="“OpenRouter API key not configured” (when not using Ollama)"
+            fix="Open Settings → API and paste a key from openrouter.ai/keys. If you wanted to use local Ollama, make sure that Settings → Models has the provider for the active module set to Ollama."
+          />
+          <Trouble
+            symptom="“server error from Ollama / LocalTunnel (502)” or connection hanging"
+            fix="Your local Ollama instance on port 11434 is down or your LocalTunnel endpoint has disconnected/timed out. Make sure `ollama serve` is active and running on your local machine, and your `.env` has the correct `OLLAMA_BASE_URL`."
           />
           <Trouble
             symptom="“model not available on OpenRouter: anthropic/claude-3-5-sonnet”"

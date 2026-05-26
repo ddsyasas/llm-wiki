@@ -8,6 +8,6 @@ export const dynamic = "force-dynamic";
 // the client view and fail loud at /api/query with a no-key error instead
 // of redirecting to onboarding.
 export default async function QueryPage() {
-  await requireSetup();
+  await requireSetup("query");
   return <QueryView />;
 }

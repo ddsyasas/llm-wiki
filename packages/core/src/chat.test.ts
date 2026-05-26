@@ -123,7 +123,7 @@ describe("deleteChat", () => {
   it("moves the file to .llm-wiki/trash/chats/ and removes the DB row", async () => {
     const row = await createChat(wikiPath, db, { model: "any/model", title: "Doomed" });
     const r = await deleteChat(wikiPath, db, row.id);
-    expect(r.trashedPath).toContain(".llm-wiki/trash/chats/");
+    expect(r.trashedPath.replace(/\\/g, "/")).toContain(".llm-wiki/trash/chats/");
     await expect(
       access(join(wikiPath, WIKI_PATHS.chats, "inbox", row.filename)),
     ).rejects.toThrow();

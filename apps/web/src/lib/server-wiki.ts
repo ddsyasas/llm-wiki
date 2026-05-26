@@ -125,14 +125,22 @@ export async function openWikiContext(): Promise<WikiContext> {
  * Pages that don't: `/`, `/about`, `/help`, `/developers`, `/settings`
  * (the user needs to be able to reach Settings to configure things).
  */
-export async function requireSetup(): Promise<void> {
+export async function requireSetup(slot?: keyof WikiSettings["defaultModels"]): Promise<void> {
   const [apiKeyStatus, settings] = await Promise.all([
     getApiKey(),
     loadWikiSettings(resolveWikiPath()),
   ]);
-  const needsKey = apiKeyStatus.key === null;
+  const hasKey = !!apiKeyStatus.key;
+
+  let needsKey = false;
+  if (slot) {
+    needsKey = settings.defaultModels[slot].provider === "openrouter" && !hasKey;
+  }
+
   const needsTopic = settings.topic.trim().length === 0;
-  if (needsKey || needsTopic) {
+  if (needsTopic) {
     redirect("/");
+  } else if (needsKey) {
+    redirect("/?needsKey=1");
   }
 }

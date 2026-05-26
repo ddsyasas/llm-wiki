@@ -433,7 +433,9 @@ export async function restoreDeletedPage(
   const trashDir = join(wikiPath, WIKI_PATHS.tooling, WIKI_TRASH_DIR);
   const trashPath = join(trashDir, trashFilename);
   // Reject anything that escapes the trash dir.
-  if (!trashPath.startsWith(trashDir + "/") && trashPath !== trashDir) {
+  const normalizedTrashPath = trashPath.replace(/\\/g, "/");
+  const normalizedTrashDir = trashDir.replace(/\\/g, "/");
+  if (!normalizedTrashPath.startsWith(normalizedTrashDir + "/") && normalizedTrashPath !== normalizedTrashDir) {
     throw new Error("trashFilename must not contain path separators");
   }
   if (!(await fileExists(trashPath))) {

@@ -8,6 +8,6 @@ export const dynamic = "force-dynamic";
 // the client view and fail loud at the /api/ingest route the moment the
 // user tries to add anything, instead of redirecting to onboarding first.
 export default async function SourcesPage() {
-  await requireSetup();
+  await requireSetup("ingest");
   return <SourcesView />;
 }
