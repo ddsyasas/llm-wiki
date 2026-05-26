@@ -14,6 +14,7 @@
 </p>
 
 <p align="center">
+  <a href="https://llmwiki.cc"><img src="https://img.shields.io/badge/site-llmwiki.cc-991b1b" alt="llmwiki.cc"></a>
   <a href="https://www.npmjs.com/package/@syasas/llm-wiki"><img src="https://img.shields.io/npm/v/@syasas/llm-wiki?color=991b1b&label=npm" alt="npm version"></a>
   <a href="https://github.com/ddsyasas/llm-wiki/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
   <a href="https://github.com/ddsyasas/llm-wiki/releases/latest"><img src="https://img.shields.io/github/v/release/ddsyasas/llm-wiki?color=991b1b" alt="latest release"></a>
@@ -127,7 +128,13 @@ Everything is plain markdown. Delete the app, open the folder in Obsidian / VS C
 
 ## Install + run
 
-Two paths. Pick one.
+Three paths. Pick one.
+
+### Hosted — try without installing
+
+The hosted version lives at **[llmwiki.cc](https://llmwiki.cc)**. No install, no Node, no OpenRouter account required to look around — sign up, click around, start ingesting. Currently in waitlist: hosted product launches as paid tiers when the waitlist signals demand. Join the list on the site if you want an email when it goes live.
+
+For everyone who'd rather run it themselves (the local-first promise this project was built on stays untouched), the two install paths below are the canonical way:
 
 ### Quick start — install the CLI (recommended)
 
