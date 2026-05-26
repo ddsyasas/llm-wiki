@@ -106,7 +106,12 @@ function buildPublishablePackageJson(src, packageJsonByName) {
       type: "git",
       url: "https://github.com/ddsyasas/llm-wiki.git",
     },
-    homepage: "https://github.com/ddsyasas/llm-wiki#readme",
+    // Project homepage shown on the npm package page. Points at the
+    // marketing site (llmwiki.cc) rather than the GitHub README — for
+    // non-developers who land here from a search, the marketing site is a
+    // better landing than a raw README. README/source code reachable via
+    // the repository field below.
+    homepage: "https://llmwiki.cc",
     bugs: { url: "https://github.com/ddsyasas/llm-wiki/issues" },
     keywords: [
       "llm",

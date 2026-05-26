@@ -220,6 +220,19 @@ export default function AboutPage() {
           . Verified on macOS, Linux, Windows.
         </p>
         <p className="mt-2 text-caption text-muted-foreground">
+          Project website:{" "}
+          <a
+            href="https://llmwiki.cc"
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary underline underline-offset-2"
+          >
+            llmwiki.cc
+          </a>{" "}
+          — also has a hosted version (waitlist) for people who&apos;d rather
+          not install anything.
+        </p>
+        <p className="mt-2 text-caption text-muted-foreground">
           LLM Wiki is not affiliated with Andrej Karpathy or Anthropic; the
           pattern is his, the implementation is independent.
         </p>
