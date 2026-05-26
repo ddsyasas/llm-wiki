@@ -409,6 +409,11 @@ async function cmdStart(args) {
     console.log(`Wiki: ${wikiPath}`);
   }
 
+  // Update banner. Runs before spawn so the message lands above the Next
+  // server logs that take over stdio. Reads cache only — no network on the
+  // hot path. Stale cache triggers a background refresh for next time.
+  await maybePrintUpdateBanner(await readPackageVersion(), args.flags.quiet);
+
   const env = {
     ...process.env,
     LLM_WIKI_PATH: wikiPath,
@@ -433,6 +438,106 @@ async function cmdStart(args) {
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   child.on("exit", (code) => process.exit(code ?? 0));
+}
+
+// ---- update check --------------------------------------------------------
+// Cached on disk in ~/.llm-wiki/update-check.json. The cached "latest" string
+// drives the banner; we refresh in the background so the user never waits on
+// the registry. Net effect: first run after an upgrade is published is
+// silent; the banner appears on the *next* start. Matches the
+// `update-notifier` library's behavior and avoids slowing startup.
+
+const UPDATE_CHECK_TTL_MS = 24 * 60 * 60 * 1000;
+const NPM_REGISTRY_LATEST = "https://registry.npmjs.org/@syasas/llm-wiki/latest";
+
+function updateCheckPath() {
+  return join(globalConfigDir(), "update-check.json");
+}
+
+// Loose semver compare — returns true if `a` > `b`. Handles "1.2.10" > "1.2.9"
+// correctly (numeric, not string). Prerelease tags (-beta, -rc) drop to a
+// lower-than-equal precedence so we never nag stable users to install a beta.
+function semverGt(a, b) {
+  const parse = (v) => {
+    const [core, pre] = String(v).split("-");
+    const parts = core.split(".").map((n) => Number.parseInt(n, 10));
+    return { parts, isPre: Boolean(pre) };
+  };
+  const A = parse(a);
+  const B = parse(b);
+  for (let i = 0; i < 3; i++) {
+    const ai = A.parts[i] ?? 0;
+    const bi = B.parts[i] ?? 0;
+    if (Number.isNaN(ai) || Number.isNaN(bi)) return false;
+    if (ai !== bi) return ai > bi;
+  }
+  if (A.isPre !== B.isPre) return !A.isPre;
+  return false;
+}
+
+async function readUpdateCache() {
+  try {
+    const raw = await readFile(updateCheckPath(), "utf8");
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.latest === "string" && typeof parsed?.lastCheck === "number") {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeUpdateCache(latest) {
+  try {
+    await mkdir(globalConfigDir(), { recursive: true });
+    await writeFile(
+      updateCheckPath(),
+      `${JSON.stringify({ lastCheck: Date.now(), latest }, null, 2)}\n`,
+      "utf8",
+    );
+  } catch {
+    // Cache is opportunistic — silent failures are fine.
+  }
+}
+
+async function refreshUpdateCache() {
+  try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 3000);
+    const res = await fetch(NPM_REGISTRY_LATEST, { signal: ctrl.signal });
+    clearTimeout(timeout);
+    if (!res.ok) return;
+    const body = await res.json();
+    if (typeof body?.version === "string") {
+      await writeUpdateCache(body.version);
+    }
+  } catch {
+    // Offline, registry down, slow — silent. Try again next run.
+  }
+}
+
+async function maybePrintUpdateBanner(current, quiet) {
+  if (quiet) return;
+  if (process.env["NO_UPDATE_NOTIFIER"] === "1") return;
+  const cache = await readUpdateCache();
+  const stale = !cache || Date.now() - cache.lastCheck > UPDATE_CHECK_TTL_MS;
+  // Kick off a refresh if stale. Fire-and-forget — next start surfaces it.
+  if (stale) void refreshUpdateCache();
+  if (!cache?.latest) return;
+  if (!semverGt(cache.latest, current)) return;
+  // 36 = inside-width of the box. Mirrors the first-run banner's box style.
+  const innerWidth = 51;
+  const headline = `  Update available: ${current} → ${cache.latest}`;
+  const cmd = `  Run: npm install -g @syasas/llm-wiki@latest`;
+  const top = "─".repeat(innerWidth);
+  const pad = (s) => s + " ".repeat(Math.max(0, innerWidth - s.length));
+  process.stdout.write(
+    `\n\x1b[33m╭${top}╮\x1b[0m\n` +
+      `\x1b[33m│\x1b[0m\x1b[1m${pad(headline)}\x1b[0m\x1b[33m│\x1b[0m\n` +
+      `\x1b[33m│\x1b[0m${pad(cmd)}\x1b[33m│\x1b[0m\n` +
+      `\x1b[33m╰${top}╯\x1b[0m\n\n`,
+  );
 }
 
 // ---- first-run banner ----------------------------------------------------
