@@ -322,12 +322,14 @@ describe("ingestVisionSource (mocked LLM)", () => {
       model: "stub/vision",
     });
 
-    // LLM was called with multimodal user content
+    // LLM was called with multimodal user content. PDFs ride as
+    // `type: "file"` (OpenRouter's PDF contract); only images use
+    // `image_url`. Asserting against the PDF input here.
     const payload = (create.mock.calls as unknown as Array<[{ messages: Array<{ role: string; content: unknown }> }]>)[0]?.[0];
     expect(payload?.messages[1]?.role).toBe("user");
     expect(Array.isArray(payload?.messages[1]?.content)).toBe(true);
     const parts = payload?.messages[1]?.content as Array<{ type: string }>;
-    expect(parts.some((p) => p.type === "image_url")).toBe(true);
+    expect(parts.some((p) => p.type === "file")).toBe(true);
     expect(parts.some((p) => p.type === "text")).toBe(true);
 
     // The same apply path ran
