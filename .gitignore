@@ -35,3 +35,6 @@ pnpm-debug.log*
 
 # Local review/screenshot scratch
 ss/
+
+# Local-only PR review notes — never pushed
+prdocs/
