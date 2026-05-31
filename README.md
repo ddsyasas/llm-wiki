@@ -25,6 +25,20 @@ This is a from-scratch implementation of [Andrej Karpathy's LLM Wiki pattern](ht
 
 ---
 
+## Demo
+
+<p align="center">
+  <a href="https://youtu.be/9FzlkDmF51Y">
+    <img src="https://img.youtube.com/vi/9FzlkDmF51Y/maxresdefault.jpg" alt="Watch the LLM Wiki demo on YouTube" width="600">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://youtu.be/9FzlkDmF51Y"><strong>▶ Watch the walkthrough</strong></a> — ingest a source, watch pages get written and cross-linked, then query and lint the wiki.
+</p>
+
+---
+
 ## Why this exists
 
 | Existing tools | What they miss |
