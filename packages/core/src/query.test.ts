@@ -10,6 +10,7 @@ import { indexPageForSearch, upsertPage } from "./db-pages";
 import { listUsageRows } from "./db-usage";
 import { createPage, PageAlreadyExistsError } from "./editor";
 import { queryWiki } from "./query";
+import { buildQueryPrompt } from "./prompts/query";
 import type { QueryResponse } from "./schema";
 import { initWikiFolder, readPage, writePage } from "./wiki";
 
@@ -74,6 +75,19 @@ async function seed(slug: string, title: string, body: string) {
 }
 
 describe("queryWiki", () => {
+  it("uses the configured output language in the query prompt", () => {
+    const prompt = buildQueryPrompt({
+      schema: "# Schema\n",
+      index: "# Index\n",
+      outputLanguage: "Spanish",
+      relevantPages: [],
+      question: "What is this?",
+    });
+
+    expect(prompt.system).toContain("Write all human-facing text in natural Spanish");
+    expect(prompt.system).toContain("everything else should be Spanish");
+  });
+
   it("returns the LLM's parsed answer and records usage", async () => {
     await seed("shors-algorithm", "Shor's Algorithm", "Quantum factoring in polynomial time.");
 

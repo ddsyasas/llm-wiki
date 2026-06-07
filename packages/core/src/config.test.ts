@@ -7,9 +7,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   addRecentWiki,
   DEFAULT_GLOBAL_CONFIG,
+  DEFAULT_OUTPUT_LANGUAGE,
   DEFAULT_WIKI_SETTINGS,
   globalConfigPath,
   loadGlobalConfig,
+  loadOutputLanguage,
   loadWikiSettings,
   removeRecentWiki,
   saveGlobalConfig,
@@ -46,12 +48,14 @@ describe("loadGlobalConfig", () => {
       openrouterKey: "sk-or-v1-test",
       recentWikis: ["/a", "/b"],
       uiTheme: "dark",
+      outputLanguage: DEFAULT_OUTPUT_LANGUAGE,
     });
     expect(await loadGlobalConfig()).toEqual({
       version: 1,
       openrouterKey: "sk-or-v1-test",
       recentWikis: ["/a", "/b"],
       uiTheme: "dark",
+      outputLanguage: DEFAULT_OUTPUT_LANGUAGE,
     });
   });
 
@@ -71,6 +75,16 @@ describe("loadGlobalConfig", () => {
   it("rejects a non-object root value", async () => {
     await writeFile(globalConfigPath(), "[]", "utf8");
     await expect(loadGlobalConfig()).rejects.toThrow(/expected a JSON object/);
+  });
+});
+
+describe("loadOutputLanguage", () => {
+  it("reads the value from global config only", async () => {
+    await saveGlobalConfig({
+      ...DEFAULT_GLOBAL_CONFIG,
+      outputLanguage: "Japanese",
+    });
+    expect(await loadOutputLanguage()).toBe("Japanese");
   });
 });
 

@@ -18,6 +18,7 @@ import {
 } from "./ingest";
 import type { IngestResponse } from "./schema";
 import { initWikiFolder, readPage, WIKI_PATHS, writePage } from "./wiki";
+import { buildIngestPrompt } from "./prompts/ingest";
 
 function stubClient(responses: IngestResponse[]): LlmClient {
   const queue = [...responses];
@@ -83,6 +84,19 @@ const sampleResponse: IngestResponse = {
 };
 
 describe("ingestSource (mocked LLM)", () => {
+  it("uses the configured output language in the ingest prompt", () => {
+    const prompt = buildIngestPrompt({
+      schema: "# Schema\n",
+      index: "# Index\n",
+      outputLanguage: "Spanish",
+      relevantPages: [],
+      source: { title: "Doc", format: "md", content: "content" },
+    });
+
+    expect(prompt.system).toContain("Write all human-facing text in natural Spanish");
+    expect(prompt.system).toContain("everything else should be Spanish");
+  });
+
   it("writes new pages to disk, DB, FTS5, and the index", async () => {
     const client = stubClient([sampleResponse]);
     const result = await ingestSource({

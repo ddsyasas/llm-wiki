@@ -1,21 +1,28 @@
 import type { ExistingPageSnippet } from "./ingest";
+import { DEFAULT_OUTPUT_LANGUAGE } from "../config";
+import { humanTextInstruction } from "./language";
 
-const SYSTEM_RULES = `You are answering questions in a persistent chat thread against a personal LLM Wiki.
+function buildSystemRules(outputLanguage: string): string {
+  return `You are answering questions in a persistent chat thread against a personal LLM Wiki.
 
 Rules:
 - Cite wiki pages with [[slug]] (use the slugs from the index — kebab-case, lowercase).
 - Reference earlier turns in the thread when relevant.
 - If the wiki doesn't cover something, say so honestly — don't invent.
 - Use markdown freely (lists, headings, tables). No JSON output unless explicitly asked.
-- Be concise but complete. Prioritize the user's question over restating context.`;
+- Be concise but complete. Prioritize the user's question over restating context.
+- ${humanTextInstruction(outputLanguage)} Keep slugs exactly as required; everything else should be ${outputLanguage} even if the thread or source pages are in another language.`;
+}
 
 export type BuildChatSystemPromptOpts = {
   schema: string;
   index: string;
+  outputLanguage: string;
   relevantPages: ExistingPageSnippet[];
 };
 
 export function buildChatSystemPrompt(opts: BuildChatSystemPromptOpts): string {
+  const outputLanguage = opts.outputLanguage.trim() || DEFAULT_OUTPUT_LANGUAGE;
   const pagesBlock =
     opts.relevantPages.length > 0
       ? opts.relevantPages
@@ -27,7 +34,7 @@ export function buildChatSystemPrompt(opts: BuildChatSystemPromptOpts): string {
       : "(no pages currently match — the wiki may not cover this thread's topic yet)";
 
   return [
-    SYSTEM_RULES,
+    buildSystemRules(outputLanguage),
     "",
     "User schema (CLAUDE.md):",
     fenceMarkdown(opts.schema),

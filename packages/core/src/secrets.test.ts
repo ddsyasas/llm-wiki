@@ -81,6 +81,7 @@ describe("keychain path (keytar available)", () => {
       openrouterKey: "sk-or-v1-stale",
       recentWikis: [],
       uiTheme: "auto",
+      outputLanguage: "English",
     });
     await setApiKey("sk-or-v1-fresh");
     const cfg = await loadGlobalConfig();

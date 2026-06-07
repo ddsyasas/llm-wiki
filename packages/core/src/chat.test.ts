@@ -19,6 +19,7 @@ import {
   sendChatMessage,
 } from "./chat";
 import { openInMemoryDb, type Db } from "./db";
+import { buildChatSystemPrompt } from "./prompts/chat";
 import { initWikiFolder, WIKI_PATHS } from "./wiki";
 
 let wikiPath: string;
@@ -36,6 +37,18 @@ afterEach(async () => {
 });
 
 describe("createChat + readChat", () => {
+  it("uses the configured output language in the chat prompt", () => {
+    const prompt = buildChatSystemPrompt({
+      schema: "# Schema\n",
+      index: "# Index\n",
+      outputLanguage: "Spanish",
+      relevantPages: [],
+    });
+
+    expect(prompt).toContain("Write all human-facing text in natural Spanish");
+    expect(prompt).toContain("everything else should be Spanish");
+  });
+
   it("creates a chat file with frontmatter and registers it in DB", async () => {
     const row = await createChat(wikiPath, db, {
       folder: "inbox",

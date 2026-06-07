@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 
 import {
+  loadOutputLanguage,
+  loadGlobalConfig,
   DEFAULT_WIKI_SETTINGS,
   loadWikiSettings,
+  saveGlobalConfig,
   saveWikiSettings,
   type ModelSlotConfig,
   type WikiSettings,
@@ -14,12 +17,22 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const wikiPath = resolveWikiPath();
-  const settings = await loadWikiSettings(wikiPath);
-  return NextResponse.json({ settings, wikiPath });
+  const [wikiSettings, outputLanguage] = await Promise.all([
+    loadWikiSettings(wikiPath),
+    loadOutputLanguage(),
+  ]);
+  return NextResponse.json({
+    settings: {
+      ...wikiSettings,
+      outputLanguage,
+    },
+    wikiPath,
+  });
 }
 
 type PutBody = Partial<{
   topic: string;
+  outputLanguage: string;
   defaultModels: Partial<Record<keyof WikiSettings["defaultModels"], Partial<ModelSlotConfig>>>;
   autoLintAfterIngest: boolean;
   showCostEstimates: boolean;
@@ -34,7 +47,10 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "expected JSON body" }, { status: 400 });
   }
   const wikiPath = resolveWikiPath();
-  const current = await loadWikiSettings(wikiPath);
+  const [current, globalConfig] = await Promise.all([
+    loadWikiSettings(wikiPath),
+    loadGlobalConfig(),
+  ]);
   const next: WikiSettings = {
     version: 1,
     topic: typeof body.topic === "string" ? body.topic : current.topic,
@@ -58,8 +74,22 @@ export async function PUT(req: Request) {
         ? body.requireApprovalForIngest
         : current.requireApprovalForIngest,
   };
-  await saveWikiSettings(wikiPath, next);
+  const wikiSettingsChanged = JSON.stringify(next) !== JSON.stringify(current);
+  if (wikiSettingsChanged) {
+    await saveWikiSettings(wikiPath, next);
+  }
+  const nextOutputLanguage =
+    typeof body.outputLanguage === "string" && body.outputLanguage.trim().length > 0
+      ? body.outputLanguage.trim()
+      : globalConfig.outputLanguage;
+  if (nextOutputLanguage !== globalConfig.outputLanguage) {
+    await saveGlobalConfig({ ...globalConfig, outputLanguage: nextOutputLanguage });
+  }
   // Return both the saved settings and the model defaults for the UI's
   // "reset to default" affordance.
-  return NextResponse.json({ ok: true, settings: next, defaults: DEFAULT_WIKI_SETTINGS });
+  return NextResponse.json({
+    ok: true,
+    settings: { ...next, outputLanguage: nextOutputLanguage },
+    defaults: DEFAULT_WIKI_SETTINGS,
+  });
 }

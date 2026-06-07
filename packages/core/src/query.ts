@@ -6,6 +6,7 @@ import { insertUsage } from "./db-usage";
 import { buildQueryPrompt } from "./prompts/query";
 import type { ExistingPageSnippet } from "./prompts/ingest";
 import { QueryResponseSchema, type QueryResponse } from "./schema";
+import { loadOutputLanguage } from "./config";
 import { readIndex, readPage, readSchema } from "./wiki";
 
 const TOP_K_RELEVANT_PAGES = 10;
@@ -36,9 +37,10 @@ export async function queryWiki(opts: QueryWikiOptions): Promise<QueryResponse> 
 
   opts.onProgress?.({ phase: "context", message: "Loading wiki schema and index..." });
 
-  const [schema, index] = await Promise.all([
+  const [schema, index, outputLanguage] = await Promise.all([
     readSchemaOrDefault(opts.wikiPath),
     readIndexOrDefault(opts.wikiPath),
+    loadOutputLanguage(),
   ]);
 
   opts.onProgress?.({ phase: "context", message: "Searching for relevant pages..." });
@@ -49,6 +51,7 @@ export async function queryWiki(opts: QueryWikiOptions): Promise<QueryResponse> 
   const prompt = buildQueryPrompt({
     schema,
     index,
+    outputLanguage,
     relevantPages,
     question: opts.question,
   });

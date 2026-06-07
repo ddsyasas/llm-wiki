@@ -9,6 +9,7 @@ import { openInMemoryDb, type Db } from "./db";
 import { indexPageForSearch, upsertPage } from "./db-pages";
 import { removeBrokenLink } from "./editor";
 import { getLastLintSummary, getLintHistory, lintWiki } from "./lint";
+import { buildLintPrompt } from "./prompts/lint";
 import type { LintResponse } from "./schema";
 import { appendLog, initWikiFolder, readPage, writePage } from "./wiki";
 
@@ -84,6 +85,19 @@ const noopLlmResponse: LintResponse = {
 };
 
 describe("lintWiki — local checks", () => {
+  it("uses the configured output language in the lint prompt", () => {
+    const prompt = buildLintPrompt({
+      schema: "# Schema\n",
+      index: "# Index\n",
+      outputLanguage: "Spanish",
+      pages: [],
+      deterministicFindings: [],
+    });
+
+    expect(prompt.system).toContain("Write all human-facing text in natural Spanish");
+    expect(prompt.system).toContain("everything else should be Spanish");
+  });
+
   it("returns an empty-but-healthy result on an empty wiki without calling the LLM", async () => {
     const create = vi.fn();
     const client = { chat: { completions: { create } } } as unknown as LlmClient;

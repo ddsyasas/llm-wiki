@@ -10,6 +10,7 @@ export type ModelSlot = {
 export type WikiSettingsPayload = {
   settings: {
     topic: string;
+    outputLanguage: string;
     defaultModels: {
       ingest: ModelSlot;
       query: ModelSlot;

@@ -10,6 +10,7 @@ import { extractWikiLinks } from "./links";
 import { buildLintPrompt, type DeterministicFinding } from "./prompts/lint";
 import type { ExistingPageSnippet } from "./prompts/ingest";
 import { LintResponseSchema, type LintResponse } from "./schema";
+import { loadOutputLanguage } from "./config";
 import { appendLog, readIndex, readPage, readSchema, WIKI_PATHS } from "./wiki";
 
 // Cap how many pages we send to the LLM. With ~800 words per snippet, 60
@@ -152,13 +153,15 @@ export async function lintWiki(opts: LintWikiOptions): Promise<LintResult> {
       message: `Calling ${opts.model} with ${pagesForLlm.length}${truncated ? `/${snippets.length}` : ""} pages…`,
     });
 
-    const [schema, index] = await Promise.all([
+    const [schema, index, outputLanguage] = await Promise.all([
       readSchemaOrDefault(opts.wikiPath),
       readIndexOrDefault(opts.wikiPath),
+      loadOutputLanguage(),
     ]);
     const prompt = buildLintPrompt({
       schema,
       index,
+      outputLanguage,
       pages: pagesForLlm,
       deterministicFindings,
     });

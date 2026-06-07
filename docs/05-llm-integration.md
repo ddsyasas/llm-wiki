@@ -150,6 +150,30 @@ export const LintResponseSchema = z.object({
 
 Keep system prompts in `packages/core/src/prompts/` as separate `.ts` files exporting string templates. This makes them easy to find, version, and test.
 
+### Output language contract
+
+Human-facing LLM output should follow a single user-configured output language, set in Settings → General.
+
+This setting affects prose produced by the model across every operation:
+- ingest: page titles, page bodies, update reasons, index summaries, log entries, contradiction descriptions
+- query: answers, caveats, and any suggested new page content
+- chat: assistant replies
+- lint: issue descriptions, suggested fixes, follow-up questions
+- lint quick-fixes / stub-page generation: generated page titles and bodies
+
+This setting does **not** change machine-readable fields. Keep these stable regardless of language:
+- slugs
+- enum values (`type`, `category`, `severity`, `overallHealth`, etc.)
+- JSON field names
+- wikilink targets inside `[[slug]]`
+
+Prompt rule of thumb:
+- “Write all human-facing text in natural {LANGUAGE}.”
+- “Keep slugs and enum values exactly as required.”
+- “Everything else should be in {LANGUAGE}, even if the source material or existing wiki content is in another language.”
+
+This keeps the wiki structurally stable while letting users maintain the readable layer in the language they actually want to work in.
+
 ### Ingest prompt structure
 
 ```

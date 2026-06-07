@@ -13,6 +13,7 @@ import type { Db } from "./db";
 import { insertUsage } from "./db-usage";
 import { applyManualEdit, createPage, type ManualEditResult } from "./editor";
 import { rebuildIndexFromPages } from "./index-builder";
+import { DEFAULT_OUTPUT_LANGUAGE, loadOutputLanguage } from "./config";
 import { PAGE_TYPES, type Page, type PageType } from "./types";
 import { readIndex, readPage, readSchema } from "./wiki";
 
@@ -51,7 +52,9 @@ export type CreateStubPageResult = {
   modelUsed: string;
 };
 
-const STUB_PAGE_SYSTEM = `You write a brand-new wiki page to fill a gap in an LLM Wiki.
+function buildStubPageSystem(outputLanguage: string): string {
+  const language = outputLanguage.trim() || DEFAULT_OUTPUT_LANGUAGE;
+  return `You write a brand-new wiki page to fill a gap in an LLM Wiki.
 
 Rules:
 - Output ONLY a JSON object matching the schema. No preamble, no markdown fences.
@@ -61,14 +64,16 @@ Rules:
 - Cross-link with [[slug]] notation to pages that referenced this stub, so it's not orphaned.
 - Don't fabricate detailed facts you can't ground in the context excerpts. If a fact isn't in the context, state it generically or leave it out.
 - Be honest about uncertainty in a brief opening sentence.
+- Write all human-facing text in natural ${language}. This includes title and content. Keep slugs exactly as required; everything else should be ${language} even if the surrounding wiki content is in another language.
 
 JSON_SHAPE:
 {
-  "title": "Human-readable title (e.g. 'No-Cloning Theorem')",
+  "title": "Human-readable title in ${language} (e.g. 'No-Cloning Theorem')",
   "type": "concept",
-  "content": "Markdown body. Open with one sentence defining the topic, then 2-3 short paragraphs or a short list. Use [[other-slug]] cross-links.",
+  "content": "Markdown body in ${language}. Open with one sentence defining the topic, then 2-3 short paragraphs or a short list. Use [[other-slug]] cross-links.",
   "tags": ["string", "tags"]
 }`;
+}
 
 function formatReferencingContext(
   missingSlug: string,
@@ -92,9 +97,10 @@ function formatReferencingContext(
 export async function createStubPage(
   opts: CreateStubPageOptions,
 ): Promise<CreateStubPageResult> {
-  const [schema, index] = await Promise.all([
+  const [schema, index, outputLanguage] = await Promise.all([
     readSchemaOrDefault(opts.wikiPath),
     readIndexOrDefault(opts.wikiPath),
+    loadOutputLanguage(),
   ]);
 
   const user = [
@@ -112,7 +118,7 @@ export async function createStubPage(
   const result = await callLLM({
     client: opts.client,
     model: opts.model,
-    system: STUB_PAGE_SYSTEM,
+    system: buildStubPageSystem(outputLanguage),
     user,
     schema: CreateStubResponseSchema,
   });
@@ -171,7 +177,9 @@ export type ApplyLintFixResult = {
   noop: boolean;
 };
 
-const APPLY_FIX_SYSTEM = `You apply a lint fix to a wiki page.
+function buildApplyFixSystem(outputLanguage: string): string {
+  const language = outputLanguage.trim() || DEFAULT_OUTPUT_LANGUAGE;
+  return `You apply a lint fix to a wiki page.
 
 You are given a page's current body, a description of the issue, and a proposed fix. Apply the fix and return the page body's NEW content. Keep everything else identical — only change what the fix requires.
 
@@ -181,17 +189,22 @@ Rules:
 - Preserve the page's voice and structure (headings, lists, paragraphs).
 - The fix is usually one or two sentences of change. Don't rewrite the whole page.
 - If the fix is impossible without losing important content, return the original content unchanged and explain in changeSummary.
+- Write all human-facing text in natural ${language}. This includes newContent and changeSummary. Keep wikilinks exactly as required; everything else should be ${language} even if the page being edited is in another language.
 
 JSON_SHAPE:
 {
-  "newContent": "Full page body, with the fix applied. Markdown only — no frontmatter.",
-  "changeSummary": "One sentence describing what changed."
+  "newContent": "Full page body, with the fix applied. Markdown only — no frontmatter. Write it in ${language}.",
+  "changeSummary": "One sentence describing what changed, in ${language}."
 }`;
+}
 
 export async function applyLintSuggestedFix(
   opts: ApplyLintFixOptions,
 ): Promise<ApplyLintFixResult> {
-  const page = await readPage(opts.wikiPath, opts.pageSlug);
+  const [page, outputLanguage] = await Promise.all([
+    readPage(opts.wikiPath, opts.pageSlug),
+    loadOutputLanguage(),
+  ]);
 
   const user = [
     `Page slug: ${opts.pageSlug}`,
@@ -207,7 +220,7 @@ export async function applyLintSuggestedFix(
   const result = await callLLM({
     client: opts.client,
     model: opts.model,
-    system: APPLY_FIX_SYSTEM,
+    system: buildApplyFixSystem(outputLanguage),
     user,
     schema: ApplyFixResponseSchema,
   });

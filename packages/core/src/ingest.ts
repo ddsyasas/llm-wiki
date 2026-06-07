@@ -16,6 +16,7 @@ import { insertSource, updateSource } from "./db-sources";
 import { upsertSyncState } from "./db-sync";
 import { insertUsage } from "./db-usage";
 import { parseIndexEntries, renderIndex } from "./index-builder";
+import { loadOutputLanguage } from "./config";
 import { buildIngestPrompt, type ExistingPageSnippet } from "./prompts/ingest";
 import { IngestResponseSchema, type IngestResponse } from "./schema";
 import type {
@@ -75,9 +76,10 @@ export type IngestSourceOptions = {
 export async function ingestSource(opts: IngestSourceOptions): Promise<IngestResponse> {
   opts.onProgress?.({ phase: "context", message: "Loading wiki schema and index..." });
 
-  const [schema, index] = await Promise.all([
+  const [schema, index, outputLanguage] = await Promise.all([
     readSchemaOrDefault(opts.wikiPath),
     readIndexOrDefault(opts.wikiPath),
+    loadOutputLanguage(),
   ]);
 
   opts.onProgress?.({
@@ -94,6 +96,7 @@ export async function ingestSource(opts: IngestSourceOptions): Promise<IngestRes
   const prompt = buildIngestPrompt({
     schema,
     index,
+    outputLanguage,
     relevantPages,
     source: {
       title: opts.source.title,
@@ -166,9 +169,10 @@ export async function ingestVisionSource(
   opts: IngestVisionSourceOptions,
 ): Promise<IngestResponse> {
   opts.onProgress?.({ phase: "context", message: "Loading wiki schema and index..." });
-  const [schema, index] = await Promise.all([
+  const [schema, index, outputLanguage] = await Promise.all([
     readSchemaOrDefault(opts.wikiPath),
     readIndexOrDefault(opts.wikiPath),
+    loadOutputLanguage(),
   ]);
 
   // We don't run FTS5 retrieval for vision sources (we have no text yet).
@@ -177,6 +181,7 @@ export async function ingestVisionSource(
   const prompt = buildIngestPrompt({
     schema,
     index,
+    outputLanguage,
     relevantPages: [],
     source: {
       title: opts.source.title,

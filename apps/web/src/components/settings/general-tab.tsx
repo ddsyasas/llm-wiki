@@ -9,6 +9,7 @@ import { useTheme, type UiTheme } from "@/components/theme-provider";
 type SettingsResponse = {
   settings: {
     topic: string;
+    outputLanguage: string;
     requireApprovalForIngest?: boolean;
   };
   wikiPath: string;
@@ -21,6 +22,8 @@ export function GeneralTab() {
 
   const [topic, setTopic] = useState<string>("");
   const [original, setOriginal] = useState<string>("");
+  const [outputLanguage, setOutputLanguage] = useState<string>("");
+  const [originalLanguage, setOriginalLanguage] = useState<string>("");
   const [wikiPath, setWikiPath] = useState<string>("");
   const [requireApproval, setRequireApproval] = useState(false);
   const [approvalSaving, setApprovalSaving] = useState(false);
@@ -36,6 +39,8 @@ export function GeneralTab() {
         const data = (await res.json()) as SettingsResponse;
         setTopic(data.settings.topic);
         setOriginal(data.settings.topic);
+        setOutputLanguage(data.settings.outputLanguage);
+        setOriginalLanguage(data.settings.outputLanguage);
         setWikiPath(data.wikiPath);
         setRequireApproval(Boolean(data.settings.requireApprovalForIngest));
       } catch (err) {
@@ -70,10 +75,11 @@ export function GeneralTab() {
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ topic }),
+        body: JSON.stringify({ topic, outputLanguage }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setOriginal(topic);
+      setOriginalLanguage(outputLanguage);
       setFlash("Saved.");
     } catch (err) {
       setError((err as Error).message);
@@ -82,7 +88,7 @@ export function GeneralTab() {
     }
   }
 
-  const dirty = topic !== original;
+  const dirty = topic !== original || outputLanguage !== originalLanguage;
 
   return (
     <div className="space-y-6">
@@ -127,6 +133,25 @@ llm-wiki start ~/llm-wiki-machine-learning`}
             switches every page, chat, source, and schema in one go.
           </p>
         </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-medium">Output language</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Human-facing LLM output is written in this language. Slugs and enum values stay fixed;
+          only titles, summaries, page bodies, and similar prose follow this setting.
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Input
+            value={outputLanguage}
+            onChange={(e) => setOutputLanguage(e.target.value)}
+            placeholder="e.g. English, Spanish, French"
+            className="sm:flex-1"
+          />
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Saved in <code>~/.llm-wiki/config.json</code> and shared by all wikis.
+        </p>
       </div>
 
       <div>

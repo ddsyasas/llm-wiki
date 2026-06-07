@@ -36,7 +36,7 @@ export async function DELETE() {
     // Strip the field by destructuring it out, then save the rest.
     const { onboardingCompletedAt: _drop, ...rest } = current;
     void _drop;
-    await saveGlobalConfig({ ...rest, version: 1 });
+    await saveGlobalConfig({ ...rest, version: 1, outputLanguage: current.outputLanguage });
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json(

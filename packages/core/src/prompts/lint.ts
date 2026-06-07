@@ -1,6 +1,9 @@
 import type { ExistingPageSnippet } from "./ingest";
+import { DEFAULT_OUTPUT_LANGUAGE } from "../config";
+import { humanTextInstruction } from "./language";
 
-const SYSTEM_RULES = `You health-check an LLM Wiki.
+function buildSystemRules(): string {
+  return `You health-check an LLM Wiki.
 
 Look for:
 - Contradictions between pages (two pages disagreeing on the same fact)
@@ -16,20 +19,22 @@ Also suggest follow-up questions the user could investigate to fill gaps.
 The user has already run a deterministic local scan; treat the "deterministic findings" below
 as ground truth and focus your output on semantic issues the local scan can't see
 (contradictions, stale claims, missing-page suggestions, gaps).`;
+}
 
-const JSON_SHAPE = `Output ONLY a valid JSON object matching this exact shape. No prose, no markdown fences:
+function buildJsonShape(outputLanguage: string): string {
+  return `Output ONLY a valid JSON object matching this exact shape. No prose, no markdown fences:
 
 {
   "issues": [
     {
       "severity": "high",
       "type": "contradiction",
-      "description": "What disagrees, and where.",
+      "description": "What disagrees, and where, in ${outputLanguage}.",
       "affectedPages": ["slug-a", "slug-b"],
       "suggestedFix": "One-line action the user could take, or null."
     }
   ],
-  "suggestedQuestions": ["Up to 5 follow-up questions the user could investigate."],
+  "suggestedQuestions": ["Up to 5 follow-up questions the user could investigate, in ${outputLanguage}."],
   "overallHealth": "good"
 }
 
@@ -51,6 +56,7 @@ Overall health rubric:
 - "good" — only low-severity issues.
 - "fair" — some medium-severity issues.
 - "needs-work" — any high-severity issues.`;
+}
 
 export type DeterministicFinding = {
   type: "broken-link" | "orphan";
@@ -61,11 +67,13 @@ export type DeterministicFinding = {
 export type BuildLintPromptOpts = {
   schema: string;
   index: string;
+  outputLanguage: string;
   pages: ExistingPageSnippet[];
   deterministicFindings: DeterministicFinding[];
 };
 
 export function buildLintPrompt(opts: BuildLintPromptOpts): { system: string; user: string } {
+  const outputLanguage = opts.outputLanguage.trim() || DEFAULT_OUTPUT_LANGUAGE;
   const pagesBlock =
     opts.pages.length > 0
       ? opts.pages
@@ -84,7 +92,9 @@ export function buildLintPrompt(opts: BuildLintPromptOpts): { system: string; us
           .join("\n");
 
   const system = [
-    SYSTEM_RULES,
+    buildSystemRules(),
+    "",
+    `${humanTextInstruction(outputLanguage)} This includes issue descriptions, suggestedFix, suggestedQuestions, and any explanatory text. Keep slugs and enum values exactly as required; everything else should be ${outputLanguage} even if the wiki content is in another language.`,
     "",
     "User schema (CLAUDE.md):",
     fenceMarkdown(opts.schema),
@@ -95,7 +105,7 @@ export function buildLintPrompt(opts: BuildLintPromptOpts): { system: string; us
     "Deterministic findings (already detected; you do not need to repeat these):",
     fenceMarkdown(findingsBlock),
     "",
-    JSON_SHAPE,
+    buildJsonShape(outputLanguage),
   ].join("\n");
 
   const user = [

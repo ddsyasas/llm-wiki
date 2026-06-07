@@ -11,7 +11,7 @@ import {
 } from "@llm-wiki/llm";
 import matter from "gray-matter";
 
-import { loadWikiSettings } from "./config";
+import { loadOutputLanguage, loadWikiSettings } from "./config";
 import type { Db } from "./db";
 import {
   deleteChat as deleteChatRow,
@@ -343,7 +343,11 @@ export async function sendChatMessage(
 ): Promise<SendChatMessageResult> {
   const before = getChat(opts.db, opts.chatId);
   if (!before) throw chatNotFound(opts.chatId);
-  const model = opts.modelOverride ?? (await readChatModel(opts.wikiPath, before));
+  const [settings, outputLanguage] = await Promise.all([
+    loadWikiSettings(opts.wikiPath),
+    loadOutputLanguage(),
+  ]);
+  const model = opts.modelOverride ?? (await readChatModel(opts.wikiPath, before, settings));
 
   // 1. Persist the user's turn first so a mid-call failure doesn't lose their
   // input.
@@ -356,7 +360,12 @@ export async function sendChatMessage(
     readIndexOrDefault(opts.wikiPath),
   ]);
   const relevantPages = await loadRelevantPages(opts.wikiPath, opts.db, opts.userMessage);
-  const system = buildChatSystemPrompt({ schema, index, relevantPages });
+  const system = buildChatSystemPrompt({
+    schema,
+    index,
+    outputLanguage,
+    relevantPages,
+  });
 
   const messages: LlmChatMessage[] = [
     { role: "system", content: system },
@@ -396,15 +405,21 @@ export async function sendChatMessage(
   };
 }
 
-async function readChatModel(wikiPath: string, row: ChatRow): Promise<string> {
+async function readChatModel(
+  wikiPath: string,
+  row: ChatRow,
+  preloadedSettings?: Awaited<ReturnType<typeof loadWikiSettings>>,
+): Promise<string> {
   // Per docs/07 the chat file frontmatter carries the model. Fall back to the
   // wiki's current query model — never a hardcoded slug, since providers
   // retire models and a stale literal here would silently break every chat.
-  let settings;
-  try {
-    settings = await loadWikiSettings(wikiPath);
-  } catch {
-    // fallback
+  let settings = preloadedSettings;
+  if (!settings) {
+    try {
+      settings = await loadWikiSettings(wikiPath);
+    } catch {
+      // fallback
+    }
   }
 
   try {

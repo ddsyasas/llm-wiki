@@ -11,10 +11,17 @@ import { WIKI_PATHS } from "./wiki";
 
 export type UiTheme = "light" | "dark" | "auto";
 
+export const DEFAULT_OUTPUT_LANGUAGE = "English";
+
 export type GlobalConfig = {
   version: 1;
   /** Present only when keychain is unavailable. See secrets.ts. */
   openrouterKey?: string;
+  /**
+   * Human-facing output language used by LLM prompts across all wikis.
+   * Stored globally so the same preference applies everywhere.
+   */
+  outputLanguage: string;
   /**
    * The wiki folder the app is currently pointing at. Written by the
    * Settings → Wikis picker. Consulted by apps/web's resolveWikiPath()
@@ -37,6 +44,7 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   version: 1,
   recentWikis: [],
   uiTheme: "auto",
+  outputLanguage: DEFAULT_OUTPUT_LANGUAGE,
 };
 
 const VALID_THEMES: UiTheme[] = ["light", "dark", "auto"];
@@ -66,6 +74,9 @@ function parseGlobalConfig(raw: unknown): GlobalConfig {
   }
   if (typeof data["onboardingCompletedAt"] === "string" && data["onboardingCompletedAt"].length > 0) {
     out.onboardingCompletedAt = data["onboardingCompletedAt"];
+  }
+  if (typeof data["outputLanguage"] === "string" && data["outputLanguage"].trim().length > 0) {
+    out.outputLanguage = data["outputLanguage"].trim();
   }
   if (Array.isArray(data["recentWikis"])) {
     out.recentWikis = data["recentWikis"].filter((v): v is string => typeof v === "string");
@@ -106,6 +117,11 @@ export async function saveGlobalConfig(config: GlobalConfig): Promise<void> {
   } catch {
     // best-effort; Windows ignores POSIX modes.
   }
+}
+
+/** Returns the globally configured output language. */
+export async function loadOutputLanguage(): Promise<string> {
+  return (await loadGlobalConfig()).outputLanguage;
 }
 
 export async function addRecentWiki(wikiPath: string): Promise<GlobalConfig> {
