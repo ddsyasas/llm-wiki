@@ -186,7 +186,7 @@ Open `http://localhost:3000` → the first-run wizard collects your wiki topic +
 
 | Tool | Minimum | How to get it |
 |---|---|---|
-| **Node.js** | 20.x | [nodejs.org](https://nodejs.org) or `nvm install 20` (recommended) |
+| **Node.js** | 20.x or newer | [nodejs.org](https://nodejs.org) or `nvm install 20` (recommended) |
 | **LLM provider** | one of: | Pick **either** an OpenRouter key OR a local Ollama install (or both — mix per-slot) |
 | ↳ OpenRouter (cloud) | — | [openrouter.ai/keys](https://openrouter.ai/keys) — pay-as-you-go, ~$5 lasts most users 2-4 weeks at default models. Best quality (frontier Claude / GPT / Gemini). |
 | ↳ Ollama (local) | — | [ollama.com/download](https://ollama.com/download) + `ollama pull llama3` (or similar). Free per query, runs on your machine. See in-app `/local-models` page for full install + hardware requirements per model. |
